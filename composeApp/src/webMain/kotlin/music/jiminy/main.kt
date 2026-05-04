@@ -5,8 +5,10 @@ import androidx.compose.ui.window.ComposeViewport
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.js.Js
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.browser.window
@@ -21,7 +23,20 @@ import music.jiminy.viewmodel.ConnectionViewModel
 fun main() {
     ComposeViewport {
         val jsonInstance = Json
-        val client: HttpClient = HttpClient(Js) {
+        val client = HttpClient(Js) {
+            // This allows the validator to run for non-2xx codes
+            expectSuccess = true
+
+            HttpResponseValidator {
+                validateResponse { response ->
+                    val statusCode = response.status.value
+
+                    if (statusCode == HttpStatusCode.Locked.value) {
+                        throw LockedForRecordingException()
+                    }
+                }
+            }
+
             install(ContentNegotiation) {
                 json(jsonInstance)
             }
@@ -31,8 +46,8 @@ fun main() {
         }
 
         val protocol = window.location.protocol
-        val hostname: String = window.location.hostname
-        val port: Int = window.location.port.ifBlank { "80" }.toInt()
+        val hostname = window.location.hostname
+        val port = window.location.port.ifBlank { SERVER_PORT.toString() }.toInt()
         val baseUrl = "$protocol//$hostname:$port"
 
         val mixerService = MixerService(hostname, port, client)

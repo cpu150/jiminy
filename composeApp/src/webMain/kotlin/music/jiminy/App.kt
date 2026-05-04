@@ -2,6 +2,7 @@ package music.jiminy
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,15 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
-import androidx.compose.material.icons.filled.RecordVoiceOver
-import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.Voicemail
-import androidx.compose.material.icons.outlined.AltRoute
-import androidx.compose.material.icons.outlined.MusicNote
-import androidx.compose.material.icons.outlined.Route
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.SettingsInputComponent
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,6 +22,7 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,21 +30,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import music.jiminy.screen.ConnectionScreen
 import music.jiminy.screen.MixerScreen
+import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
 import music.jiminy.screen.common.TextError
-import music.jiminy.screen.common.TextTitle
 import music.jiminy.viewmodel.ConnectionViewModel
 
 @Composable
 fun App(viewModel: () -> ConnectionViewModel) {
     MaterialTheme(darkColorScheme()) {
         val viewModel = viewModel()
-        val scrollState = rememberScrollState()
-        val screenModifier = Modifier
-            .verticalScroll(scrollState)
-            .background(MaterialTheme.colorScheme.background)
-            .padding(12.dp)
-
         var mixerTab: ConnectionViewModel.JiminyTab? = null
 
         LaunchedEffect(Unit) {
@@ -68,46 +56,73 @@ fun App(viewModel: () -> ConnectionViewModel) {
             )
         }
 
-        val tabs by viewModel.tabs.collectAsStateWithLifecycle()
         val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+        val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
 
         LaunchedEffect(selectedTab) { if (selectedTab != mixerTab) viewModel.mixerDisconnect() }
 
-        selectedTab?.let { selectedTab ->
-            val errorMsg by viewModel.errorMessage.collectAsStateWithLifecycle()
-            val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
+        val isRecording by viewModel.isRecording.collectAsState()
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
-            ) {
-                SecondaryTabRow(
-                    selectedTabIndex = selectedTab.index,
-                    containerColor = TabRowDefaults.primaryContainerColor,
-                    contentColor = TabRowDefaults.primaryContentColor,
-                    indicator = {
-                        TabRowDefaults.SecondaryIndicator(
-                            Modifier.tabIndicatorOffset(selectedTab.index, matchContentSize = false)
-                        )
-                    },
-                    divider = { HorizontalDivider() },
-                ) {
-                    tabs.forEach { tab ->
-                        Tab(
-                            selected = selectedTab.index == tab.index,
-                            onClick = { viewModel.selectTab(tab.index) },
-                            text = tab.title,
-                        )
-                    }
-                }
+        Box(Modifier.fillMaxSize()) {
+            MainScreen({ viewModel })
 
-                errorMsg?.let { TextError(it) }
-
-                selectedTab.content({ viewModel }, screenModifier)
+            if (isRecording) {
+                RecordingOverlay(onStopRequest = viewModel::stopRecording)
             }
-        } ?: TextError("Error while loading the tabs")
+
+            // TODO : connectionStatus
+        }
     }
+}
+
+@Composable
+fun MainScreen(
+    viewModel: () -> ConnectionViewModel,
+    modifier: Modifier = Modifier,
+) {
+    val viewModel = viewModel()
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+    val tabs by viewModel.tabs.collectAsStateWithLifecycle()
+
+    val scrollState = rememberScrollState()
+    val screenModifier = Modifier
+        .verticalScroll(scrollState)
+        .background(MaterialTheme.colorScheme.background)
+        .padding(12.dp)
+
+    selectedTab?.let { selectedTab ->
+        val errorMsg by viewModel.errorMessage.collectAsStateWithLifecycle()
+
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+        ) {
+            SecondaryTabRow(
+                selectedTabIndex = selectedTab.index,
+                containerColor = TabRowDefaults.primaryContainerColor,
+                contentColor = TabRowDefaults.primaryContentColor,
+                indicator = {
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(selectedTab.index, matchContentSize = false)
+                    )
+                },
+                divider = { HorizontalDivider() },
+            ) {
+                tabs.forEach { tab ->
+                    Tab(
+                        selected = selectedTab.index == tab.index,
+                        onClick = { viewModel.selectTab(tab.index) },
+                        text = tab.title,
+                    )
+                }
+            }
+
+            errorMsg?.let { TextError(it) }
+
+            selectedTab.content({ viewModel }, screenModifier)
+        }
+    } ?: TextError("Error while loading the tabs")
 }
 
 @Composable

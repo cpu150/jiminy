@@ -91,8 +91,9 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
     routing {
         webSocket(WS_MIXER) {
             println("Jiminy Server - WebSocket - Adding new session $this")
-            sessions.add(this)
             try {
+                sessions.add(this)
+
                 if (controller.isRecording) {
                     sendSerialized(JiminyCommand.StopRecording())
                 }
@@ -123,6 +124,7 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
                 println("Jiminy Server - ERROR - WebSocket error: $e - ${e.localizedMessage}")
             } finally {
                 println("Cleaning up resources for this session...")
+                sessions.remove(this)
             }
         }
 
@@ -131,9 +133,8 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
         get(WS_LINK_DEVICES) { call.respond(controller.getDeviceLinksList()) }
 
         post(WS_LINK_DEVICES) {
-            val links = call.receive<List<JiminyCommand.Link>>()
-
             try {
+                val links = call.receive<List<JiminyCommand.Link>>()
                 // Run all connections in parallel for speed
                 val failed = links
                     .map { async { controller.linkDevice(it) } }
@@ -151,8 +152,8 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
         }
 
         post(WS_START_RECORDING) {
-            val nodes = call.receive<JiminyCommand.StartRecording>()
             try {
+                val nodes = call.receive<JiminyCommand.StartRecording>()
                 controller.startRecording(nodes)
                 controller.broadcastAll(sessions.toList(), nodes)
                 call.respond(HttpStatusCode.OK, "Recording started")

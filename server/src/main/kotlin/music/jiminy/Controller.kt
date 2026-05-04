@@ -8,11 +8,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class Controller : JiminyServerControllerI {
@@ -129,7 +131,7 @@ class Controller : JiminyServerControllerI {
     }
 
     private var recordProcess: Process? = null
-    private val virtualSinkName = PIPEWIRE_RECORDER
+    private val virtualSinkName = PW_RECORDER_NAME
 
     @OptIn(ExperimentalAtomicApi::class)
     private val _isRecording = AtomicBoolean(false)
@@ -138,7 +140,8 @@ class Controller : JiminyServerControllerI {
     override val isRecording: Boolean
         get() = _isRecording.load()
 
-    private fun getChannelName(index: Int) = "track$index"
+    private fun getSpeakerName(index: Int) =
+        "${PW_RECORDER_NAME}:$RECORDER_PLAYBACK_ROOT$index"
 
     @OptIn(ExperimentalAtomicApi::class)
     override suspend fun startRecording(commands: JiminyCommand.StartRecording) =
@@ -149,52 +152,35 @@ class Controller : JiminyServerControllerI {
                 ?.takeIf { _isRecording.compareAndSet(expectedValue = false, newValue = true) }
                 ?.let { recorders ->
                     try {
-                        val channelCount = recorders.size
-                        val trackNames = recorders.joinToString(",") { "\"${it.label}\"" }
-                        val channelNames =
-                            List(recorders.size) { getChannelName(it) }.joinToString(",")
+                        val channelCount = PW_RECORDER_CHANNEL_COUNT
                         val current = LocalDateTime.now()
                         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd - HH-mm-ss")
                         val date = current.format(formatter)
-                        val filename = "\"$date.wav\""
+                        val filename = "$date.wav"
 
-                        // Create the Multichannel Virtual Sink (e.g., 6 channels)
-                        // We use pactl for this as it's the most reliable way to spawn a null-sink
-                        ProcessBuilder(
-                            "pactl", "load-module", "module-null-sink",
-                            "sink_name=$virtualSinkName",
-                            "channels=$channelCount",
-                            "channel_map=$channelNames",
-                            "metadata=node.name=$virtualSinkName",
-                        ).start().waitFor()
+                        recorders.forEachIndexed { index, instrument ->
+                            linkDevice(
+                                JiminyCommand.Link(
+                                    instrument.nodeName,
+                                    getSpeakerName(index),
+                                    LinkType.Connect
+                                )
+                            )
+                        }
 
-                        // Start pw-record targeting the Virtual Sink
                         val recordProcess = ProcessBuilder(
                             "pw-record",
                             "--target", virtualSinkName,
-                            "--channels", "$channelCount",
-                            "--channel-map", channelNames,
-                            "--property", "node.name=\"Jiminy Recorder\"",
-                            "--property", "media.title=\"Jiminy Session\"",
-                            "--property", "node.description=\"Recorded the $date\"",
-                            "--property", "media.title=$trackNames",
+                            "--channels", channelCount,
+                            "--rate", "48000",
+                            "--format", "s32",
                             filename,
                         )
-//                recordProcess.environment()["XDG_RUNTIME_DIR"] = "/run/user/1000"
-//                recordProcess.directory(File("/home/pi/recordings")) // Ensure this folder exists!
+
+//                        recordProcess.environment()["XDG_RUNTIME_DIR"] = "/run/user/1000"
+                        recordProcess.directory(File(PW_RECORDER_DIRECTORY))
                         recordProcess.start()
 
-                        // Small delay to let the recording node register in the graph
-                        delay(1000)
-
-                        // Link each instrument to its dedicated channel pair
-                        recorders.forEachIndexed { index, instrument ->
-//                    "playback_" or "input_" ??
-                            val speaker = "playback_${getChannelName(index)}"
-                            linkDevice(
-                                JiminyCommand.Link(instrument.nodeName, speaker, LinkType.Connect)
-                            )
-                        }
                         true
                     } catch (e: CancellationException) {
                         println("Jiminy Server - startRecording - Canceled - $e")

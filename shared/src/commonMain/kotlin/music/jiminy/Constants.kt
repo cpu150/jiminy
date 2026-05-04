@@ -1,10 +1,11 @@
 package music.jiminy
 
-const val DEBUG = true
+//val platform = getPlatform()
+
+const val DEBUG = false
 
 const val DEBOUNCING_COMMAND_MILLIS = 100
 
-//val platform = getPlatform()
 const val SERVER_PORT = 80
 const val WS_ROOT = "/"
 const val WS_DEFAULT_PATH = "index.html"
@@ -16,17 +17,21 @@ const val WS_STOP_RECORDING = "/stop-recording"
 
 const val DEVICE_CARD_SPEAKERS_LABEL = "SPK"
 const val DEVICE_CARD_INSTRUMENTS_LABEL = "INST"
-const val DEVICE_CARD_HEIGHT = 120
-const val DEVICE_CARD_WIDTH = 120
+const val DEVICE_CARD_HEIGHT = 100
+const val DEVICE_CARD_WIDTH = 100
 const val DEVICE_LIST_CARD_HEIGHT = 80
 const val DEVICE_LIST_CARD_WIDTH = 80
 const val DEVICE_CARD_SPEAKERS_COLOR = 0xFF2196F3
 const val DEVICE_CARD_INSTRUMENTS_COLOR = 0xFF4CAF50
 
-const val MIXER_SLIDER_HEIGHT = 280
+const val MIXER_SLIDER_HEIGHT = 300
 const val MIXER_SLIDER_WIDTH = 26
 
-const val PIPEWIRE_RECORDER = "JiminyRecorder"
+const val PW_RECORDER_NAME = "Jiminy-MultiSink"
+const val PW_RECORDER_CHANNEL_PREFIX = "AUX"
+const val PW_RECORDER_CHANNEL_COUNT = "8"
+const val PW_RECORDER_DIRECTORY = "/home/cpu150/"
+
 const val GT_1000 = "usb-BOSS_GT-1000-01"
 const val QUAD_CORTEX = "usb-Neural_DSP_Quad_Cortex-00"
 const val ROLAND_TD_07 = "usb-Roland_TD-07-01"
@@ -68,6 +73,25 @@ const val OUTPUT_5 = "output_FC"
 const val OUTPUT_6 = "output_LFE"
 const val OUTPUT_7 = "output_SL"
 const val OUTPUT_8 = "output_SR"
+
+const val RECORDER_PLAYBACK_ROOT = "playback_$PW_RECORDER_CHANNEL_PREFIX"
+const val RECORDER_MONITOR_ROOT = "monitor_$PW_RECORDER_CHANNEL_PREFIX"
+const val RECORDER_PLAYBACK_1 = "${RECORDER_PLAYBACK_ROOT}1"
+const val RECORDER_PLAYBACK_2 = "${RECORDER_PLAYBACK_ROOT}2"
+const val RECORDER_PLAYBACK_3 = "${RECORDER_PLAYBACK_ROOT}3"
+const val RECORDER_PLAYBACK_4 = "${RECORDER_PLAYBACK_ROOT}4"
+const val RECORDER_PLAYBACK_5 = "${RECORDER_PLAYBACK_ROOT}5"
+const val RECORDER_PLAYBACK_6 = "${RECORDER_PLAYBACK_ROOT}6"
+const val RECORDER_PLAYBACK_7 = "${RECORDER_PLAYBACK_ROOT}7"
+const val RECORDER_PLAYBACK_8 = "${RECORDER_PLAYBACK_ROOT}8"
+const val RECORDER_MONITOR_1 = "${RECORDER_MONITOR_ROOT}1"
+const val RECORDER_MONITOR_2 = "${RECORDER_MONITOR_ROOT}2"
+const val RECORDER_MONITOR_3 = "${RECORDER_MONITOR_ROOT}3"
+const val RECORDER_MONITOR_4 = "${RECORDER_MONITOR_ROOT}4"
+const val RECORDER_MONITOR_5 = "${RECORDER_MONITOR_ROOT}5"
+const val RECORDER_MONITOR_6 = "${RECORDER_MONITOR_ROOT}6"
+const val RECORDER_MONITOR_7 = "${RECORDER_MONITOR_ROOT}7"
+const val RECORDER_MONITOR_8 = "${RECORDER_MONITOR_ROOT}8"
 
 enum class AvatarIconsEnum {
     GT_1000,
@@ -194,6 +218,24 @@ val deviceNameToAlias = mapOf(
     "$MIC_SHURE_MV88:$OUTPUT_PLAYBACK_2" to "Right",
     "$MIC_SHURE_MV88:$OUTPUT_MONITOR_1" to "Monitor Left",
     "$MIC_SHURE_MV88:$OUTPUT_MONITOR_2" to "Monitor Right",
+
+    PW_RECORDER_NAME to "Recorder",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_1" to "Mon Trk 1",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_2" to "Mon Trk 2",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_3" to "Mon Trk 3",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_4" to "Mon Trk 4",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_5" to "Mon Trk 5",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_6" to "Mon Trk 6",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_7" to "Mon Trk 7",
+    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_8" to "Mon Trk 8",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_1" to "Rec Mon 1",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_2" to "Rec Mon 2",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_3" to "Rec Mon 3",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_4" to "Rec Mon 4",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_5" to "Rec Mon 5",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_6" to "Rec Mon 6",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_7" to "Rec Mon 7",
+    "$PW_RECORDER_NAME:$RECORDER_MONITOR_8" to "Rec Mon 8",
 )
 
 // -------------------------------------------------------------------------------------------------

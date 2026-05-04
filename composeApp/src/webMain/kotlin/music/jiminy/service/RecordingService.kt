@@ -7,6 +7,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import music.jiminy.JiminyCommand
 import music.jiminy.WS_START_RECORDING
+import music.jiminy.WS_STOP_RECORDING
 
 class RecordingService(
     private val client: HttpClient,
@@ -17,4 +18,9 @@ class RecordingService(
             contentType(ContentType.Application.Json)
             setBody(nodes)
         }
+
+    suspend fun stopRecording() = client.post("$baseUrl$WS_STOP_RECORDING") {
+        contentType(ContentType.Application.Json)
+        setBody(JiminyCommand.StopRecording)
+    }
 }

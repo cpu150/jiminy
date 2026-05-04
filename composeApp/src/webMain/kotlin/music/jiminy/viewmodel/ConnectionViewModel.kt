@@ -4,8 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.ktor.serialization.WebsocketDeserializeException
-import io.ktor.websocket.FrameType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -24,6 +22,8 @@ import music.jiminy.LinkType
 import music.jiminy.Recorder
 import music.jiminy.screen.instruments
 import music.jiminy.screen.speakers
+import music.jiminy.service.JiminyConnectionStatus
+import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -31,24 +31,21 @@ class ConnectionViewModel(
     private val mainService: MainService,
 ) : ViewModel() {
 
-
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?>
         get() = _errorMessage
+
+    val isRecording: StateFlow<Boolean>
+        get() = mainService.isRecording
 
     fun resetError() {
         _errorMessage.update { null }
     }
 
-    private val _isRecording = MutableStateFlow(false)
-    val isRecording: StateFlow<Boolean>
-        get() = _isRecording
-
-    private fun WebsocketDeserializeException.handleException(prefix: String) {
-        when (frame.frameType) {
-            FrameType.CLOSE -> _errorMessage.update { "Websocket Connection Closed" }
-            else -> _errorMessage.update { "$prefix - $message - $this" }
-        }
+    private fun handleError(error: JiminyResponse) = when (error) {
+        is JiminyResponse.Error -> _errorMessage.update { error.message }
+        is JiminyResponse.Cancelled -> _errorMessage.update { "Operation cancelled" }
+        else -> Unit
     }
 
     //// TAB
@@ -78,38 +75,15 @@ class ConnectionViewModel(
         _selectedTab.update { tabs.value.find { tab -> tab.index == index } }
 
     //// Mixer View
-    enum class ConnectionStatusEnum {
-        Disconnected,
-        Connecting,
-        Connected,
-        Error,
-    }
-
-    private val _connectionStatus = MutableStateFlow(ConnectionStatusEnum.Disconnected)
-    val connectionStatus: StateFlow<ConnectionStatusEnum>
-        get() = _connectionStatus
 
     private var collectMixerUpdatesJob: Job? = null
+    val connectionStatus: StateFlow<JiminyConnectionStatus>
+        get() = mainService.connectionStatus
 
     fun mixerConnect() {
         resetError()
-        _connectionStatus.update { ConnectionStatusEnum.Connecting }
-        viewModelScope.launch {
-            _connectionStatus.update { ConnectionStatusEnum.Connecting }
-            try {
-                mainService.mixerConnect { _connectionStatus.update { ConnectionStatusEnum.Connected } }
 
-                _connectionStatus.update { ConnectionStatusEnum.Disconnected }
-            } catch (e: WebsocketDeserializeException) {
-                e.handleException("mixerConnect")
-            } catch (e: CancellationException) {
-                _connectionStatus.update { ConnectionStatusEnum.Disconnected }
-                throw e
-            } catch (e: Exception) {
-                _errorMessage.update { "mixerConnect - ${e.message} - $e" }
-                _connectionStatus.update { ConnectionStatusEnum.Error }
-            }
-        }
+        viewModelScope.launch { mainService.mixerConnect() }
 
         viewModelScope.launch {
             // Receiving from the server
@@ -160,40 +134,21 @@ class ConnectionViewModel(
     fun getDevices() {
         resetError()
         viewModelScope.launch {
-            try {
-                _devices.update { emptyList() }
-
-//                    _devices.update { dummyDevices }
-                mainService
-                    .getDevices()
-                    .let { devices -> _devices.update { devices } }
-            } catch (e: CancellationException) {
-                _errorMessage.update { "getDevices canceled" }
-                throw e
-            } catch (e: Exception) {
-                _errorMessage.update { "getDevices - ${e.message} - $e" }
-
-                if (e is CancellationException) throw e
-            }
+            _devices.update { emptyList() }
+            mainService.getDevices(
+                { response -> _devices.update { response.value } },
+                ::handleError,
+            )
         }
     }
 
     fun getDeviceLinks() {
         resetError()
         viewModelScope.launch {
-            try {
-//                    _links.update { dummyLinks.toJiminyLinks() }
-                mainService
-                    .getDeviceLinks()
-                    .let { links -> _links.update { links.toJiminyLinks() } }
-            } catch (e: CancellationException) {
-                _errorMessage.update { "getDeviceLinks canceled" }
-                throw e
-            } catch (e: Exception) {
-                _errorMessage.update { "getDeviceLinks - ${e.message} - $e" }
-
-                if (e is CancellationException) throw e
-            }
+            mainService.getDeviceLinks(
+                { response -> _links.update { response.value.toJiminyLinks() } },
+                ::handleError,
+            )
         }
     }
 
@@ -208,42 +163,36 @@ class ConnectionViewModel(
         type: LinkType,
     ) = viewModelScope.launch {
         resetError()
-        try {
-            val linksMap = links.map {
-                JiminyCommand.Link(it.instruments().fullName, it.speakers().fullName, type)
-            }
 
-            mainService
-                .deviceLinks(linksMap)
-                .takeIf { it.status.value != 200 }
-                ?.also { response -> _errorMessage.update { "deviceLinks - ${response.status} - $response" } }
-        } catch (e: CancellationException) {
-            _errorMessage.update { "deviceLinks canceled" }
-            throw e
-        } catch (e: Exception) {
-            _errorMessage.update { "deviceLinks - ${e.message} - $e" }
-        } finally {
-            getDeviceLinks()
+        val linksMap = links.map {
+            JiminyCommand.Link(it.instruments().fullName, it.speakers().fullName, type)
         }
-    }
 
+        mainService.deviceLinks(
+            links = linksMap,
+            onError = ::handleError,
+            finally = ::getDeviceLinks,
+        )
+    }
 
     /// Recording
     fun startRecording(nodes: List<JiminyDeviceNode>) = viewModelScope.launch {
-        try {
-            val recordings = JiminyCommand.StartRecording(
-                nodes.map {
-                    val label = "${it.displayName} ${it.displayPortName}"
-                    Recorder(label, it.fullName)
-                }
-            )
-            mainService.startRecording(recordings)
-        } catch (e: CancellationException) {
-            _errorMessage.update { "deviceLinks canceled" }
-            throw e
-        } catch (e: Exception) {
-            _errorMessage.update { "deviceLinks - ${e.message} - $e" }
-        }
+        val recordings = JiminyCommand.StartRecording(
+            recoders = nodes.map {
+                val label = "${it.displayName} ${it.displayPortName}"
+                Recorder(label, it.fullName)
+            }
+        )
+        mainService.startRecording(
+            nodes = recordings,
+            onError = ::handleError,
+        )
+    }
+
+    fun stopRecording() = viewModelScope.launch {
+        mainService.stopRecording(
+            onError = ::handleError,
+        )
     }
 }
 
