@@ -1,6 +1,8 @@
 package music.jiminy.service
 
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.statement.HttpResponse
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.WebsocketDeserializeException
 import io.ktor.websocket.FrameType
 import kotlinx.coroutines.CancellationException
@@ -69,6 +71,7 @@ class MainService(
 
             is CancellationException -> Cancelled
             is LockedForRecordingException -> Recording
+            is ClientRequestException -> handleHttpResponse(e.response)
             else -> null
         } ?: JiminyResponse.Error("$logMsg - ${e.message} - $e")
 
@@ -79,10 +82,11 @@ class MainService(
         finallyBlock?.invoke()
     }
 
-    private fun handleHttpResponse(response: HttpResponse) = when (response.status.value) {
-        200 -> null
+    private fun handleHttpResponse(response: HttpResponse) = when (response.status) {
+        HttpStatusCode.OK -> null
+        HttpStatusCode.Locked -> Recording
         else -> JiminyResponse.Error("deviceLinks - ${response.status} - $response")
-    }
+    }.also { _isRecording.update { response.status.value == HttpStatusCode.Locked.value } }
 
     suspend fun mixerSendCommand(command: JiminyCommand) = mixerService.sendCommand(command)
     suspend fun mixerDisconnect() = mixerService.disconnect()
@@ -150,10 +154,7 @@ class MainService(
         tryBlock = {
             handleHttpResponse(recordingService.startRecording(nodes))
                 ?.let { onError(it) }
-                ?: let {
-                    _isRecording.update { true }
-                    onSuccess?.invoke(EmptySuccess)
-                }
+                ?: let { onSuccess?.invoke(EmptySuccess) }
         },
         catchBlock = { error -> onError(error) },
     )
@@ -163,14 +164,11 @@ class MainService(
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
-        logMsg = "startRecording",
+        logMsg = "stopRecording",
         tryBlock = {
             handleHttpResponse(recordingService.stopRecording())
                 ?.let { onError(it) }
-                ?: let {
-                    _isRecording.update { true }
-                    onSuccess?.invoke(EmptySuccess)
-                }
+                ?: let { onSuccess?.invoke(EmptySuccess) }
         },
         catchBlock = { error -> onError(error) },
     )

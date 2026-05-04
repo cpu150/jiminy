@@ -76,7 +76,7 @@ fun RecordingScreen(
             }
 
             JiminyButton(
-//                enabled = isRecordingEnable,
+                enabled = isRecordingEnable,
                 onClick = { startRecording(selectedDevNodePairs.map { it.second }) },
                 modifier = Modifier.padding(4.dp),
             ) { TextButton(text = "Start Recording", color = textColor) }

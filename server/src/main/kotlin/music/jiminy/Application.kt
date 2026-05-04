@@ -71,14 +71,14 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
         val isStopRecordingPath = path.endsWith(WS_STOP_RECORDING)
         val isWasmAppPath =
             path == "/" || path.endsWith(".wasm") || path.endsWith(".js") || path.endsWith(".html")
-        val isGetWasmAppPath = isWasmAppPath && method == HttpMethod.Get
+        val gettingWasmAppPath = isWasmAppPath && method == HttpMethod.Get
 
         if (controller.isRecording) {
-            if (!isStopRecordingPath && !isGetWasmAppPath) {
+            if (!isStopRecordingPath && !gettingWasmAppPath) {
                 // Block request
                 call.respond(
                     status = HttpStatusCode.Locked,
-                    message = mapOf("error" to "Server recording. Only $WS_STOP_RECORDING is available."),
+                    message = mapOf("error" to "Server recording, $WS_STOP_RECORDING available only"),
                 )
                 finish()
             }
@@ -156,7 +156,7 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
                 val nodes = call.receive<JiminyCommand.StartRecording>()
                 controller.startRecording(nodes)
                 controller.broadcastAll(sessions.toList(), nodes)
-                call.respond(HttpStatusCode.OK, "Recording started")
+                call.respond(HttpStatusCode.Locked, "Started recording...")
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
             }
@@ -166,7 +166,7 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
             try {
                 controller.stopRecording()
                 controller.broadcastAll(sessions.toList(), JiminyCommand.StopRecording())
-                call.respond(HttpStatusCode.OK, "Recording saved")
+                call.respond(HttpStatusCode.OK, "Stopped recording")
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
             }

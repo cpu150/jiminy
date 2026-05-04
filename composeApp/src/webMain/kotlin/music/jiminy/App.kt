@@ -58,16 +58,19 @@ fun App(viewModel: () -> ConnectionViewModel) {
 
         val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
         val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
+        val isRecording by viewModel.isRecording.collectAsState()
 
         LaunchedEffect(selectedTab) { if (selectedTab != mixerTab) viewModel.mixerDisconnect() }
 
-        val isRecording by viewModel.isRecording.collectAsState()
-
-        Box(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+        ) {
             MainScreen({ viewModel })
 
             if (isRecording) {
-                RecordingOverlay(onStopRequest = viewModel::stopRecording)
+                RecordingOverlay(onStopRequest = viewModel::stopRecording, Modifier.fillMaxSize())
             }
 
             // TODO : connectionStatus
@@ -152,7 +155,7 @@ fun AudioLinksMainScreen(
     }
 
     ConnectionScreen(
-        devices = { allDevices },
+        devices = { allDevices.filter { it.name != PW_RECORDER_NAME } },
         links = { allLinks },
         connect = viewModel::connect,
         disconnect = viewModel::disconnect,
@@ -175,7 +178,7 @@ fun MixerMainScreen(
     }
 
     MixerScreen(
-        devices = { devices.filter { it.volumes.isNotEmpty() } },
+        devices = { devices.filter { it.volumes.isNotEmpty() && it.name != PW_RECORDER_NAME } },
         succeededCommands = succeededCommands,
         onVolumeChange = { deviceVolume, newVolume ->
             viewModel.mixerSendCommand(JiminyCommand.VolumeUpdate(deviceVolume, newVolume))

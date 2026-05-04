@@ -190,9 +190,7 @@ class ConnectionViewModel(
     }
 
     fun stopRecording() = viewModelScope.launch {
-        mainService.stopRecording(
-            onError = ::handleError,
-        )
+        mainService.stopRecording(onError = ::handleError)
     }
 }
 

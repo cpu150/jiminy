@@ -19,8 +19,5 @@ class RecordingService(
             setBody(nodes)
         }
 
-    suspend fun stopRecording() = client.post("$baseUrl$WS_STOP_RECORDING") {
-        contentType(ContentType.Application.Json)
-        setBody(JiminyCommand.StopRecording)
-    }
+    suspend fun stopRecording() = client.post("$baseUrl$WS_STOP_RECORDING")
 }

@@ -7,15 +7,16 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import music.jiminy.FLUIDSYNTH
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceList
 import music.jiminy.JiminyDeviceNode
-import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyDeviceNodeType.Instrument
 import music.jiminy.JiminyDeviceNodeType.Speaker
 import music.jiminy.JiminyDeviceNodeType.Unknown
 import music.jiminy.JiminyVolume
+import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.WS_DEVICES
 import music.jiminy.WS_LINK_DEVICES
 
@@ -96,23 +97,35 @@ class DeviceService(
         return _devices
     }
 
+    //  Jiminy-MultiSink:playback_AUX0
+    //    |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FL
+//  alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FL
+//    |-> Jiminy-MultiSink:playback_AUX0
+//
+    //  Jiminy-MultiSink:playback_AUX2
+    //    |<- alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FL
+//  alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FL
+//    |-> Jiminy-MultiSink:playback_AUX2
     private fun processDeviceLinksOutput(output: List<String>) = buildList {
         var nodeInstrument: JiminyDeviceNode? = null
-
         output.forEach { fullName ->
-            if (fullName.startsWith("alsa_output") || fullName.startsWith("  |<-")) {
+            if ((fullName.startsWith("alsa_output") && !fullName.contains(":monitor_")) ||
+                fullName.startsWith("  |<-")
+            ) {
                 // Ignore
                 nodeInstrument = null
             } else if (fullName.startsWith("alsa_input") ||
                 fullName.startsWith("alsa_playback") ||
-                fullName.startsWith("fluidsynth", true)
+                fullName.startsWith(FLUIDSYNTH, true) ||
+                fullName.startsWith(PW_RECORDER_NAME, true) ||
+                fullName.contains(":monitor_")
             ) {
                 parseOutputCmd(fullName)?.let { data ->
                     nodeInstrument = JiminyDeviceNode(
                         data.fullName,
                         data.deviceName,
                         data.portName,
-                        JiminyDeviceNodeType.Instrument,
+                        Instrument,
                     )
                 } ?: add(errorNodeDebug("ERROR parsing: $fullName"))
             } else if (fullName.startsWith("  |-> ")) {
@@ -122,7 +135,7 @@ class DeviceService(
                             data.fullName,
                             data.deviceName,
                             data.portName,
-                            JiminyDeviceNodeType.Speaker,
+                            Speaker,
                         )
 
                         add(it to nodeSpeaker)
@@ -138,12 +151,12 @@ class DeviceService(
         errorMsg,
         "ERROR",
         errorMsg,
-        JiminyDeviceNodeType.Unknown
+        Unknown,
     ) to JiminyDeviceNode(
         errorMsg,
-        "ERROR- $errorMsg-",
+        "ERROR $errorMsg",
         errorMsg,
-        JiminyDeviceNodeType.Unknown
+        Unknown,
     )
 
     private data class OutputParsedData(
@@ -152,30 +165,37 @@ class DeviceService(
         val portName: String,
     )
 
-    private fun parseOutputCmd(fullName: String): OutputParsedData? {
-        if (fullName.startsWith("fluidsynth", true)) {
-            // FluidSynth:output_FL
-            val arr = fullName.split(":")
-            val deviceName = arr.getOrNull(0)
-            val portName = arr.getOrNull(1)
-            return if (deviceName != null && portName != null) {
-                OutputParsedData(fullName, deviceName, portName)
-            } else {
-                null
-            }
+    // TODO - Process midi devices:
+    // Midi-Bridge:Midi Through Port-0 (capture)
+    // Midi-Bridge:Midi Through Port-0 (playback)
+    // Midi-Bridge:FLUID Synth (935)Synth input port (935:0) (playback)
+    private fun parseOutputCmd(
+        fullName: String,
+    ) = if (fullName.startsWith(FLUIDSYNTH, true) ||
+        fullName.startsWith(PW_RECORDER_NAME, true)
+    ) {
+        // FluidSynth:output_FL
+        // Jiminy-MultiSink:playback_AUX0 || Jiminy-MultiSink:monitor_AUX0
+        val arr = fullName.split(":")
+        val deviceName = arr.getOrNull(0)
+        val portName = arr.getOrNull(1)
+        if (deviceName != null && portName != null) {
+            OutputParsedData(fullName, deviceName, portName)
         } else {
-            // alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:monitor_FL
-            var arr = fullName.split(":")
-            val portName = arr.getOrNull(1).orEmpty()
+            null
+        }
+    } else {
+        // alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:monitor_FL
+        var arr = fullName.split(":")
+        val portName = arr.getOrNull(1).orEmpty()
 
-            arr = arr.getOrNull(0).orEmpty().split(".")
-            val deviceName = arr.getOrNull(1).orEmpty()
+        arr = arr.getOrNull(0).orEmpty().split(".")
+        val deviceName = arr.getOrNull(1).orEmpty()
 
-            return if (deviceName.isNotBlank()) {
-                OutputParsedData(fullName, deviceName, portName)
-            } else {
-                null
-            }
+        if (deviceName.isNotBlank()) {
+            OutputParsedData(fullName, deviceName, portName)
+        } else {
+            null
         }
     }
 }

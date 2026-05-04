@@ -8,8 +8,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,60 +33,54 @@ fun RecordingOverlay(
     onStopRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 1. Create the breathing/glowing effect
+    // Breathing/glowing effect
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.4f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
+            animation = tween(durationMillis = 800, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "alpha"
+        label = "alpha",
     )
 
-    // 2. Full screen container with semi-transparent background
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.85f)) // Dark, moody transparency
+            .background(Color.Black.copy(alpha = 0.85f))
             .pointerInput(Unit) {}, // Prevents clicks from reaching the mixer below
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(40.dp)
-        ) {
-            // 3. The "On Air" Glowing Text
-            Text(
-                text = "ON AIR",
-                style = MaterialTheme.typography.headlineLarge // .h2
-                    .copy(
+        Text(
+            text = "ON AIR",
+            style = MaterialTheme.typography.headlineLarge
+                .copy(
                     fontWeight = FontWeight.Bold,
                     shadow = Shadow(
                         color = Color.Red.copy(alpha = alpha),
                         blurRadius = 20f,
                     )
                 ),
-                color = Color.Red.copy(alpha = alpha)
-            )
+            color = Color.Red.copy(alpha = alpha),
+        )
 
-            // 4. Big Red Stop Button
-            Button(
-                onClick = onStopRequest,
-                colors = ButtonDefaults.buttonColors(contentColor = Color(0xFFB71C1C)), // .buttonColors(backgroundColor = Color(0xFFB71C1C)),
-                modifier = Modifier
-                    .size(width = 280.dp, height = 80.dp)
-                    .clip(RoundedCornerShape(50)), // Pill shape
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
-            ) {
-                Text(
-                    text = "STOP RECORDING",
-                    color = Color.White,
-                    style = MaterialTheme.typography.headlineSmall //.h5
-                        .copy(fontWeight = FontWeight.Black),
-                )
-            }
+        Spacer(Modifier.size(40.dp))
+
+        Button(
+            onClick = onStopRequest,
+            colors = ButtonDefaults.buttonColors(contentColor = Color(0xFFB71C1C)),
+            modifier = Modifier
+                .size(width = 280.dp, height = 80.dp)
+                .clip(RoundedCornerShape(50)),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
+        ) {
+            Text(
+                text = "STOP RECORDING",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
+            )
         }
     }
 }

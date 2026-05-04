@@ -5,7 +5,6 @@ import io.ktor.server.websocket.sendSerialized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
@@ -14,7 +13,6 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class Controller : JiminyServerControllerI {
@@ -41,7 +39,7 @@ class Controller : JiminyServerControllerI {
                     it == 0
                 }
         } catch (e: CancellationException) {
-            println("Jiminy Server - updateMuteState - Canceled - $e")
+            println("Jiminy Server - updateMuteState - Cancelled - $e")
             throw e
         } catch (e: Exception) {
             println("Jiminy Server - updateVolume - ERROR - $deviceVolume[$volume] - ${e.message} - $e")
@@ -65,7 +63,7 @@ class Controller : JiminyServerControllerI {
                     it == 0
                 }
         } catch (e: CancellationException) {
-            println("Jiminy Server - updateMuteState - Canceled - $e")
+            println("Jiminy Server - updateMuteState - Cancelled - $e")
             throw e
         } catch (e: Exception) {
             println("Jiminy Server - updateMuteState - ERROR - $deviceVolume[$mute] - ${e.message} - $e")
@@ -99,7 +97,7 @@ class Controller : JiminyServerControllerI {
                 it == 0
             }
         } catch (e: CancellationException) {
-            println("Jiminy Server - linkDevice - Canceled - $e")
+            println("Jiminy Server - linkDevice - Cancelled - $e")
             throw e
         } catch (e: Exception) {
             println("Jiminy Server - linkDevice - ERROR - $link - ${e.message} - $e")
@@ -131,7 +129,6 @@ class Controller : JiminyServerControllerI {
     }
 
     private var recordProcess: Process? = null
-    private val virtualSinkName = PW_RECORDER_NAME
 
     @OptIn(ExperimentalAtomicApi::class)
     private val _isRecording = AtomicBoolean(false)
@@ -152,38 +149,36 @@ class Controller : JiminyServerControllerI {
                 ?.takeIf { _isRecording.compareAndSet(expectedValue = false, newValue = true) }
                 ?.let { recorders ->
                     try {
-                        val channelCount = PW_RECORDER_CHANNEL_COUNT
                         val current = LocalDateTime.now()
                         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd - HH-mm-ss")
                         val date = current.format(formatter)
                         val filename = "$date.wav"
 
+                        // Link each instrument to its dedicated channel: AUX0, AUX1 ...
                         recorders.forEachIndexed { index, instrument ->
                             linkDevice(
                                 JiminyCommand.Link(
                                     instrument.nodeName,
                                     getSpeakerName(index),
-                                    LinkType.Connect
+                                    LinkType.Connect,
                                 )
                             )
                         }
 
-                        val recordProcess = ProcessBuilder(
+                        val task = ProcessBuilder(
                             "pw-record",
-                            "--target", virtualSinkName,
-                            "--channels", channelCount,
-                            "--rate", "48000",
-                            "--format", "s32",
+                            "--target", PW_RECORDER_NAME,
+                            "--channels", PW_RECORDER_CHANNEL_COUNT,
+                            "--rate", PW_RECORDER_RATE,
+                            "--format", PW_RECORDER_FORMAT,
                             filename,
                         )
-
-//                        recordProcess.environment()["XDG_RUNTIME_DIR"] = "/run/user/1000"
-                        recordProcess.directory(File(PW_RECORDER_DIRECTORY))
-                        recordProcess.start()
+                        task.directory(File(PW_RECORDER_DIRECTORY))
+                        recordProcess = task.start()
 
                         true
                     } catch (e: CancellationException) {
-                        println("Jiminy Server - startRecording - Canceled - $e")
+                        println("Jiminy Server - startRecording - Cancelled - $e")
                         stopRecording()
                         throw e
                     } catch (e: Exception) {
@@ -197,17 +192,15 @@ class Controller : JiminyServerControllerI {
     @OptIn(ExperimentalAtomicApi::class)
     override suspend fun stopRecording() = try {
         withContext(Dispatchers.IO) {
-            // Stop recording
-            recordProcess?.destroy()
-
-            // Clean up: Remove the virtual sink
-            ProcessBuilder("pactl", "unload-module", "module-null-sink").start().waitFor()
+            recordProcess
+                ?.takeIf { it.isAlive }
+                ?.destroy()
 
             recordProcess = null
             true
         }
     } catch (e: CancellationException) {
-        println("Jiminy Server - stopRecording - Canceled - $e")
+        println("Jiminy Server - stopRecording - Cancelled - $e")
         throw e
     } catch (e: Exception) {
         println("Recording failed to stop: ${e.message}")
