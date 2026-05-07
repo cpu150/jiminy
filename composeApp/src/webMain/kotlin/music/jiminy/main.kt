@@ -12,6 +12,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.browser.window
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import music.jiminy.service.DeviceService
 import music.jiminy.service.MainService
@@ -21,6 +24,8 @@ import music.jiminy.viewmodel.ConnectionViewModel
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    val appCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
     ComposeViewport {
         val jsonInstance = Json
         val client = HttpClient(Js) {
@@ -58,7 +63,7 @@ fun main() {
 
         val viewModel = viewModel {
             ConnectionViewModel(
-                MainService(mixerService, deviceService, recordingService)
+                MainService(appCoroutineScope, mixerService, deviceService, recordingService)
             )
         }
 

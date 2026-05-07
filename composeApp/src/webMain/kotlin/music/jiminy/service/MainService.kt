@@ -6,9 +6,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.WebsocketDeserializeException
 import io.ktor.websocket.FrameType
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
@@ -39,6 +41,7 @@ sealed interface JiminyConnectionStatus {
 }
 
 class MainService(
+    scope: CoroutineScope,
     private val mixerService: MixerService,
     private val deviceService: DeviceService,
     private val recordingService: RecordingService,
@@ -110,6 +113,14 @@ class MainService(
                 }
             }
         )
+    }
+
+    init {
+        scope.launch {
+            succeededCommands.collect { command ->
+                _isRecording.update { command is JiminyCommand.StartRecording }
+            }
+        }
     }
 
     suspend fun getDevices(
