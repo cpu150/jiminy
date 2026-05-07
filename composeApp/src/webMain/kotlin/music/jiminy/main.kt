@@ -40,6 +40,7 @@ fun main() {
             install(ContentNegotiation) {
                 json(jsonInstance)
             }
+
             install(WebSockets) {
                 contentConverter = KotlinxWebsocketSerializationConverter(jsonInstance)
             }
@@ -47,7 +48,8 @@ fun main() {
 
         val protocol = window.location.protocol
         val hostname = window.location.hostname
-        val port = window.location.port.ifBlank { SERVER_PORT.toString() }.toInt()
+        val defaultPort = if (DEBUG) DEBUG_SERVER_PORT else SERVER_PORT
+        val port = window.location.port.ifBlank { defaultPort.toString() }.toInt()
         val baseUrl = "$protocol//$hostname:$port"
 
         val mixerService = MixerService(hostname, port, client)

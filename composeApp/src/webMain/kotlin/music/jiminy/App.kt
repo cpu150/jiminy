@@ -67,14 +67,25 @@ fun App(viewModel: () -> ConnectionViewModel) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            MainScreen({ viewModel })
+            MainScreen({ viewModel }, Modifier.fillMaxSize())
 
             if (isRecording) {
-                RecordingOverlay(onStopRequest = viewModel::stopRecording, Modifier.fillMaxSize())
+                RecordingOverlay(viewModel::stopRecording, Modifier.fillMaxSize())
             }
 
             // TODO : connectionStatus
         }
+    }
+}
+
+@Composable
+fun TabTitle(icon: ImageVector, title: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -85,29 +96,25 @@ fun MainScreen(
 ) {
     val viewModel = viewModel()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-    val tabs by viewModel.tabs.collectAsStateWithLifecycle()
-
-    val scrollState = rememberScrollState()
-    val screenModifier = Modifier
-        .verticalScroll(scrollState)
-        .background(MaterialTheme.colorScheme.background)
-        .padding(12.dp)
 
     selectedTab?.let { selectedTab ->
         val errorMsg by viewModel.errorMessage.collectAsStateWithLifecycle()
+        val tabs by viewModel.tabs.collectAsStateWithLifecycle()
+        val scrollState = rememberScrollState()
+        val screenModifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(12.dp)
 
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-        ) {
+        Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
             SecondaryTabRow(
                 selectedTabIndex = selectedTab.index,
                 containerColor = TabRowDefaults.primaryContainerColor,
                 contentColor = TabRowDefaults.primaryContentColor,
                 indicator = {
                     TabRowDefaults.SecondaryIndicator(
-                        Modifier.tabIndicatorOffset(selectedTab.index, matchContentSize = false)
+                        Modifier.tabIndicatorOffset(selectedTab.index, matchContentSize = false),
                     )
                 },
                 divider = { HorizontalDivider() },
@@ -129,18 +136,6 @@ fun MainScreen(
 }
 
 @Composable
-fun TabTitle(icon: ImageVector, title: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface,
-        )
-//        TextTitle(title)
-    }
-}
-
-@Composable
 fun AudioLinksMainScreen(
     viewModel: () -> ConnectionViewModel,
     screenModifier: Modifier = Modifier,
@@ -156,7 +151,7 @@ fun AudioLinksMainScreen(
 
     ConnectionScreen(
         devices = { allDevices.filter { it.name != PW_RECORDER_NAME } },
-        links = { allLinks },
+        links = { allLinks.filter { it.speakerDevice.name != PW_RECORDER_NAME } },
         connect = viewModel::connect,
         disconnect = viewModel::disconnect,
         modifier = screenModifier,
@@ -202,8 +197,17 @@ fun RecordingMainScreen(
         viewModel.getDevices()
     }
 
+    val links = viewModel.links.value.filter { it.speakerDevice.name == PW_RECORDER_NAME }
+    val preselectedDevNodePairs = buildList {
+        links.forEach { link ->
+            link.instrumentDevices.forEach { device ->
+                device.nodes().forEach { add(device to it) }
+            }
+        }
+    }
     RecordingScreen(
-        devices = { devices.filter { it.instruments.isNotEmpty() } },
+        preselectedDevNodePairs = { preselectedDevNodePairs },
+        devices = { devices.filter { it.instruments.isNotEmpty() && it.name != PW_RECORDER_NAME } },
         startRecording = viewModel::startRecording,
         modifier = modifier,
     )

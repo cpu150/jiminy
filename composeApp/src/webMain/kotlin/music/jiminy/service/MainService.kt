@@ -57,7 +57,7 @@ class MainService(
         tryBlock: suspend () -> T?,
         catchBlock: (JiminyResponse) -> T?,
         finallyBlock: (() -> T?)? = null,
-        logMsg: String? = null,
+        logMsg: String,
     ) = try {
         tryBlock()
     } catch (e: Exception) {
@@ -71,7 +71,7 @@ class MainService(
 
             is CancellationException -> Cancelled
             is LockedForRecordingException -> Recording
-            is ClientRequestException -> handleHttpResponse(e.response)
+            is ClientRequestException -> handleHttpResponse(logMsg, e.response)
             else -> null
         } ?: JiminyResponse.Error("$logMsg - ${e.message} - $e")
 
@@ -82,11 +82,12 @@ class MainService(
         finallyBlock?.invoke()
     }
 
-    private fun handleHttpResponse(response: HttpResponse) = when (response.status) {
-        HttpStatusCode.OK -> null
-        HttpStatusCode.Locked -> Recording
-        else -> JiminyResponse.Error("deviceLinks - ${response.status} - $response")
-    }.also { _isRecording.update { response.status.value == HttpStatusCode.Locked.value } }
+    private fun handleHttpResponse(logMsg: String, response: HttpResponse) =
+        when (response.status) {
+            HttpStatusCode.OK -> null
+            HttpStatusCode.Locked -> Recording
+            else -> JiminyResponse.Error("$logMsg - ${response.status} - $response")
+        }.also { _isRecording.update { response.status.value == HttpStatusCode.Locked.value } }
 
     suspend fun mixerSendCommand(command: JiminyCommand) = mixerService.sendCommand(command)
     suspend fun mixerDisconnect() = mixerService.disconnect()
@@ -137,7 +138,7 @@ class MainService(
     ) = handleExceptions(
         logMsg = "deviceLinks",
         tryBlock = {
-            handleHttpResponse(deviceService.linkDevices(links))
+            handleHttpResponse("deviceLinks", deviceService.linkDevices(links))
                 ?.let { onError(it) }
                 ?: onSuccess?.invoke(EmptySuccess)
         },
@@ -152,7 +153,7 @@ class MainService(
     ) = handleExceptions(
         logMsg = "startRecording",
         tryBlock = {
-            handleHttpResponse(recordingService.startRecording(nodes))
+            handleHttpResponse("startRecording", recordingService.startRecording(nodes))
                 ?.let { onError(it) }
                 ?: let { onSuccess?.invoke(EmptySuccess) }
         },
@@ -166,7 +167,7 @@ class MainService(
     ) = handleExceptions(
         logMsg = "stopRecording",
         tryBlock = {
-            handleHttpResponse(recordingService.stopRecording())
+            handleHttpResponse("stopRecording", recordingService.stopRecording())
                 ?.let { onError(it) }
                 ?: let { onSuccess?.invoke(EmptySuccess) }
         },

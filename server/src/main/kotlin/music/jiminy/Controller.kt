@@ -168,7 +168,7 @@ class Controller : JiminyServerControllerI {
                         val task = ProcessBuilder(
                             "pw-record",
                             "--target", PW_RECORDER_NAME,
-                            "--channels", PW_RECORDER_CHANNEL_COUNT,
+                            "--channels", PW_RECORDER_CHANNEL_COUNT_STR,
                             "--rate", PW_RECORDER_RATE,
                             "--format", PW_RECORDER_FORMAT,
                             filename,

@@ -97,15 +97,6 @@ class DeviceService(
         return _devices
     }
 
-    //  Jiminy-MultiSink:playback_AUX0
-    //    |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FL
-//  alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FL
-//    |-> Jiminy-MultiSink:playback_AUX0
-//
-    //  Jiminy-MultiSink:playback_AUX2
-    //    |<- alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FL
-//  alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FL
-//    |-> Jiminy-MultiSink:playback_AUX2
     private fun processDeviceLinksOutput(output: List<String>) = buildList {
         var nodeInstrument: JiminyDeviceNode? = null
         output.forEach { fullName ->

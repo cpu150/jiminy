@@ -39,6 +39,8 @@ import kotlin.time.Duration.Companion.seconds
 
 fun main() {
     val controller = if (DEBUG) MockController() else Controller()
+    val port = if (DEBUG) DEBUG_SERVER_PORT else SERVER_PORT
+    val host = if (DEBUG) DEBUG_SERVER_HOST else SERVER_HOST
     val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -46,8 +48,8 @@ fun main() {
 
     embeddedServer(
         factory = Netty,
-        port = SERVER_PORT,
-        host = "0.0.0.0",
+        port = port,
+        host = host,
         module = { module(json, controller) },
     ).start(wait = true)
 }
@@ -69,13 +71,17 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
         val method = call.request.httpMethod
 
         val isStopRecordingPath = path.endsWith(WS_STOP_RECORDING)
-        val isWasmAppPath =
-            path == "/" || path.endsWith(".wasm") || path.endsWith(".js") || path.endsWith(".html")
+        // favicon.ico, styles.css, composeApp.js, 73cbe24d7cf5a54d37ad.wasm, 836cba7d6d2ab50e6ca5.wasm
+        val isWasmAppPath = path == "/" ||
+                path.endsWith(".wasm", ignoreCase = true) ||
+                path.endsWith(".js", ignoreCase = true) ||
+                path.endsWith(".html", ignoreCase = true) ||
+                path.endsWith(".css", ignoreCase = true) ||
+                path.contains(".ico", ignoreCase = true)
         val gettingWasmAppPath = isWasmAppPath && method == HttpMethod.Get
 
         if (controller.isRecording) {
             if (!isStopRecordingPath && !gettingWasmAppPath) {
-                // Block request
                 call.respond(
                     status = HttpStatusCode.Locked,
                     message = mapOf("error" to "Server recording, $WS_STOP_RECORDING available only"),
@@ -123,7 +129,6 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
             } catch (e: Exception) {
                 println("Jiminy Server - ERROR - WebSocket error: $e - ${e.localizedMessage}")
             } finally {
-                println("Cleaning up resources for this session...")
                 sessions.remove(this)
             }
         }

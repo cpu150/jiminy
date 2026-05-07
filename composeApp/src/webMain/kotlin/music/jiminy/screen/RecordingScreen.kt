@@ -18,10 +18,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -39,14 +39,14 @@ import music.jiminy.screen.common.TextTitle
 
 @Composable
 fun RecordingScreen(
+    preselectedDevNodePairs: () -> List<Pair<JiminyDevice, JiminyDeviceNode>>,
     devices: () -> List<JiminyDevice>,
     startRecording: (List<JiminyDeviceNode>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val devices = devices()
     var showDetails by remember { mutableStateOf<JiminyDevice?>(null) }
-    val selectedDevNodePairs =
-        remember { mutableStateListOf<Pair<JiminyDevice, JiminyDeviceNode>>() }
+    val selectedDevNodePairs = remember { preselectedDevNodePairs().toMutableStateList() }
 
     Column(modifier = modifier.fillMaxWidth().wrapContentHeight()) {
         val recordItemsModifier = Modifier.height((DEVICE_LIST_CARD_HEIGHT + 40).dp).fillMaxWidth()

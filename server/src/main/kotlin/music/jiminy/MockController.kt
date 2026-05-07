@@ -10,9 +10,9 @@ class MockController : JiminyServerControllerI {
     override suspend fun executeCommand(command: JiminyCommand) = true
 
     override suspend fun getDevicesList() = JiminyDeviceList(
-        instruments = emptyList(),
-        speakers = emptyList(),
-        deviceStatus = emptyList(),
+        instruments = dummyInstrumentsCmd,
+        speakers = dummySpeakersCmd,
+        deviceStatus = dummyStatusCmd,
     )
 
     override suspend fun linkDevice(link: JiminyCommand.Link) = true
@@ -28,8 +28,566 @@ class MockController : JiminyServerControllerI {
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,
-        status: Boolean
+        status: Boolean,
     ) {
         // no-op
     }
 }
+
+//alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:monitor_FL
+//alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:monitor_FR
+//alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL
+//alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FR
+//alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FL
+//alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FR
+
+//pw-link alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FL                              alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL
+//pw-link alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FR                              alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FR
+//pw-link alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FL                                   alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL
+//pw-link alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FR                                   alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FR
+//pw-link alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FL    alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL
+//pw-link alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FR    alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FR
+
+//pw-link -d alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FL                           alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FL
+//pw-link -d alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FR                           alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FR
+//pw-link -d alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FL alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FL
+//pw-link -d alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FR alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FR
+
+//    JiminyDeviceNode("alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:monitor_FL", "usb-BOSS_GT-1000-01", "monitor_FL", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:monitor_FR", "usb-BOSS_GT-1000-01", "monitor_FR", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FL", "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00", "capture_FL", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:capture_FR", "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00", "capture_FR", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL", "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00", "playback_FL", JiminyDeviceNodeType.Speakers),
+//    JiminyDeviceNode("alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FR", "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00", "playback_FR", JiminyDeviceNodeType.Speakers),
+
+//    JiminyDeviceNode("alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FL", "usb-BOSS_GT-1000-01", "monitor_FL", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FR", "usb-BOSS_GT-1000-01", "monitor_FR", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FL", "usb-BOSS_GT-1000-01", "capture_FL", JiminyDeviceNodeType.Speakers),
+//    JiminyDeviceNode("alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FR", "usb-BOSS_GT-1000-01", "capture_FR", JiminyDeviceNodeType.Speakers),
+//    JiminyDeviceNode("alsa_playback.fluidsynth:output_FL", "fluidsynth", "output_FL", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_playback.fluidsynth:output_FR", "fluidsynth", "output_FR", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FL", "usb-Roland_TD-07-01", "playback_FL", JiminyDeviceNodeType.Speakers),
+//    JiminyDeviceNode("alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FR", "usb-Roland_TD-07-01", "playback_FR", JiminyDeviceNodeType.Speakers),
+//    JiminyDeviceNode("alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FL", "usb-Roland_TD-07-01", "capture_FL", JiminyDeviceNodeType.Instruments),
+//    JiminyDeviceNode("alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FR", "usb-Roland_TD-07-01", "capture_FR", JiminyDeviceNodeType.Instruments),
+
+val dummyLinksCmd = listOf(
+    "Jiminy-MultiSink:playback_AUX0",
+    "  |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
+    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
+    "  |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
+    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR",
+    "  |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
+    "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
+    "  |-> Jiminy-MultiSink:playback_AUX0",
+    "  |-> alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
+    "  |-> alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR"
+
+)
+
+val dummyInstrumentsCmd = listOf(
+    "Jiminy-MultiSink:monitor_AUX0",
+    "Jiminy-MultiSink:monitor_AUX1",
+    "Jiminy-MultiSink:monitor_AUX2",
+    "Jiminy-MultiSink:monitor_AUX3",
+    "Jiminy-MultiSink:monitor_AUX4",
+    "Jiminy-MultiSink:monitor_AUX5",
+    "Jiminy-MultiSink:monitor_AUX6",
+    "Jiminy-MultiSink:monitor_AUX7",
+    "FluidSynth:output_FL",
+    "FluidSynth:output_FR",
+    "Midi-Bridge:Midi Through Port-0 (capture)",
+    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FL",
+    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FR",
+    "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FL",
+    "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR"
+)
+
+val dummySpeakersCmd = listOf(
+    "Jiminy-MultiSink:playback_AUX0",
+    "Jiminy-MultiSink:playback_AUX1",
+    "Jiminy-MultiSink:playback_AUX2",
+    "Jiminy-MultiSink:playback_AUX3",
+    "Jiminy-MultiSink:playback_AUX4",
+    "Jiminy-MultiSink:playback_AUX5",
+    "Jiminy-MultiSink:playback_AUX6",
+    "Jiminy-MultiSink:playback_AUX7",
+    "Midi-Bridge:Midi Through Port-0 (playback)",
+    "Midi-Bridge:FLUID Synth (928)Synth input port (928:0) (playback)",
+    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
+    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR"
+)
+
+val dummyStatusCmd = listOf(
+    "PipeWire 'pipewire-0' [1.4.2, cpu150@jiminy, cookie:115901764]",
+    " └─ Clients:",
+    "        35. WirePlumber                         [1.4.2, cpu150@jiminy, pid:923]",
+    "        59. WirePlumber [export]                [1.4.2, cpu150@jiminy, pid:923]",
+    "        60. pipewire                            [1.4.2, cpu150@jiminy, pid:925]",
+    "        61. fluidsynth                          [1.4.2, cpu150@jiminy, pid:928]",
+    "       107. wpctl                               [1.4.2, cpu150@jiminy, pid:2349]",
+    "",
+    "Audio",
+    " ├─ Devices:",
+    " │      63. alsa_card.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00 [alsa]",
+    " │      64. alsa_card.platform-107c701400.hdmi  [alsa]",
+    " │      65. alsa_card.platform-107c706400.hdmi  [alsa]",
+    " │  ",
+    " ├─ Sinks:",
+    " │      33. Jiminy-MultiSink                    [vol: 1.00]",
+    " │  *   91. alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo [vol: 0.49]",
+    " │  ",
+    " ├─ Sources:",
+    " │  *   92. alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo [vol: 1.00]",
+    " │  ",
+    " ├─ Filters:",
+    " │  ",
+    " └─ Streams:",
+    "        62. FluidSynth                                                  ",
+    "             87. output_FL      ",
+    "             88. output_FR      ",
+    "",
+    "Video",
+    " ├─ Devices:",
+    " │      70. v4l2_device.platform-1000800000.codec [v4l2]",
+    " │      71. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      72. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      73. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      74. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      75. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      76. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      77. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      78. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      79. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      80. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      81. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      82. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      83. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      84. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      85. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │      86. v4l2_device.platform-1000880000.pisp_be [v4l2]",
+    " │  ",
+    " ├─ Sinks:",
+    " │  ",
+    " ├─ Sources:",
+    " │  ",
+    " ├─ Filters:",
+    " │  ",
+    " └─ Streams:",
+    "",
+    "Settings",
+    " └─ Default Configured Devices:"
+)
+
+val dummyLinks = listOf(
+    JiminyDeviceNode(
+        "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FL",
+        "usb-BOSS_GT-1000-01",
+        "monitor_FL",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FL",
+        "usb-Roland_TD-07-01",
+        "playback_FL",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FR",
+        "usb-BOSS_GT-1000-01",
+        "monitor_FR",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL",
+        "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00",
+        "playback_FL",
+        JiminyDeviceNodeType.Speaker
+    ),
+//    JiminyDeviceNode("alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FR", "usb-BOSS_GT-1000-01", "monitor_FR", JiminyDeviceNodeType.Instrument)
+//            to JiminyDeviceNode("alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FR", "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00", "playback_FR", JiminyDeviceNodeType.Speaker)
+//    ,
+    JiminyDeviceNode(
+        "alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FL",
+        "usb-Roland_TD-07-01",
+        "capture_FL",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FL",
+        "usb-BOSS_GT-1000-01",
+        "capture_FL",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FL",
+        "usb-BOSS_GT-1000-01",
+        "monitor_FL",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL",
+        "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00",
+        "playback_FL",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FR",
+        "usb-BOSS_GT-1000-01",
+        "monitor_FR",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FR",
+        "usb-Roland_TD-07-01",
+        "playback_FR",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FL",
+        "usb-Roland_TD-07-01",
+        "capture_FL",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FL",
+        "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00",
+        "playback_FL",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FR",
+        "usb-Roland_TD-07-01",
+        "capture_FR",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FR",
+        "usb-BOSS_GT-1000-01",
+        "capture_FR",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FL",
+        "usb-BOSS_GT-1000-01",
+        "monitor_FL",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FR",
+        "usb-Roland_TD-07-01",
+        "playback_FR",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FR",
+        "usb-Roland_TD-07-01",
+        "capture_FR",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:playback_FR",
+        "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00",
+        "playback_FR",
+        JiminyDeviceNodeType.Speaker
+    ),
+    JiminyDeviceNode(
+        "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FR",
+        "usb-BOSS_GT-1000-01",
+        "monitor_FR",
+        JiminyDeviceNodeType.Instrument
+    )
+            to JiminyDeviceNode(
+        "alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FL",
+        "usb-Roland_TD-07-01",
+        "playback_FL",
+        JiminyDeviceNodeType.Speaker
+    ),
+)
+
+val dummyDevices = listOf(
+    JiminyDevice("usb-BOSS_GT-1000-01").apply {
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FL",
+                "usb-BOSS_GT-1000-01",
+                "monitor_FL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FR",
+                "usb-BOSS_GT-1000-01",
+                "monitor_FR",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_RL",
+                "usb-BOSS_GT-1000-01",
+                "monitor_RL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_RR",
+                "usb-BOSS_GT-1000-01",
+                "monitor_RR",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FC",
+                "usb-BOSS_GT-1000-01",
+                "monitor_FC",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_LFE",
+                "usb-BOSS_GT-1000-01",
+                "monitor_LFE",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:playback_FL",
+                "usb-BOSS_GT-1000-01",
+                "playback_FL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:playback_FR",
+                "usb-BOSS_GT-1000-01",
+                "playback_FR",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:playback_RL",
+                "usb-BOSS_GT-1000-01",
+                "playback_RL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:playback_RR",
+                "usb-BOSS_GT-1000-01",
+                "playback_RR",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:playback_FC",
+                "usb-BOSS_GT-1000-01",
+                "playback_FC",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:playback_LFE",
+                "usb-BOSS_GT-1000-01",
+                "playback_LFE",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FL",
+                "usb-BOSS_GT-1000-01",
+                "capture_FL",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FR",
+                "usb-BOSS_GT-1000-01",
+                "capture_FR",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_RL",
+                "usb-BOSS_GT-1000-01",
+                "capture_RL",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_RR",
+                "usb-BOSS_GT-1000-01",
+                "capture_RR",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_FC",
+                "usb-BOSS_GT-1000-01",
+                "capture_FC",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-BOSS_GT-1000-01.multichannel-input:capture_LFE",
+                "usb-BOSS_GT-1000-01",
+                "capture_LFE",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addVolume(
+            JiminyVolume(
+                id = "38",
+                volume = .6f,
+                type = JiminyDeviceNodeType.Instrument,
+                mute = false,
+            )
+        )
+        addVolume(
+            JiminyVolume(
+                id = "40",
+                volume = 1f,
+                type = JiminyDeviceNodeType.Speaker,
+                mute = false,
+            )
+        )
+    },
+    JiminyDevice("FluidSynth").apply {
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:input_FL",
+                "fluidsynth",
+                "input_FL",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:output_FL",
+                "FluidSynth",
+                "output_FL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+    },
+    JiminyDevice("usb-Roland_TD-07-01").apply {
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FL",
+                "usb-Roland_TD-07-01",
+                "playback_FL",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FR",
+                "usb-Roland_TD-07-01",
+                "playback_FR",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FL",
+                "usb-Roland_TD-07-01",
+                "capture_FL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FR",
+                "usb-Roland_TD-07-01",
+                "capture_FR",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+        addVolume(
+            JiminyVolume(
+                id = "34",
+                volume = .4f,
+                type = JiminyDeviceNodeType.Instrument,
+                mute = false,
+            )
+        )
+        addVolume(
+            JiminyVolume(
+                id = "36",
+                volume = .8f,
+                type = JiminyDeviceNodeType.Speaker,
+                mute = false,
+            )
+        )
+    },
+    JiminyDevice("FluidSynth2").apply {
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:input_FL",
+                "fluidsynth",
+                "input_FL",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:output_FL",
+                "FluidSynth",
+                "output_FL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+    },
+    JiminyDevice("FluidSynth3").apply {
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:input_FL",
+                "fluidsynth",
+                "input_FL",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:output_FL",
+                "FluidSynth",
+                "output_FL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+    },
+    JiminyDevice("FluidSynth4").apply {
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:input_FL",
+                "fluidsynth",
+                "input_FL",
+                JiminyDeviceNodeType.Speaker
+            )
+        )
+        addNode(
+            JiminyDeviceNode(
+                "alsa_playback.FluidSynth:output_FL",
+                "FluidSynth",
+                "output_FL",
+                JiminyDeviceNodeType.Instrument
+            )
+        )
+    },
+)

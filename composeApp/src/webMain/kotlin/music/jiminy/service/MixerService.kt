@@ -48,11 +48,10 @@ class MixerService(
                 println("Jiminy Client - WebSocket closed - ${e.message}")
             } catch (e: CancellationException) {
                 println("Jiminy Client - WebSocket stopped - ${e.message}")
+                throw e
             } catch (e: Exception) {
                 println("Jiminy Client - ERROR - WebSocket error: $e - ${e.message}")
                 throw e
-            } finally {
-                println("Cleaning up resources for this session...")
             }
         }
     } catch (e: Exception) {
