@@ -1,6 +1,7 @@
 package music.jiminy.screen.common
 
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -29,6 +30,7 @@ interface ConnectionScreenDragListener {
     fun onDeviceDragEnd(finalOffset: Offset)
 }
 
+@Stable
 data class ConnectionScreenZoneItem(
     val type: ConnectionScreenNodeType,
     val zone: MutableState<Rect> = mutableStateOf(Rect.Zero),

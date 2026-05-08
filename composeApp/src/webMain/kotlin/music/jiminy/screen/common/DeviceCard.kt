@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import music.jiminy.DEVICE_CARD_HEIGHT
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
@@ -27,6 +28,8 @@ import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_LABEL
 import music.jiminy.DEVICE_CARD_WIDTH
 import music.jiminy.JiminyDevice
+import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDeviceNodeType
 
 @Composable
 fun DeviceCard(
@@ -69,6 +72,35 @@ fun DeviceCard(
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun DeviceCardPreview() {
+    MaterialTheme {
+        DeviceCard(
+            device = {
+                JiminyDevice("Test Device").apply {
+                    addNode(
+                        JiminyDeviceNode(
+                            fullName = "dev:instrument",
+                            deviceName = "Test Device",
+                            portName = "In 1",
+                            type = JiminyDeviceNodeType.Instrument
+                        )
+                    )
+                    addNode(
+                        JiminyDeviceNode(
+                            fullName = "dev:speaker",
+                            deviceName = "Test Device",
+                            portName = "Out 1",
+                            type = JiminyDeviceNodeType.Speaker
+                        )
+                    )
+                }
+            }
+        )
     }
 }
 

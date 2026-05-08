@@ -52,7 +52,7 @@ class ConnectionViewModel(
     class JiminyTab(
         val index: Int,
         val title: @Composable () -> Unit,
-        val content: @Composable (viewModel: () -> ConnectionViewModel, modifier: Modifier) -> Unit,
+        val content: @Composable (modifier: Modifier) -> Unit,
     )
 
     private val _tabs = MutableStateFlow(emptyList<JiminyTab>())
@@ -65,7 +65,7 @@ class ConnectionViewModel(
 
     fun addTab(
         title: @Composable () -> Unit,
-        content: @Composable (viewModel: () -> ConnectionViewModel, modifier: Modifier) -> Unit,
+        content: @Composable (modifier: Modifier) -> Unit,
     ) = JiminyTab(_tabs.value.count(), title, content)
         .also { tab -> _tabs.update { tabs -> tabs + tab } }
         .takeIf { _selectedTab.value == null }
