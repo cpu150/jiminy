@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import kotlin.Int.Companion
 
 @Composable
 fun TextBody(
@@ -61,6 +62,7 @@ fun TextLabel(
     color: Color = MaterialTheme.colorScheme.onSurface,
     textAlign: TextAlign? = null,
     fontWeight: FontWeight? = null,
+    maxLines: Int = Int.MAX_VALUE,
     modifier: Modifier = Modifier,
 ) {
     Text(
@@ -69,6 +71,8 @@ fun TextLabel(
         textAlign = textAlign,
         fontWeight = fontWeight,
         style = MaterialTheme.typography.bodySmall,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier,
     )
 }

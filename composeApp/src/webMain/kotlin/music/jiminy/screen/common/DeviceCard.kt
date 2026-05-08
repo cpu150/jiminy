@@ -46,7 +46,7 @@ fun DeviceCard(
         ) {
 
             DeviceHeader(device, Modifier.wrapContentHeight().fillMaxWidth())
-            DeviceAvatar(device, Modifier.weight(1f).aspectRatio(1f))
+            DeviceAvatar(device().avatarIcon.toResource(), Modifier.weight(1f).aspectRatio(1f))
 
             if (showLabels) {
                 // Instruments/Speakers info

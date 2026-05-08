@@ -15,7 +15,9 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Duration.Companion.seconds
 
-class Controller : JiminyServerControllerI {
+class Controller(
+    private val logger: JiminyLoggerI,
+) : JiminyServerControllerI {
 
     override suspend fun executeCommand(command: JiminyCommand) = when (command) {
         is JiminyCommand.VolumeUpdate -> updateVolume(command.deviceVolume, command.volume)
@@ -23,7 +25,7 @@ class Controller : JiminyServerControllerI {
         is JiminyCommand.Link -> linkDevice(command)
         is JiminyCommand.StartRecording -> startRecording(command)
         is JiminyCommand.StopRecording -> stopRecording()
-    }.also { println("Jiminy Server - Received: $command") }
+    }.also { logger.info("Jiminy Server - Received: $command") }
 
     private suspend fun updateVolume(
         deviceVolume: JiminyVolume,
@@ -34,15 +36,15 @@ class Controller : JiminyServerControllerI {
                 .redirectErrorStream(true)
                 .start().waitFor().let {
                     if (it != 0) {
-                        println("Jiminy Server - updateVolume - ERROR - code $it - $deviceVolume")
+                        logger.error("Jiminy Server - updateVolume - ERROR - code $it - $deviceVolume")
                     }
                     it == 0
                 }
         } catch (e: CancellationException) {
-            println("Jiminy Server - updateMuteState - Cancelled - $e")
+            logger.info("Jiminy Server - updateMuteState - Cancelled - $e")
             throw e
         } catch (e: Exception) {
-            println("Jiminy Server - updateVolume - ERROR - $deviceVolume[$volume] - ${e.message} - $e")
+            logger.error("Jiminy Server - updateVolume - ERROR - $deviceVolume[$volume] - ${e.message} - $e")
             false
         }
     }
@@ -58,15 +60,15 @@ class Controller : JiminyServerControllerI {
                 .waitFor()
                 .let {
                     if (it != 0) {
-                        println("Jiminy Server - updateMuteState - ERROR - code $it - $deviceVolume")
+                        logger.error("Jiminy Server - updateMuteState - ERROR - code $it - $deviceVolume")
                     }
                     it == 0
                 }
         } catch (e: CancellationException) {
-            println("Jiminy Server - updateMuteState - Cancelled - $e")
+            logger.info("Jiminy Server - updateMuteState - Cancelled - $e")
             throw e
         } catch (e: Exception) {
-            println("Jiminy Server - updateMuteState - ERROR - $deviceVolume[$mute] - ${e.message} - $e")
+            logger.error("Jiminy Server - updateMuteState - ERROR - $deviceVolume[$mute] - ${e.message} - $e")
             false
         }
     }
@@ -93,14 +95,14 @@ class Controller : JiminyServerControllerI {
                 ProcessBuilder("pw-link", "-d", link.instrument, link.speaker)
             }.redirectErrorStream(true).start().waitFor().let {
                 // Code 255: wiring "speaker" into an "instrument" (wrong) + wiring twice
-                if (it != 0) println("Jiminy Server - linkDevice - ERROR - code $it - $link")
+                if (it != 0) logger.error("Jiminy Server - linkDevice - ERROR - code $it - $link")
                 it == 0
             }
         } catch (e: CancellationException) {
-            println("Jiminy Server - linkDevice - Cancelled - $e")
+            logger.info("Jiminy Server - linkDevice - Cancelled - $e")
             throw e
         } catch (e: Exception) {
-            println("Jiminy Server - linkDevice - ERROR - $link - ${e.message} - $e")
+            logger.error("Jiminy Server - linkDevice - ERROR - $link - ${e.message} - $e")
             false
         }
     }
@@ -119,11 +121,11 @@ class Controller : JiminyServerControllerI {
                     // Use sendSerialized to send the object back as JSON
                     session.sendSerialized(command)
                 } else {
-                    println("Jiminy Server - WebSocket - status=FAILED while executing $command")
+                    logger.error("Jiminy Server - WebSocket - status=FAILED while executing $command")
                 }
             } catch (e: Exception) {
                 // If sending fails, the session might be dead
-                println("Jiminy Server - ERROR - WebSocket broadcasting error: $e - ${e.localizedMessage}")
+                logger.error("Jiminy Server - ERROR - WebSocket broadcasting error: $e - ${e.localizedMessage}")
             }
         }
     }
@@ -178,11 +180,11 @@ class Controller : JiminyServerControllerI {
 
                         true
                     } catch (e: CancellationException) {
-                        println("Jiminy Server - startRecording - Cancelled - $e")
+                        logger.info("Jiminy Server - startRecording - Cancelled - $e")
                         stopRecording()
                         throw e
                     } catch (e: Exception) {
-                        println("Recording failed to start: ${e.message}")
+                        logger.error("Recording failed to start: ${e.message}")
                         stopRecording()
                         false
                     }
@@ -200,10 +202,10 @@ class Controller : JiminyServerControllerI {
             true
         }
     } catch (e: CancellationException) {
-        println("Jiminy Server - stopRecording - Cancelled - $e")
+        logger.info("Jiminy Server - stopRecording - Cancelled - $e")
         throw e
     } catch (e: Exception) {
-        println("Recording failed to stop: ${e.message}")
+        logger.error("Recording failed to stop: ${e.message}")
         false
     } finally {
         _isRecording.store(false)

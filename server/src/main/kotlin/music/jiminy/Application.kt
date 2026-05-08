@@ -11,6 +11,7 @@ import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
@@ -32,15 +33,17 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import org.slf4j.event.Level
 import java.util.Collections
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Duration.Companion.seconds
 
 fun main() {
-    val controller = if (DEBUG) MockController() else Controller()
     val port = if (DEBUG) DEBUG_SERVER_PORT else SERVER_PORT
     val host = if (DEBUG) DEBUG_SERVER_HOST else SERVER_HOST
+    val logger = if (DEBUG) DebugLogger() else Logger()
+    val controller = if (DEBUG) MockController() else Controller(logger)
     val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -50,12 +53,25 @@ fun main() {
         factory = Netty,
         port = port,
         host = host,
-        module = { module(json, controller) },
+        module = { module(json, controller, logger) },
     ).start(wait = true)
 }
 
 @OptIn(ExperimentalAtomicApi::class)
-fun Application.module(json: Json, controller: JiminyServerControllerI) {
+fun Application.module(json: Json, controller: JiminyServerControllerI, logger: JiminyLoggerI) {
+    install(CallLogging) {
+        level = Level.INFO // This ensures requests show up in the logs
+        // This filter ignores the frequent polling/websocket noise if you want
+        filter { call -> call.request.path().startsWith("/") }
+        // This ensures you see the actual URL being requested
+        format { call ->
+            val status = call.response.status()
+            val httpMethod = call.request.httpMethod.value
+            val userAgent = call.request.headers["User-Agent"]
+            "Status: $status, Method: $httpMethod, UserAgent: $userAgent"
+        }
+    }
+
     install(ContentNegotiation) {
         json(json)
     }
@@ -96,7 +112,7 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
     val jobInProgress = AtomicBoolean(false)
     routing {
         webSocket(WS_MIXER) {
-            println("Jiminy Server - WebSocket - Adding new session $this")
+            logger.info("Jiminy Server - WebSocket - Adding new session $this")
             try {
                 sessions.add(this)
 
@@ -122,12 +138,12 @@ fun Application.module(json: Json, controller: JiminyServerControllerI) {
 
                                 jobInProgress.store(false)
                             }
-                        } ?: println("Jiminy Server - Busy - Command Ignored $command")
+                        } ?: logger.warning("Jiminy Server - Busy - Command Ignored $command")
                 }
             } catch (e: ClosedReceiveChannelException) {
-                println("Jiminy Server - WebSocket closed - ${e.localizedMessage}")
+                logger.error("Jiminy Server - WebSocket closed - ${e.localizedMessage}")
             } catch (e: Exception) {
-                println("Jiminy Server - ERROR - WebSocket error: $e - ${e.localizedMessage}")
+                logger.error("Jiminy Server - ERROR - WebSocket error: $e - ${e.localizedMessage}")
             } finally {
                 sessions.remove(this)
             }

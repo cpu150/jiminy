@@ -25,6 +25,7 @@ import jiminy.composeapp.generated.resources.snd_interface2
 import jiminy.composeapp.generated.resources.synth1
 import music.jiminy.AvatarIconsEnum
 import music.jiminy.JiminyDevice
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 fun AvatarIconsEnum.toResource() = when (this) {
@@ -41,12 +42,9 @@ fun AvatarIconsEnum.toResource() = when (this) {
 
 @Composable
 fun DeviceAvatar(
-    device: () -> JiminyDevice,
+    avatarImg: DrawableResource?,
     modifier: Modifier = Modifier,
 ) {
-    val device = device()
-    val avatarImg = device.avatarIcon.toResource()
-
     Box(
         modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,

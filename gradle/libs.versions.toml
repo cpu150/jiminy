@@ -1,7 +1,7 @@
 [versions]
 androidx-lifecycle = "2.10.0"
 kotlin = "2.3.20"
-ktor = "3.4.2"
+ktor = "3.4.3"
 logback = "1.5.32"
 composeMultiplatform = "1.11.0-beta01"
 composeMaterial = "1.7.3"
@@ -23,6 +23,7 @@ compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-previ
 compose-icons = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "composeMaterial" }
 compose-icons-ext = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "composeMaterial" }
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+ktor-serverLogging = { module = "io.ktor:ktor-server-call-logging-jvm", version.ref = "ktor" }
 ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
 ktor-serverNetty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
 ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
