@@ -40,6 +40,10 @@ kotlin {
             implementation(libs.kotlinx.collection.immutable)
             // Specifically for Ktor WebSockets serialization
             implementation(libs.ktor.serialization.kotlinx.json)
+
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

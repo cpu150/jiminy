@@ -17,18 +17,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -37,6 +35,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import music.jiminy.DEVICE_CARD_HEIGHT
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
@@ -46,8 +45,22 @@ import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
 import music.jiminy.disconnectionNodesList
-import music.jiminy.screen.ConnectionScreenNodeType.Instrument
-import music.jiminy.screen.ConnectionScreenNodeType.Speaker
+import music.jiminy.screen.ConnectionScreenAction.OnAddRowClick
+import music.jiminy.screen.ConnectionScreenAction.OnConfirmUnlinkAll
+import music.jiminy.screen.ConnectionScreenAction.OnConnectClick
+import music.jiminy.screen.ConnectionScreenAction.OnDeleteDeviceFromRow
+import music.jiminy.screen.ConnectionScreenAction.OnDeleteNodeFromRow
+import music.jiminy.screen.ConnectionScreenAction.OnDeleteRowClick
+import music.jiminy.screen.ConnectionScreenAction.OnDeviceDrag
+import music.jiminy.screen.ConnectionScreenAction.OnDeviceDragEnd
+import music.jiminy.screen.ConnectionScreenAction.OnDeviceDragStart
+import music.jiminy.screen.ConnectionScreenAction.OnDisconnectClick
+import music.jiminy.screen.ConnectionScreenAction.OnDismissAddDevicePopup
+import music.jiminy.screen.ConnectionScreenAction.OnDismissDeleteAllAlert
+import music.jiminy.screen.ConnectionScreenAction.OnDismissError
+import music.jiminy.screen.ConnectionScreenAction.OnDismissIncompletePopup
+import music.jiminy.screen.ConnectionScreenAction.OnNodesSelected
+import music.jiminy.screen.ConnectionScreenAction.OnUnlinkAllClick
 import music.jiminy.screen.common.ConnectionScreenDragListener
 import music.jiminy.screen.common.ConnectionScreenZoneItem
 import music.jiminy.screen.common.DeleteConfirmationAlert
@@ -63,16 +76,63 @@ import music.jiminy.screen.common.NodeSelectionAlert
 import music.jiminy.screen.common.TextButton
 import music.jiminy.screen.common.TextHeadline
 import music.jiminy.screen.common.UnlinkConfirmationAlert
-import music.jiminy.screen.common.addNodes
-import music.jiminy.screen.common.instruments
-import music.jiminy.screen.common.isCompleted
 import music.jiminy.screen.common.nodes
-import music.jiminy.screen.common.removeNode
-import music.jiminy.screen.common.speakers
+import music.jiminy.viewmodel.ConnectionScreenViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 enum class ConnectionScreenNodeType {
     Speaker,
     Instrument,
+}
+
+@Stable
+data class ConnectionScreenState(
+    val devices: List<JiminyDevice> = emptyList(),
+    val links: List<JiminyLink> = emptyList(),
+    val connectionRows: List<Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>> = listOf(
+        ConnectionScreenZoneItem(ConnectionScreenNodeType.Instrument) to ConnectionScreenZoneItem(
+            ConnectionScreenNodeType.Speaker,
+        )
+    ),
+    val activeDraggingDevice: JiminyDevice? = null,
+    val dragOffset: Offset = Offset.Zero,
+    val showAddDevicePopup: Boolean = false,
+    val showIncompletePopup: Boolean = false,
+    val showError: String? = null,
+    val lastDropItem: Pair<ConnectionScreenZoneItem, JiminyDevice>? = null,
+    val showDeleteAllAlert: Boolean = false,
+)
+
+sealed interface ConnectionScreenAction {
+    data class OnDeviceDragStart(val device: JiminyDevice, val initialOffset: Offset) :
+        ConnectionScreenAction
+
+    data class OnDeviceDrag(val newOffset: Offset) : ConnectionScreenAction
+    data class OnDeviceDragEnd(val finalOffset: Offset) : ConnectionScreenAction
+    data object OnAddRowClick : ConnectionScreenAction
+    data class OnDeleteRowClick(val row: Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>) :
+        ConnectionScreenAction
+
+    data object OnConnectClick : ConnectionScreenAction
+    data class OnDisconnectClick(val nodes: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) :
+        ConnectionScreenAction
+
+    data object OnUnlinkAllClick : ConnectionScreenAction
+    data object OnConfirmUnlinkAll : ConnectionScreenAction
+    data object OnDismissError : ConnectionScreenAction
+    data object OnDismissIncompletePopup : ConnectionScreenAction
+    data object OnDismissAddDevicePopup : ConnectionScreenAction
+    data object OnDismissDeleteAllAlert : ConnectionScreenAction
+    data class OnNodesSelected(
+        val zone: ConnectionScreenZoneItem,
+        val nodes: List<JiminyDeviceNode>
+    ) : ConnectionScreenAction
+
+    data class OnDeleteNodeFromRow(val zone: ConnectionScreenZoneItem, val node: JiminyDeviceNode) :
+        ConnectionScreenAction
+
+    data class OnDeleteDeviceFromRow(val zone: ConnectionScreenZoneItem, val device: JiminyDevice) :
+        ConnectionScreenAction
 }
 
 fun Pair<JiminyDeviceNode, JiminyDeviceNode>.speakers() =
@@ -81,192 +141,88 @@ fun Pair<JiminyDeviceNode, JiminyDeviceNode>.speakers() =
 fun Pair<JiminyDeviceNode, JiminyDeviceNode>.instruments() =
     if (first.type == JiminyDeviceNodeType.Instrument) first else second
 
+fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.speakers() =
+    if (first.type == ConnectionScreenNodeType.Speaker) first else second
+
+fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.instruments() =
+    if (first.type == ConnectionScreenNodeType.Instrument) first else second
+
 @Composable
 fun ConnectionScreen(
-    devices: () -> List<JiminyDevice>,
-    links: () -> List<JiminyLink>,
-    connect: (List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) -> Unit,
-    disconnect: (List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    ConnectionRoot(modifier)
+}
+
+@Composable
+fun ConnectionRoot(
+    modifier: Modifier = Modifier,
+    viewModel: ConnectionScreenViewModel = koinViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { viewModel.loadData() }
+
     DraggableScreen(
         draggableItem = { item -> DeviceCard { item } },
         modifier = modifier,
     ) { activeDraggingItem, offset ->
-        MainScreen(
-            getActiveDraggingDevice = { activeDraggingItem },
-            offset = offset,
-            devices = devices,
-            connect = connect,
-            links = links,
-            disconnect = disconnect,
+        // We sync the DraggableScreen internal state with our ViewModel when it changes
+        // but wait, DraggableScreen seems to OWN this state for the animation.
+        // I should probably let DraggableScreen manage its animation state, 
+        // but report drag events to the ViewModel.
+
+        MainConnectionScreen(
+            state = state,
+            onAction = viewModel::onAction,
+            // These are still needed by DraggableScreen's internal logic for now
+            activeDraggingItem = activeDraggingItem,
+            dragOffset = offset,
         )
     }
 }
 
 @Composable
-fun MainScreen(
-    getActiveDraggingDevice: () -> MutableState<JiminyDevice?>,
-    offset: MutableState<Offset>,
-    devices: () -> List<JiminyDevice>,
-    links: () -> List<JiminyLink>,
-    connect: (List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) -> Unit,
-    disconnect: (List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) -> Unit,
-    modifier: Modifier = Modifier,
+private fun MainConnectionScreen(
+    state: ConnectionScreenState,
+    onAction: (ConnectionScreenAction) -> Unit,
+    activeDraggingItem: androidx.compose.runtime.MutableState<JiminyDevice?>,
+    dragOffset: androidx.compose.runtime.MutableState<Offset>,
 ) {
-    val activeDraggingDevice by getActiveDraggingDevice()
+    val listener = remember(onAction) {
+        object : ConnectionScreenDragListener {
+            override fun deviceBeingDragged() = activeDraggingItem.value
 
-    val connectionRows = remember {
-        mutableStateListOf(ConnectionScreenZoneItem(Instrument) to ConnectionScreenZoneItem(Speaker))
-    }
-    var showAddDevicePopup by remember { mutableStateOf(false) }
-    var showIncompletePopup by remember { mutableStateOf(false) }
-    var showError: String? by remember { mutableStateOf(null) }
-    var lastDropItem
-            by remember { mutableStateOf<Pair<ConnectionScreenZoneItem, JiminyDevice>?>(null) }
-
-    val listener = object : ConnectionScreenDragListener {
-        override fun deviceBeingDragged() = activeDraggingDevice
-
-        override fun onDeviceDragStart(device: JiminyDevice, initialOffset: Offset) {
-            getActiveDraggingDevice().value = device
-            offset.value = initialOffset
-        }
-
-        override fun onDeviceDrag(newOffset: Offset) {
-            offset.value = newOffset
-        }
-
-        override fun onDeviceDragEnd(finalOffset: Offset) {
-            val bufferOffset = 10f
-
-            // Logic to check if drop was into Instruments or Speakers zones
-            connectionRows.find {
-                val instruments = it.instruments()
-                val speakers = it.speakers()
-                instruments.zone.value.inflate(bufferOffset).contains(finalOffset) ||
-                        speakers.zone.value.inflate(bufferOffset).contains(finalOffset)
-            }?.let {
-                val instruments = it.instruments()
-                val droppedInInstrumentsZone =
-                    instruments.zone.value.inflate(bufferOffset).contains(finalOffset)
-                val hasInstruments = activeDraggingDevice?.instruments?.isNotEmpty() == true
-                val speakers = it.speakers()
-                val hasSpeakers = activeDraggingDevice?.speakers?.isNotEmpty() == true
-                val typeStr = if (droppedInInstrumentsZone) "Instruments" else "Speakers"
-
-                if (droppedInInstrumentsZone && hasInstruments) {
-                    instruments
-                } else if (hasSpeakers) {
-                    speakers
-                } else {
-                    showError = "No $typeStr for \"${activeDraggingDevice?.displayName}\""
-                    null
-                }
-            }?.also { items ->
-                activeDraggingDevice?.also { device -> lastDropItem = items to device }
-                showAddDevicePopup = true
+            override fun onDeviceDragStart(device: JiminyDevice, initialOffset: Offset) {
+                activeDraggingItem.value = device
+                dragOffset.value = initialOffset
+                onAction(OnDeviceDragStart(device, initialOffset))
             }
 
-            getActiveDraggingDevice().value = null
-        }
-    }
-
-    val createNewRow: () -> Unit = {
-        val lastLineComplete = connectionRows.lastOrNull()?.isCompleted() ?: true
-
-        if (lastLineComplete) {
-            connectionRows
-                .add(ConnectionScreenZoneItem(Instrument) to ConnectionScreenZoneItem(Speaker))
-        } else {
-            showIncompletePopup = true
-        }
-    }
-
-    val connecting: () -> Unit = {
-        val incompletedRow = connectionRows.find { !it.isCompleted() }
-        val allLineComplete = incompletedRow == null && connectionRows.isNotEmpty()
-
-        if (allLineComplete) {
-            val connections = mutableListOf<Pair<JiminyDeviceNode, JiminyDeviceNode>>()
-
-            connectionRows.forEach { row ->
-                row.speakers().nodes().forEach { speaker ->
-                    row.instruments().nodes().forEach { instrument ->
-                        connections += speaker to instrument
-                    }
-                }
+            override fun onDeviceDrag(newOffset: Offset) {
+                dragOffset.value = newOffset
+                onAction(OnDeviceDrag(newOffset))
             }
 
-            if (connections.isNotEmpty()) {
-                connect(connections)
-
-                connectionRows.clear()
-                connectionRows
-                    .add(ConnectionScreenZoneItem(Instrument) to ConnectionScreenZoneItem(Speaker))
+            override fun onDeviceDragEnd(finalOffset: Offset) {
+                onAction(OnDeviceDragEnd(finalOffset))
+                activeDraggingItem.value = null
             }
-        } else {
-            showIncompletePopup = true
         }
     }
 
-    MainConnectionScreen(
-        deviceList = devices,
-        links = links,
-        dragListener = listener,
-        getConnectionRows = { connectionRows },
-        newConnectionRow = createNewRow,
-        deleteConnectionRow = { if (connectionRows.count() > 1) connectionRows.remove(it) },
-        disconnect = disconnect,
-        connect = connecting,
-        modifier = modifier,
-    )
-
-    showError?.let { errorMessage ->
-        ErrorAlert(errorMessage, { showError = null })
-    }
-
-    lastDropItem?.takeIf { showAddDevicePopup }?.let { (zone, device) ->
-        NodeSelectionAlert(
-            onDismiss = { showAddDevicePopup = false },
-            droppedDevice = { device },
-            zoneItem = { zone },
-            addNodes = { nodes -> zone.addNodes(nodes) },
-        )
-    }
-
-    if (showIncompletePopup) {
-        IncompleteRowsAlert({ showIncompletePopup = false })
-    }
-}
-
-@Composable
-fun MainConnectionScreen(
-    deviceList: () -> List<JiminyDevice>,
-    links: () -> List<JiminyLink>,
-    getConnectionRows: () -> List<Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>>,
-    newConnectionRow: () -> Unit,
-    deleteConnectionRow: (Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>) -> Unit,
-    connect: () -> Unit,
-    disconnect: (List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) -> Unit,
-    dragListener: ConnectionScreenDragListener,
-    modifier: Modifier = Modifier,
-) {
-    val rows by remember { mutableStateOf(getConnectionRows()) }
-    var showDeleteAllAlert by remember { mutableStateOf(false) }
-
-    Column(modifier = modifier.fillMaxWidth().wrapContentHeight()) {
+    Column(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
         LazyRow(
             modifier = Modifier.fillMaxWidth().height(DEVICE_CARD_HEIGHT.dp + 20.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            items(deviceList()) { device ->
-                DraggableDeviceCard(dragListener) { device }
+            items(state.devices) { device ->
+                DraggableDeviceCard(listener) { device }
             }
         }
 
-        if (rows.count() > 0) {
+        if (state.connectionRows.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -286,36 +242,40 @@ fun MainConnectionScreen(
             }
         }
 
-        rows.forEachIndexed { index, row ->
+        state.connectionRows.forEachIndexed { index, row ->
             ConnectionRow(
                 index = index,
                 row = { row },
-                deleteRow = { deleteConnectionRow(row) },
+                deleteRow = { onAction(OnDeleteRowClick(row)) },
+                onDeleteNode = { zone, node -> onAction(OnDeleteNodeFromRow(zone, node)) },
+                onDeleteDevice = { zone, device -> onAction(OnDeleteDeviceFromRow(zone, device)) }
             )
             Spacer(Modifier.height(6.dp))
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JiminyButton(onClick = { newConnectionRow() }) {
+            JiminyButton(onClick = { onAction(OnAddRowClick) }) {
                 TextButton("Add Row")
             }
-            JiminyButton(onClick = connect) {
+            JiminyButton(onClick = { onAction(OnConnectClick) }) {
                 TextButton("Connect")
             }
         }
         Spacer(Modifier.height(12.dp))
 
-        links().forEach { link ->
+        state.links.forEach { link ->
             LinkRow(
                 link = { link },
-                onClick = { (dev, node) -> disconnect(link.disconnectionNodesList(dev, node)) },
+                onClick = { (dev, node) ->
+                    onAction(OnDisconnectClick(link.disconnectionNodesList(dev, node)))
+                },
             )
         }
 
         Spacer(Modifier.height(6.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JiminyButton(onClick = { showDeleteAllAlert = true }) {
+            JiminyButton(onClick = { onAction(OnUnlinkAllClick) }) {
                 TextButton("Unlink All")
             }
             JiminyButton(onClick = { /* TODO */ }) {
@@ -324,17 +284,29 @@ fun MainConnectionScreen(
         }
     }
 
-    if (showDeleteAllAlert) {
+    // Alerts
+    state.showError?.let { errorMessage ->
+        ErrorAlert(errorMessage, { onAction(OnDismissError) })
+    }
+
+    state.lastDropItem?.takeIf { state.showAddDevicePopup }?.let { (zone, device) ->
+        NodeSelectionAlert(
+            onDismiss = { onAction(OnDismissAddDevicePopup) },
+            droppedDevice = { device },
+            zoneItem = { zone },
+            addNodes = { nodes -> onAction(OnNodesSelected(zone, nodes)) },
+        )
+    }
+
+    if (state.showIncompletePopup) {
+        IncompleteRowsAlert({ onAction(OnDismissIncompletePopup) })
+    }
+
+    if (state.showDeleteAllAlert) {
         GenericMessageAlert(
             title = "Unlink All Links?",
-            onDismiss = { showDeleteAllAlert = false },
-            onConfirm = {
-                buildList {
-                    links().forEach { link ->
-                        addAll(link.disconnectionNodesList(link.speakerDevice))
-                    }
-                }.also { disconnect(it) }
-            },
+            onDismiss = { onAction(OnDismissDeleteAllAlert) },
+            onConfirm = { onAction(OnConfirmUnlinkAll) },
             confirmLabel = "Unlink",
         )
     }
@@ -345,6 +317,8 @@ fun ConnectionRow(
     index: Int,
     row: () -> Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>,
     deleteRow: () -> Unit,
+    onDeleteNode: (ConnectionScreenZoneItem, JiminyDeviceNode) -> Unit,
+    onDeleteDevice: (ConnectionScreenZoneItem, JiminyDevice) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val instruments = row().instruments()
@@ -381,8 +355,9 @@ fun ConnectionRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             instruments.devices.forEach { instrument ->
-                val nodes =
-                    remember(instruments.nodes()) { instrument.nodes().toMutableStateList() }
+                val nodes = remember(instruments.nodes()) {
+                    instrument.nodes().toMutableList() // Simplified for now
+                }
 
                 DeviceCardNodeDetails(
                     device = { instrument },
@@ -399,7 +374,9 @@ fun ConnectionRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             speakers.devices.forEach { speaker ->
-                val nodes = remember(speakers.nodes()) { speaker.nodes().toMutableStateList() }
+                val nodes = remember(speakers.nodes()) {
+                    speaker.nodes().toMutableList()
+                }
 
                 DeviceCardNodeDetails(
                     device = { speaker },
@@ -431,17 +408,14 @@ fun ConnectionRow(
 
     nodeToDelete?.let { node ->
         DeleteConfirmationAlert(node.displayPortName, onDismiss = { nodeToDelete = null }) {
-            if (node.type == JiminyDeviceNodeType.Speaker) {
-                speakers
-            } else {
-                instruments
-            }.removeNode(node)
+            val zone = if (node.type == JiminyDeviceNodeType.Speaker) speakers else instruments
+            onDeleteNode(zone, node)
         }
     }
 
     deviceToDelete?.let { (zone, device) ->
         DeleteConfirmationAlert(device.displayName, onDismiss = { deviceToDelete = null }) {
-            zone.devices.remove(device)
+            onDeleteDevice(zone, device)
         }
     }
 }
@@ -452,9 +426,9 @@ fun LinkRow(
     onClick: (Pair<JiminyDevice, JiminyDeviceNode?>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val link = link()
-    val instrumentDevs = link.instrumentDevices
-    val speakerDev = link.speakerDevice
+    val linkValue = link()
+    val instrumentDevs = linkValue.instrumentDevices
+    val speakerDev = linkValue.speakerDevice
     var showConfirmationAlert by remember {
         mutableStateOf<Pair<JiminyDevice, JiminyDeviceNode?>?>(null)
     }

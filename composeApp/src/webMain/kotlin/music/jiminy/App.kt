@@ -28,17 +28,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.combine
 import music.jiminy.screen.ConnectionScreen
 import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
 import music.jiminy.screen.common.TextError
+import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun App(viewModel: () -> ConnectionViewModel) {
+fun App() {
     MaterialTheme(darkColorScheme()) {
-        val viewModel = viewModel()
+        val viewModel: ConnectionViewModel = koinViewModel()
         var mixerTab: ConnectionViewModel.JiminyTab? = null
 
         LaunchedEffect(Unit) {
@@ -67,7 +70,7 @@ fun App(viewModel: () -> ConnectionViewModel) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            MainScreen({ viewModel }, Modifier.fillMaxSize())
+            MainScreen(Modifier.fillMaxSize())
 
             if (isRecording) {
                 RecordingOverlay(viewModel::stopRecording, Modifier.fillMaxSize())
@@ -91,15 +94,28 @@ fun TabTitle(icon: ImageVector, title: String) {
 
 @Composable
 fun MainScreen(
-    viewModel: () -> ConnectionViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = viewModel()
-    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+    val connectionViewModel: ConnectionViewModel = koinViewModel()
+    val connectionScreenViewModel: ConnectionScreenViewModel = koinViewModel()
+    val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
+    val errorFlow = connectionViewModel
+        .errorMessage
+        .combine(connectionScreenViewModel.errorMessage) { err1, err2 ->
+            buildString {
+                err1?.let { append(it) }
+                err2?.let { append(it) }
+            }
+        }
+
+    LaunchedEffect(selectedTab) {
+        connectionViewModel.resetError()
+        connectionScreenViewModel.resetError()
+    }
 
     selectedTab?.let { selectedTab ->
-        val errorMsg by viewModel.errorMessage.collectAsStateWithLifecycle()
-        val tabs by viewModel.tabs.collectAsStateWithLifecycle()
+        val errorMsg by errorFlow.collectAsStateWithLifecycle(null)
+        val tabs by connectionViewModel.tabs.collectAsStateWithLifecycle()
         val scrollState = rememberScrollState()
         val screenModifier = Modifier
             .fillMaxSize()
@@ -122,7 +138,7 @@ fun MainScreen(
                 tabs.forEach { tab ->
                     Tab(
                         selected = selectedTab.index == tab.index,
-                        onClick = { viewModel.selectTab(tab.index) },
+                        onClick = { connectionViewModel.selectTab(tab.index) },
                         text = tab.title,
                     )
                 }
@@ -130,40 +146,25 @@ fun MainScreen(
 
             errorMsg?.let { TextError(it) }
 
-            selectedTab.content({ viewModel }, screenModifier)
+            selectedTab.content(screenModifier)
         }
     } ?: TextError("Error while loading the tabs")
 }
 
 @Composable
 fun AudioLinksMainScreen(
-    viewModel: () -> ConnectionViewModel,
     screenModifier: Modifier = Modifier,
 ) {
-    val viewModel = viewModel()
-    val allDevices by viewModel.devices.collectAsStateWithLifecycle()
-    val allLinks by viewModel.links.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        viewModel.getDevices()
-        viewModel.getDeviceLinks()
-    }
-
     ConnectionScreen(
-        devices = { allDevices.filter { it.name != PW_RECORDER_NAME } },
-        links = { allLinks.filter { it.speakerDevice.name != PW_RECORDER_NAME } },
-        connect = viewModel::connect,
-        disconnect = viewModel::disconnect,
         modifier = screenModifier,
     )
 }
 
 @Composable
 fun MixerMainScreen(
-    viewModel: () -> ConnectionViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = viewModel()
+    val viewModel: ConnectionViewModel = koinViewModel()
     val devices by viewModel.devices.collectAsStateWithLifecycle()
     val succeededCommands by viewModel.succeededCommands.collectAsStateWithLifecycle()
 
@@ -187,10 +188,9 @@ fun MixerMainScreen(
 
 @Composable
 fun RecordingMainScreen(
-    viewModel: () -> ConnectionViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = viewModel()
+    val viewModel: ConnectionViewModel = koinViewModel()
     val devices by viewModel.devices.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
