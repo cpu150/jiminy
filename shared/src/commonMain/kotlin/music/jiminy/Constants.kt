@@ -6,7 +6,7 @@ const val DEBUG = false
 
 const val DEBOUNCING_COMMAND_MILLIS = 120
 
-const val DEBUG_SERVER_PORT = 8080
+const val DEBUG_SERVER_PORT = 8081
 const val SERVER_PORT = 80
 const val DEBUG_SERVER_HOST = "0.0.0.0"
 const val SERVER_HOST = "0.0.0.0"

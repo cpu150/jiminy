@@ -50,9 +50,17 @@ val appModule = module {
 
     single {
         val defaultPort = if (DEBUG) DEBUG_SERVER_PORT else SERVER_PORT
-        val port = window.location.port.ifBlank { defaultPort.toString() }.toInt()
         val hostname = window.location.hostname
         val protocol = window.location.protocol
+
+        // During local development, the frontend is often served by a dev server (e.g. port 8080)
+        // while the Ktor backend runs on its own port. We ensure the client points to the backend.
+        val port = if (hostname == "localhost" && DEBUG) {
+            DEBUG_SERVER_PORT
+        } else {
+            window.location.port.ifBlank { defaultPort.toString() }.toInt()
+        }
+
         val baseUrl = "$protocol//$hostname:$port"
 
         Triple(hostname, port, baseUrl)
