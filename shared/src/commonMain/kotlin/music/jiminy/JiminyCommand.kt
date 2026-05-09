@@ -9,12 +9,6 @@ enum class LinkType {
 }
 
 @Serializable
-data class Recorder (
-    val label: String,
-    val nodeName: String,
-)
-
-@Serializable
 sealed interface JiminyCommand {
     @Serializable
     data class VolumeUpdate(
@@ -36,7 +30,7 @@ sealed interface JiminyCommand {
     ) : JiminyCommand
 
     @Serializable
-    data class StartRecording(val recoders: List<Recorder>) : JiminyCommand
+    data object StartRecording : JiminyCommand
 
     @Serializable
     data class StopRecording(val isRecording: Boolean = false) : JiminyCommand
