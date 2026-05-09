@@ -36,6 +36,7 @@ import music.jiminy.screen.RecordingScreen
 import music.jiminy.screen.common.TextError
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
+import music.jiminy.viewmodel.RecordingScreenViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -98,19 +99,24 @@ fun MainScreen(
 ) {
     val connectionViewModel: ConnectionViewModel = koinViewModel()
     val connectionScreenViewModel: ConnectionScreenViewModel = koinViewModel()
+    val recordingScreenViewModel: RecordingScreenViewModel = koinViewModel()
     val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
-    val errorFlow = connectionViewModel
-        .errorMessage
-        .combine(connectionScreenViewModel.errorMessage) { err1, err2 ->
-            buildString {
-                err1?.let { append(it) }
-                err2?.let { append(it) }
-            }
-        }
+    val errorFlow = combine(
+        connectionViewModel.errorMessage,
+        connectionScreenViewModel.errorMessage,
+        recordingScreenViewModel.errorMessage
+    ) { err1, err2, err3 ->
+        buildString {
+            err1?.let { append(it) }
+            err2?.let { append(it) }
+            err3?.let { append(it) }
+        }.takeIf { it.isNotEmpty() }
+    }
 
     LaunchedEffect(selectedTab) {
         connectionViewModel.resetError()
         connectionScreenViewModel.resetError()
+        recordingScreenViewModel.resetError()
     }
 
     selectedTab?.let { selectedTab ->
@@ -190,25 +196,7 @@ fun MixerMainScreen(
 fun RecordingMainScreen(
     modifier: Modifier = Modifier,
 ) {
-    val viewModel: ConnectionViewModel = koinViewModel()
-    val devices by viewModel.devices.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        viewModel.getDevices()
-    }
-
-    val links = viewModel.links.value.filter { it.speakerDevice.name == PW_RECORDER_NAME }
-    val preselectedDevNodePairs = buildList {
-        links.forEach { link ->
-            link.instrumentDevices.forEach { device ->
-                device.nodes().forEach { add(device to it) }
-            }
-        }
-    }
     RecordingScreen(
-        preselectedDevNodePairs = { preselectedDevNodePairs },
-        devices = { devices.filter { it.instruments.isNotEmpty() && it.name != PW_RECORDER_NAME } },
-        startRecording = viewModel::startRecording,
         modifier = modifier,
     )
 }

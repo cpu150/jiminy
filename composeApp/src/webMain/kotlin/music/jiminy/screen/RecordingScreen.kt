@@ -31,11 +31,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +41,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.DEVICE_LIST_CARD_WIDTH
 import music.jiminy.JiminyDevice
@@ -57,34 +56,71 @@ import music.jiminy.screen.common.TextButton
 import music.jiminy.screen.common.TextLabel
 import music.jiminy.screen.common.TextTitle
 import music.jiminy.screen.common.toResource
+import music.jiminy.viewmodel.RecordingScreenViewModel
 import org.jetbrains.compose.resources.DrawableResource
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.PI
 import kotlin.math.sin
 
+@Stable
+data class RecordingScreenState(
+    val devices: List<JiminyDevice> = emptyList(),
+    val selectedDevNodePairs: List<Pair<JiminyDevice, JiminyDeviceNode>> = emptyList(),
+    val isRecording: Boolean = false,
+    val isLoading: Boolean = false,
+    val recorderDevice: JiminyDevice? = null,
+    val showDetails: JiminyDevice? = null,
+)
+
+sealed interface RecordingScreenAction {
+    data class OnDeviceClick(val device: JiminyDevice) : RecordingScreenAction
+    data object OnStartRecording : RecordingScreenAction
+    data object OnStopRecording : RecordingScreenAction
+    data object OnDismissDetails : RecordingScreenAction
+    data class OnNodeClick(val device: JiminyDevice, val node: JiminyDeviceNode) :
+        RecordingScreenAction
+}
+
 @Composable
 fun RecordingScreen(
-    preselectedDevNodePairs: () -> List<Pair<JiminyDevice, JiminyDeviceNode>>,
-    devices: () -> List<JiminyDevice>,
-    startRecording: (List<JiminyDeviceNode>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val devices = devices()
-    var showDetails by remember { mutableStateOf<JiminyDevice?>(null) }
-    val selectedDevNodePairs = remember { preselectedDevNodePairs().toMutableStateList() }
+    RecordingRoot(modifier)
+}
 
+@Composable
+fun RecordingRoot(
+    modifier: Modifier = Modifier,
+    viewModel: RecordingScreenViewModel = koinViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { viewModel.loadData() }
+
+    RecordingScreenContent(
+        state = state,
+        onAction = viewModel::onAction,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun RecordingScreenContent(
+    state: RecordingScreenState,
+    onAction: (RecordingScreenAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier.fillMaxWidth().wrapContentHeight()) {
         val recordItemsModifier = Modifier.height((DEVICE_LIST_CARD_HEIGHT + 40).dp).fillMaxWidth()
-        val removeNode: (JiminyDevice, JiminyDeviceNode) -> Unit =
-            { dev, node -> selectedDevNodePairs.remove(dev to node) }
 
         SelectedNodes(
-            deviceNodePairs = { selectedDevNodePairs },
-            removeNode = removeNode,
+            deviceNodePairs = { state.selectedDevNodePairs },
+            onNodeClick = { dev, node -> onAction(RecordingScreenAction.OnNodeClick(dev, node)) },
             modifier = recordItemsModifier,
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val isRecordingEnable = selectedDevNodePairs.isNotEmpty()
+            val isRecordingEnable = state.selectedDevNodePairs.isNotEmpty()
             val textColor = if (isRecordingEnable) {
                 MaterialTheme.colorScheme.onPrimary
             } else {
@@ -93,7 +129,7 @@ fun RecordingScreen(
 
             JiminyButton(
                 enabled = isRecordingEnable,
-                onClick = { startRecording(selectedDevNodePairs.map { it.second }) },
+                onClick = { onAction(RecordingScreenAction.OnStartRecording) },
                 modifier = Modifier.padding(4.dp),
             ) { TextButton(text = "Start Recording", color = textColor) }
 
@@ -112,11 +148,11 @@ fun RecordingScreen(
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(devices) { device ->
+            items(state.devices) { device ->
                 DeviceCard(
                     showLabels = false,
                     modifier = Modifier
-                        .clickable(onClick = { showDetails = device })
+                        .clickable(onClick = { onAction(RecordingScreenAction.OnDeviceClick(device)) })
                         .height(DEVICE_LIST_CARD_HEIGHT.dp)
                         .width(DEVICE_LIST_CARD_WIDTH.dp),
                 ) { device }
@@ -125,16 +161,19 @@ fun RecordingScreen(
 
         Spacer(Modifier.size(4.dp))
 
-        showDetails?.let { device ->
+        state.showDetails?.let { device ->
             DeviceDetails(
                 device = { device },
                 selectedNodes = {
-                    selectedDevNodePairs
+                    state.selectedDevNodePairs
                         .filter { it.first == device }
                         .map { it.second }
                 },
-                addNode = { dev, node -> selectedDevNodePairs.add(dev to node) },
-                removeNode = removeNode,
+                onNodeClick = { dev, node ->
+                    onAction(
+                        RecordingScreenAction.OnNodeClick(dev, node)
+                    )
+                },
                 modifier = Modifier.padding(vertical = 8.dp).wrapContentHeight().fillMaxWidth(),
             )
         }
@@ -145,8 +184,7 @@ fun RecordingScreen(
 fun DeviceDetails(
     device: () -> JiminyDevice,
     selectedNodes: () -> List<JiminyDeviceNode>,
-    addNode: (JiminyDevice, JiminyDeviceNode) -> Unit,
-    removeNode: (JiminyDevice, JiminyDeviceNode) -> Unit,
+    onNodeClick: (JiminyDevice, JiminyDeviceNode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val device = device()
@@ -164,13 +202,7 @@ fun DeviceDetails(
             SelectableNodeItem(
                 node = { node },
                 isSelected = isSelected,
-                onClick = {
-                    if (isSelected) {
-                        removeNode(device, node)
-                    } else {
-                        addNode(device, node)
-                    }
-                },
+                onClick = { onNodeClick(device, node) },
                 modifier = Modifier.weight(1f).fillMaxWidth(.33f),
             )
         }
@@ -180,7 +212,7 @@ fun DeviceDetails(
 @Composable
 fun SelectedNodes(
     deviceNodePairs: () -> List<Pair<JiminyDevice, JiminyDeviceNode>>,
-    removeNode: (JiminyDevice, JiminyDeviceNode) -> Unit,
+    onNodeClick: (JiminyDevice, JiminyDeviceNode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val deviceNodePairs = deviceNodePairs()
@@ -201,7 +233,7 @@ fun SelectedNodes(
                     portName = node.displayPortName,
                     deviceName = node.displayName,
                     avatarImg = dev.avatarIcon.toResource(),
-                    modifier = Modifier.clickable(onClick = { removeNode(dev, node) }),
+                    modifier = Modifier.clickable(onClick = { onNodeClick(dev, node) }),
                 )
             } else {
                 EmptySelectedNodeItem(
