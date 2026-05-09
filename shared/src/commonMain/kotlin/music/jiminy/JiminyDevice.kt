@@ -2,6 +2,8 @@ package music.jiminy
 
 import kotlinx.serialization.Serializable
 
+fun JiminyDeviceNode.getAvatar() = deviceNameToAvatar[deviceName] ?: AvatarIconsEnum.Unknown
+
 @Serializable
 data class JiminyDevice(val name: String) {
     val avatarIcon = deviceNameToAvatar[name] ?: AvatarIconsEnum.Unknown

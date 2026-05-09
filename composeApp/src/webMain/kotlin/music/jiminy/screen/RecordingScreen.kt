@@ -46,7 +46,7 @@ import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.DEVICE_LIST_CARD_WIDTH
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
-import music.jiminy.PW_RECORDER_CHANNEL_COUNT
+import music.jiminy.getAvatar
 import music.jiminy.screen.common.DeviceAvatar
 import music.jiminy.screen.common.DeviceCard
 import music.jiminy.screen.common.JiminyButton
@@ -65,7 +65,7 @@ import kotlin.math.sin
 @Stable
 data class RecordingScreenState(
     val devices: List<JiminyDevice> = emptyList(),
-    val selectedDevNodePairs: List<Pair<JiminyDevice, JiminyDeviceNode>> = emptyList(),
+    val selectedNodes: List<JiminyDeviceNode> = emptyList(),
     val isRecording: Boolean = false,
     val isLoading: Boolean = false,
     val recorderDevice: JiminyDevice? = null,
@@ -77,8 +77,7 @@ sealed interface RecordingScreenAction {
     data object OnStartRecording : RecordingScreenAction
     data object OnStopRecording : RecordingScreenAction
     data object OnDismissDetails : RecordingScreenAction
-    data class OnNodeClick(val device: JiminyDevice, val node: JiminyDeviceNode) :
-        RecordingScreenAction
+    data class OnNodeClick(val node: JiminyDeviceNode) : RecordingScreenAction
 }
 
 @Composable
@@ -114,13 +113,14 @@ fun RecordingScreenContent(
         val recordItemsModifier = Modifier.height((DEVICE_LIST_CARD_HEIGHT + 40).dp).fillMaxWidth()
 
         SelectedNodes(
-            deviceNodePairs = { state.selectedDevNodePairs },
-            onNodeClick = { dev, node -> onAction(RecordingScreenAction.OnNodeClick(dev, node)) },
+            deviceNodePairs = { state.selectedNodes },
+            channelCount = { state.recorderDevice?.speakers?.size ?: 0 },
+            onNodeClick = { node -> onAction(RecordingScreenAction.OnNodeClick(node)) },
             modifier = recordItemsModifier,
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val isRecordingEnable = state.selectedDevNodePairs.isNotEmpty()
+            val isRecordingEnable = state.selectedNodes.isNotEmpty()
             val textColor = if (isRecordingEnable) {
                 MaterialTheme.colorScheme.onPrimary
             } else {
@@ -164,16 +164,8 @@ fun RecordingScreenContent(
         state.showDetails?.let { device ->
             DeviceDetails(
                 device = { device },
-                selectedNodes = {
-                    state.selectedDevNodePairs
-                        .filter { it.first == device }
-                        .map { it.second }
-                },
-                onNodeClick = { dev, node ->
-                    onAction(
-                        RecordingScreenAction.OnNodeClick(dev, node)
-                    )
-                },
+                selectedNodes = { state.selectedNodes.filter { it.deviceName == device.name } },
+                onNodeClick = { node -> onAction(RecordingScreenAction.OnNodeClick(node)) },
                 modifier = Modifier.padding(vertical = 8.dp).wrapContentHeight().fillMaxWidth(),
             )
         }
@@ -184,7 +176,7 @@ fun RecordingScreenContent(
 fun DeviceDetails(
     device: () -> JiminyDevice,
     selectedNodes: () -> List<JiminyDeviceNode>,
-    onNodeClick: (JiminyDevice, JiminyDeviceNode) -> Unit,
+    onNodeClick: (JiminyDeviceNode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val device = device()
@@ -202,7 +194,7 @@ fun DeviceDetails(
             SelectableNodeItem(
                 node = { node },
                 isSelected = isSelected,
-                onClick = { onNodeClick(device, node) },
+                onClick = { onNodeClick(node) },
                 modifier = Modifier.weight(1f).fillMaxWidth(.33f),
             )
         }
@@ -211,11 +203,13 @@ fun DeviceDetails(
 
 @Composable
 fun SelectedNodes(
-    deviceNodePairs: () -> List<Pair<JiminyDevice, JiminyDeviceNode>>,
-    onNodeClick: (JiminyDevice, JiminyDeviceNode) -> Unit,
+    deviceNodePairs: () -> List<JiminyDeviceNode>,
+    channelCount: () -> Int,
+    onNodeClick: (JiminyDeviceNode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val deviceNodePairs = deviceNodePairs()
+    val count = channelCount()
     val scrollState = rememberScrollState()
 
     Row(
@@ -223,25 +217,20 @@ fun SelectedNodes(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        for (index in 0..<PW_RECORDER_CHANNEL_COUNT) {
-            val pair = deviceNodePairs.getOrNull(index)
-
-            if (pair != null) {
-                val (dev, node) = pair
+        for (index in 0..<count) {
+            deviceNodePairs.getOrNull(index)?.let { node ->
                 EmptySelectedNodeItem(
                     linked = true,
                     portName = node.displayPortName,
                     deviceName = node.displayName,
-                    avatarImg = dev.avatarIcon.toResource(),
-                    modifier = Modifier.clickable(onClick = { onNodeClick(dev, node) }),
+                    avatarImg = node.getAvatar().toResource(),
+                    modifier = Modifier.clickable(onClick = { onNodeClick(node) }),
                 )
-            } else {
-                EmptySelectedNodeItem(
-                    linked = false,
-                    portName = "EMPTY",
-                    deviceName = "CH ${index + 1}",
-                )
-            }
+            } ?: EmptySelectedNodeItem(
+                linked = false,
+                portName = "EMPTY",
+                deviceName = "CH ${index + 1}",
+            )
         }
     }
 }

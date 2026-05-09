@@ -139,65 +139,54 @@ class Controller(
     override val isRecording: Boolean
         get() = _isRecording.load()
 
-    private fun getSpeakerName(index: Int) =
-        "${PW_RECORDER_NAME}:$RECORDER_PLAYBACK_ROOT$index"
-
     @OptIn(ExperimentalAtomicApi::class)
-    override suspend fun startRecording(commands: JiminyCommand.StartRecording) =
-        withContext(Dispatchers.IO) {
-            commands.recoders
-                // IMPORTANT: 1st check if the list is empty and abort before setting 'isRecording = true'
-                .takeIf { it.isNotEmpty() }
-                ?.takeIf { _isRecording.compareAndSet(expectedValue = false, newValue = true) }
-                ?.let { recorders ->
-                    try {
-                        val current = LocalDateTime.now()
-                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd - HH-mm-ss")
-                        val date = current.format(formatter)
-                        val filename = "$date.wav"
+    override suspend fun startRecording(
+        commands: JiminyCommand.StartRecording,
+    ) = withContext(Dispatchers.IO) {
+        // At least one node is connected to the recorder
+        runCommand("pw-link", "-l")
+            .firstOrNull { it.contains("${PW_RECORDER_NAME}:$RECORDER_PLAYBACK_ROOT") }
+            ?.takeIf {
+                // Not already recording then set it as recording now
+                _isRecording.compareAndSet(expectedValue = false, newValue = true)
+            }?.let {
+                try {
+                    startRecording()
+                    true
+                } catch (e: CancellationException) {
+                    logger.info("Jiminy Server - startRecording - Cancelled - $e")
+                    stopRecording()
+                    throw e
+                } catch (e: Exception) {
+                    logger.error("Recording failed to start: ${e.message}")
+                    stopRecording()
+                    false
+                }
+            } ?: false
+    }
 
-                        // Link each instrument to its dedicated channel: AUX0, AUX1 ...
-                        recorders.forEachIndexed { index, instrument ->
-                            linkDevice(
-                                JiminyCommand.Link(
-                                    instrument.nodeName,
-                                    getSpeakerName(index),
-                                    LinkType.Connect,
-                                )
-                            )
-                        }
+    private fun startRecording() {
+        val current = LocalDateTime.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd - HH-mm-ss")
+        val date = current.format(formatter)
+        val filename = "$date.wav"
 
-                        val task = ProcessBuilder(
-                            "pw-record",
-                            "--target", PW_RECORDER_NAME,
-                            "--channels", PW_RECORDER_CHANNEL_COUNT_STR,
-                            "--rate", PW_RECORDER_RATE,
-                            "--format", PW_RECORDER_FORMAT,
-                            filename,
-                        )
-                        task.directory(File(PW_RECORDER_DIRECTORY))
-                        recordProcess = task.start()
-
-                        true
-                    } catch (e: CancellationException) {
-                        logger.info("Jiminy Server - startRecording - Cancelled - $e")
-                        stopRecording()
-                        throw e
-                    } catch (e: Exception) {
-                        logger.error("Recording failed to start: ${e.message}")
-                        stopRecording()
-                        false
-                    }
-                } ?: false
-        }
+        val task = ProcessBuilder(
+            "pw-record",
+            "--target", PW_RECORDER_NAME,
+            "--channels", PW_RECORDER_CHANNEL_COUNT_STR,
+            "--rate", PW_RECORDER_RATE,
+            "--format", PW_RECORDER_FORMAT,
+            filename,
+        )
+        task.directory(File(PW_RECORDER_DIRECTORY))
+        recordProcess = task.start()
+    }
 
     @OptIn(ExperimentalAtomicApi::class)
     override suspend fun stopRecording() = try {
         withContext(Dispatchers.IO) {
-            recordProcess
-                ?.takeIf { it.isAlive }
-                ?.destroy()
-
+            recordProcess?.takeIf { it.isAlive }?.destroy()
             recordProcess = null
             true
         }
