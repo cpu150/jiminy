@@ -18,10 +18,6 @@ import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
-import music.jiminy.LinkType
-import music.jiminy.Recorder
-import music.jiminy.screen.instruments
-import music.jiminy.screen.speakers
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
@@ -121,15 +117,10 @@ class ConnectionViewModel(
     private val _succeededCommands = MutableStateFlow<JiminyCommand?>(null)
     val succeededCommands = _succeededCommands.asStateFlow()
 
-
     //// Connection View
     private val _devices = MutableStateFlow(emptyList<JiminyDevice>())
     val devices: StateFlow<List<JiminyDevice>>
         get() = _devices
-
-    private val _links = MutableStateFlow(emptyList<JiminyLink>())
-    val links: StateFlow<List<JiminyLink>>
-        get() = _links
 
     fun getDevices() {
         resetError()
@@ -140,53 +131,6 @@ class ConnectionViewModel(
                 ::handleError,
             )
         }
-    }
-
-    fun getDeviceLinks() {
-        resetError()
-        viewModelScope.launch {
-            mainService.getDeviceLinks(
-                { response -> _links.update { response.value.toJiminyLinks() } },
-                ::handleError,
-            )
-        }
-    }
-
-    fun connect(connections: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) =
-        deviceLinks(connections, LinkType.Connect)
-
-    fun disconnect(connections: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) =
-        deviceLinks(connections, LinkType.Disconnect)
-
-    private fun deviceLinks(
-        links: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>,
-        type: LinkType,
-    ) = viewModelScope.launch {
-        resetError()
-
-        val linksMap = links.map {
-            JiminyCommand.Link(it.instruments().fullName, it.speakers().fullName, type)
-        }
-
-        mainService.deviceLinks(
-            links = linksMap,
-            onError = ::handleError,
-            finally = ::getDeviceLinks,
-        )
-    }
-
-    /// Recording
-    fun startRecording(nodes: List<JiminyDeviceNode>) = viewModelScope.launch {
-        val recordings = JiminyCommand.StartRecording(
-            recoders = nodes.map {
-                val label = "${it.displayName} ${it.displayPortName}"
-                Recorder(label, it.fullName)
-            }
-        )
-        mainService.startRecording(
-            nodes = recordings,
-            onError = ::handleError,
-        )
     }
 
     fun stopRecording() = viewModelScope.launch {
