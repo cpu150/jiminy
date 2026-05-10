@@ -35,7 +35,16 @@ in your IDE's toolbar or run it directly from the terminal:
 - for the Wasm target (faster, modern browsers):
   - on macOS/Linux
     ```shell
-    ./gradlew :composeApp:wasmJsBrowserDevelopmentRun
+    #  Update and Clean
+    ./gradlew kotlinWasmUpgradeYarnLock
+    ./gradlew clean
+
+    # Build and package
+    ./gradlew :composeApp:wasmJsBrowserDistribution
+    ./gradlew :server:buildFatJar
+
+    # Run (accessible at http://localhost:${DEBUG_SERVER_PORT}/)
+    java --enable-native-access=ALL-UNNAMED -XX:+UseZGC -jar server/build/libs/server-all.jar
     ```
   - on Windows
     ```shell
