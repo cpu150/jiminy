@@ -81,8 +81,7 @@ val dummyLinksCmd = listOf(
     "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
     "  |-> Jiminy-MultiSink:playback_AUX0",
     "  |-> alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
-    "  |-> alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR"
-
+    "  |-> alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR",
 )
 
 val dummyInstrumentsCmd = listOf(
@@ -94,13 +93,15 @@ val dummyInstrumentsCmd = listOf(
     "Jiminy-MultiSink:monitor_AUX5",
     "Jiminy-MultiSink:monitor_AUX6",
     "Jiminy-MultiSink:monitor_AUX7",
+    "Jiminy-MultiSink:monitor_AUX8",
+    "Jiminy-MultiSink:monitor_AUX9",
     "FluidSynth:output_FL",
     "FluidSynth:output_FR",
     "Midi-Bridge:Midi Through Port-0 (capture)",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FL",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:monitor_FR",
     "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FL",
-    "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR"
+    "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
 )
 
 val dummySpeakersCmd = listOf(
@@ -112,10 +113,12 @@ val dummySpeakersCmd = listOf(
     "Jiminy-MultiSink:playback_AUX5",
     "Jiminy-MultiSink:playback_AUX6",
     "Jiminy-MultiSink:playback_AUX7",
+    "Jiminy-MultiSink:playback_AUX8",
+    "Jiminy-MultiSink:playback_AUX9",
     "Midi-Bridge:Midi Through Port-0 (playback)",
     "Midi-Bridge:FLUID Synth (928)Synth input port (928:0) (playback)",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
-    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR"
+    "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR",
 )
 
 val dummyStatusCmd = listOf(
@@ -176,7 +179,7 @@ val dummyStatusCmd = listOf(
     " └─ Streams:",
     "",
     "Settings",
-    " └─ Default Configured Devices:"
+    " └─ Default Configured Devices:",
 )
 
 val dummyLinks = listOf(

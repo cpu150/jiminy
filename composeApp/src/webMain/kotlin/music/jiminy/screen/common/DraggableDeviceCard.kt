@@ -1,9 +1,9 @@
 package music.jiminy.screen.common
 
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,7 +20,6 @@ import androidx.compose.ui.layout.positionInWindow
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType
-import music.jiminy.screen.ConnectionScreenNodeType.Instrument
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
 interface ConnectionScreenDragListener {
@@ -67,12 +66,6 @@ fun ConnectionScreenZoneItem.isCompleted() = devices.find {
     }
 } == null && devices.isNotEmpty()
 
-fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.speakers() =
-    if (first.type == Speaker) first else second
-
-fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.instruments() =
-    if (first.type == Instrument) first else second
-
 fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.isCompleted() =
     first.isCompleted() && second.isCompleted()
 
@@ -83,21 +76,23 @@ fun DraggableDeviceCard(
     device: () -> JiminyDevice,
 ) {
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
-    val isDeviceBeingDragged by remember {
-        mutableStateOf(dragListener?.deviceBeingDragged()?.name == device().name)
-    }
+    var cardSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    val draggingDevice = dragListener?.deviceBeingDragged()
+    val isDeviceBeingDragged = draggingDevice?.name == device().name
 
     val windowOffset = Offset(12f, 114f)
     DeviceCard(
         device = device,
         modifier = modifier
-            // Track where we are in the window to tell the ghost where to start.
             .onGloballyPositioned { coord ->
-                itemPosition = coord.positionInWindow().minus(windowOffset)
+                // Only update base position if we're not currently dragging this item
+                if (!isDeviceBeingDragged) {
+                    itemPosition = coord.positionInWindow().minus(windowOffset)
+                    cardSize = coord.size
+                }
             }
-            // If this card is the one being dragged, make the source semi-transparent
             .graphicsLayer(alpha = if (isDeviceBeingDragged) 0.2f else 1.0f)
-            .pointerInput(device().displayName) {
+            .pointerInput(device().name) {
                 detectDragGestures(
                     onDragStart = {
                         dragListener?.onDeviceDragStart(device(), itemPosition)
@@ -107,8 +102,19 @@ fun DraggableDeviceCard(
                         itemPosition += dragAmountOffset
                         dragListener?.onDeviceDrag(itemPosition)
                     },
-                    onDragEnd = { dragListener?.onDeviceDragEnd(itemPosition.plus(windowOffset)) },
+                    onDragEnd = {
+                        val centerOffset = Offset(cardSize.width / 2f, cardSize.height / 2f)
+                        dragListener?.onDeviceDragEnd(
+                            itemPosition.plus(windowOffset).plus(centerOffset)
+                        )
+                    },
+                    onDragCancel = {
+                        val centerOffset = Offset(cardSize.width / 2f, cardSize.height / 2f)
+                        dragListener?.onDeviceDragEnd(
+                            itemPosition.plus(windowOffset).plus(centerOffset)
+                        )
+                    },
                 )
-            }
+            },
     )
 }

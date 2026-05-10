@@ -72,12 +72,12 @@ class RecordingScreenViewModel(
     private suspend fun loadLinks() {
         mainService.getDeviceLinks(
             onSuccess = { response ->
-                val recorder = _state.value.recorderDevice
-                val recorderNodes = recorder?.speakers?.map { it.fullName }
+                val recorderName = _state.value.recorderDevice?.name
+                val recorderNodes = _state.value.recorderDevice?.speakers?.map { it.fullName }
 
                 val selectedNodes = response.value
                     .filter { recorderNodes?.contains(it.second.fullName) ?: false }
-                    .filter { it.second.deviceName == recorder?.name }
+                    .filter { it.second.deviceName == recorderName }
                     .map { it.first }
 
                 _state.update { it.copy(selectedNodes = selectedNodes) }
