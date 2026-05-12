@@ -5,6 +5,7 @@ import io.ktor.server.websocket.sendSerialized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
@@ -13,6 +14,7 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class Controller(
@@ -174,20 +176,27 @@ class Controller(
         val task = ProcessBuilder(
             "pw-record",
             "--target", PW_RECORDER_NAME,
+            "--latency", PW_RECORDER_LATENCY_STR,
             "--channels", PW_RECORDER_CHANNEL_COUNT_STR,
             "--rate", PW_RECORDER_RATE,
             "--format", PW_RECORDER_FORMAT,
             filename,
         )
-        task.directory(File(PW_RECORDER_DIRECTORY))
+        task.directory(File(PW_RECORDER_BUFFER_DIRECTORY))
         recordProcess = task.start()
     }
 
     @OptIn(ExperimentalAtomicApi::class)
     override suspend fun stopRecording() = try {
         withContext(Dispatchers.IO) {
+            // Wait for the recording buffer to get fully written
+            delay(PW_RECORDER_LATENCY_MILLIS.milliseconds)
+
             recordProcess?.takeIf { it.isAlive }?.destroy()
             recordProcess = null
+
+
+            // TODO - Move the recorded file from PW_RECORDER_BUFFER_DIRECTORY to PW_RECORDER_STORAGE_DIRECTORY
             true
         }
     } catch (e: CancellationException) {
