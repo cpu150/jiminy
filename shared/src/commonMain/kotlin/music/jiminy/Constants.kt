@@ -31,12 +31,15 @@ const val MIXER_SLIDER_HEIGHT = 300
 const val MIXER_SLIDER_WIDTH = 26
 
 const val PW_RECORDER_NAME = "Jiminy-MultiSink"
+const val PW_RECORDER_LATENCY_MILLIS = 2000
+const val PW_RECORDER_LATENCY_STR = "${PW_RECORDER_LATENCY_MILLIS}ms"
 const val PW_RECORDER_CHANNEL_PREFIX = "AUX"
-const val PW_RECORDER_CHANNEL_COUNT = 10
+const val PW_RECORDER_CHANNEL_COUNT = 8  // When updating this value: update `10-virtual-sink.conf`
 const val PW_RECORDER_CHANNEL_COUNT_STR = "$PW_RECORDER_CHANNEL_COUNT"
 const val PW_RECORDER_RATE = "48000"
-const val PW_RECORDER_FORMAT = "s32"
-const val PW_RECORDER_DIRECTORY = "/home/cpu150/"
+const val PW_RECORDER_FORMAT = "s24" // "s32"
+const val PW_RECORDER_BUFFER_DIRECTORY = "/mnt/audio_buffer"
+const val PW_RECORDER_STORAGE_DIRECTORY = "/mnt/data"
 
 const val GT_1000 = "usb-BOSS_GT-1000-01"
 const val QUAD_CORTEX = "usb-Neural_DSP_Quad_Cortex-00"
