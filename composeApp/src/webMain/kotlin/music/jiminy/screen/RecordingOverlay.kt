@@ -23,6 +23,7 @@ import music.jiminy.screen.common.TextOnAir
 @Composable
 fun RecordingOverlay(
     onStopRequest: () -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -39,13 +40,17 @@ fun RecordingOverlay(
 
         Button(
             onClick = onStopRequest,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB71C1C)),
+            enabled = enabled,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFB71C1C),
+                disabledContainerColor = Color(0xFFB71C1C).copy(alpha = 0.5f),
+            ),
             modifier = Modifier
                 .size(width = 200.dp, height = 200.dp)
                 .clip(RoundedCornerShape(50)),
         ) {
             TextHeadlineLarge(
-                text = "STOP RECORDING",
+                text = if (enabled) "STOP RECORDING" else "STOPPING...",
                 textAlign = TextAlign.Center,
             )
         }

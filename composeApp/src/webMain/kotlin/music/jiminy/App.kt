@@ -22,7 +22,6 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,7 +61,7 @@ fun App() {
 
         val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
         val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
-        val isRecording by viewModel.isRecording.collectAsState()
+        val recordingStatus by viewModel.recordingStatus.collectAsStateWithLifecycle()
 
         LaunchedEffect(selectedTab) { if (selectedTab != mixerTab) viewModel.mixerDisconnect() }
 
@@ -73,8 +72,12 @@ fun App() {
         ) {
             MainScreen(Modifier.fillMaxSize())
 
-            if (isRecording) {
-                RecordingOverlay(viewModel::stopRecording, Modifier.fillMaxSize())
+            if (recordingStatus != ConnectionViewModel.RecordingStatus.Idle) {
+                RecordingOverlay(
+                    onStopRequest = viewModel::stopRecording,
+                    enabled = recordingStatus == ConnectionViewModel.RecordingStatus.Recording,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
 
             // TODO : connectionStatus

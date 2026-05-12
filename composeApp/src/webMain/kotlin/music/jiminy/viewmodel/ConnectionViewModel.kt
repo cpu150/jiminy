@@ -8,8 +8,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.DEBOUNCING_COMMAND_MILLIS
@@ -31,8 +34,23 @@ class ConnectionViewModel(
     val errorMessage: StateFlow<String?>
         get() = _errorMessage
 
-    val isRecording: StateFlow<Boolean>
-        get() = mainService.isRecording
+    enum class RecordingStatus {
+        Idle,
+        Recording,
+        Stopping
+    }
+
+    private val _isStoppingRecording = MutableStateFlow(false)
+    val recordingStatus = combine(
+        mainService.isRecording,
+        _isStoppingRecording,
+    ) { isRecording, isStopping ->
+        when {
+            isStopping -> RecordingStatus.Stopping
+            isRecording -> RecordingStatus.Recording
+            else -> RecordingStatus.Idle
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, RecordingStatus.Idle)
 
     fun resetError() {
         _errorMessage.update { null }
@@ -134,7 +152,9 @@ class ConnectionViewModel(
     }
 
     fun stopRecording() = viewModelScope.launch {
+        _isStoppingRecording.update { true }
         mainService.stopRecording(onError = ::handleError)
+        _isStoppingRecording.update { false }
     }
 }
 
