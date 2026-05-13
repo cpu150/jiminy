@@ -9,6 +9,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
@@ -20,6 +22,8 @@ import kotlin.time.Duration.Companion.seconds
 class Controller(
     private val logger: JiminyLoggerI,
 ) : JiminyServerControllerI {
+
+    private data class RecordProcessInfo(val filename: String, val process: Process)
 
     override suspend fun executeCommand(command: JiminyCommand) = when (command) {
         is JiminyCommand.VolumeUpdate -> updateVolume(command.deviceVolume, command.volume)
@@ -132,7 +136,7 @@ class Controller(
         }
     }
 
-    private var recordProcess: Process? = null
+    private var currentRecording: RecordProcessInfo? = null
 
     @OptIn(ExperimentalAtomicApi::class)
     private val _isRecording = AtomicBoolean(false)
@@ -153,7 +157,7 @@ class Controller(
                 _isRecording.compareAndSet(expectedValue = false, newValue = true)
             }?.let {
                 try {
-                    startRecording()
+                    currentRecording = startRecording()
                     true
                 } catch (e: CancellationException) {
                     logger.info("Jiminy Server - startRecording - Cancelled - $e")
@@ -167,7 +171,7 @@ class Controller(
             } ?: false
     }
 
-    private fun startRecording() {
+    private fun startRecording() = let {
         val current = LocalDateTime.now()
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd - HH-mm-ss")
         val date = current.format(formatter)
@@ -183,30 +187,62 @@ class Controller(
             filename,
         )
         task.directory(File(PW_RECORDER_BUFFER_DIRECTORY))
-        recordProcess = task.start()
+        RecordProcessInfo(filename, task.start())
     }
 
     @OptIn(ExperimentalAtomicApi::class)
-    override suspend fun stopRecording() = try {
-        withContext(Dispatchers.IO) {
-            // Wait for the recording buffer to get fully written
-            delay(PW_RECORDER_LATENCY_MILLIS.milliseconds)
-
-            recordProcess?.takeIf { it.isAlive }?.destroy()
-            recordProcess = null
-
-
-            // TODO - Move the recorded file from PW_RECORDER_BUFFER_DIRECTORY to PW_RECORDER_STORAGE_DIRECTORY
-            true
+    override suspend fun stopRecording() = let {
+        val recording = synchronized(this) {
+            val rec = currentRecording
+            currentRecording = null
+            rec
         }
+
+        try {
+            recording?.let { recording ->
+                withContext(Dispatchers.IO) {
+                    // Wait for the recording buffer to get fully written
+                    delay(PW_RECORDER_LATENCY_MILLIS.milliseconds)
+
+                    // Stop the recording
+                    recording.process.takeIf { proc -> proc.isAlive }?.destroy()
+
+                    // Move the recorded file from PW_RECORDER_BUFFER_DIRECTORY to PW_RECORDER_STORAGE_DIRECTORY
+                    move(
+                        recording.filename,
+                        PW_RECORDER_BUFFER_DIRECTORY,
+                        PW_RECORDER_STORAGE_DIRECTORY,
+                    )
+                }
+            } ?: true
+        } catch (e: CancellationException) {
+            logger.info("Jiminy Server - stopRecording - Cancelled - $e")
+            throw e
+        } catch (e: Exception) {
+            logger.error("Recording failed to stop: ${e.message}")
+            false
+        } finally {
+            _isRecording.store(false)
+        }
+    }
+
+    private fun move(filename: String, sourceStr: String, destStr: String) = try {
+        val source = File(sourceStr, filename).toPath()
+        val destination = File(destStr, filename).toPath()
+
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING)
+        logger.info("Jiminy Server - File saved to storage: $filename")
+
+        Files.delete(source)
+        logger.info("Jiminy Server - Source file deleted: $filename")
+
+        true
     } catch (e: CancellationException) {
-        logger.info("Jiminy Server - stopRecording - Cancelled - $e")
+        logger.error("Jiminy Server - stopRecording - Cancelled - Failed to save file to storage: $e - ${e.message}")
         throw e
     } catch (e: Exception) {
-        logger.error("Recording failed to stop: ${e.message}")
+        logger.error("Jiminy Server - Failed to save file to storage: $e - ${e.message}")
         false
-    } finally {
-        _isRecording.store(false)
     }
 
     private fun runCommand(vararg command: String): List<String> {

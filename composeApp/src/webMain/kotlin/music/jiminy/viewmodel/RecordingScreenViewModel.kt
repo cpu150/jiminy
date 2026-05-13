@@ -111,12 +111,12 @@ class RecordingScreenViewModel(
 
         mainService.getDeviceLinks(
             onSuccess = { response ->
-                val usedPortNames = response.value
+                val usedPortFullNames = response.value
                     .filter { it.second.deviceName == recorderName }
-                    .map { it.second.portName }
+                    .map { it.second.fullName }
 
                 recorder.speakers
-                    .find { it.portName !in usedPortNames }
+                    .find { it.fullName !in usedPortFullNames }
                     ?.let { recorderNode ->
                         val link = JiminyCommand.Link(node.fullName, recorderNode.fullName, LinkType.Connect)
 
