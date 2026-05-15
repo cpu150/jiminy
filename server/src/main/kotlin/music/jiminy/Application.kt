@@ -141,7 +141,7 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
                         } ?: logger.warning("Jiminy Server - Busy - Command Ignored $command")
                 }
             } catch (e: ClosedReceiveChannelException) {
-                logger.error("Jiminy Server - WebSocket closed - ${e.localizedMessage}")
+                logger.info("Jiminy Server - WebSocket closed - ${e.localizedMessage}")
             } catch (e: Exception) {
                 logger.error("Jiminy Server - ERROR - WebSocket error: $e - ${e.localizedMessage}")
             } finally {

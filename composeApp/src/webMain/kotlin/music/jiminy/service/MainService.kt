@@ -7,6 +7,7 @@ import io.ktor.serialization.WebsocketDeserializeException
 import io.ktor.websocket.FrameType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -72,7 +73,7 @@ class MainService(
                 else -> null
             }
 
-            is CancellationException -> Cancelled
+            is CancellationException, is ClosedReceiveChannelException -> Cancelled
             is LockedForRecordingException -> Recording
             is ClientRequestException -> handleHttpResponse(logMsg, e.response)
             else -> null

@@ -1,20 +1,34 @@
 package music.jiminy
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
@@ -23,7 +37,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +50,8 @@ import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
 import music.jiminy.screen.common.TextError
+import music.jiminy.screen.common.TextTitle
+import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
@@ -60,7 +79,6 @@ fun App() {
         }
 
         val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-        val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
         val recordingStatus by viewModel.recordingStatus.collectAsStateWithLifecycle()
 
         LaunchedEffect(selectedTab) { if (selectedTab != mixerTab) viewModel.mixerDisconnect() }
@@ -79,8 +97,6 @@ fun App() {
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-
-            // TODO : connectionStatus
         }
     }
 }
@@ -104,6 +120,8 @@ fun MainScreen(
     val connectionScreenViewModel: ConnectionScreenViewModel = koinViewModel()
     val recordingScreenViewModel: RecordingScreenViewModel = koinViewModel()
     val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
+    val connectionStatus by connectionViewModel.connectionStatus.collectAsStateWithLifecycle()
+
     val errorFlow = combine(
         connectionViewModel.errorMessage,
         connectionScreenViewModel.errorMessage,
@@ -133,6 +151,20 @@ fun MainScreen(
             .padding(12.dp)
 
         Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
+            StatusBar(
+                status = connectionStatus,
+                onSaveClick = { /* TODO */ },
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            )
+
+            errorMsg?.let { TextError(it, modifier = Modifier.padding(horizontal = 12.dp)) }
+
+            Box(modifier = Modifier.weight(1f)) {
+                selectedTab.content(screenModifier)
+            }
+
+            HorizontalDivider()
+
             SecondaryTabRow(
                 selectedTabIndex = selectedTab.index,
                 containerColor = TabRowDefaults.primaryContainerColor,
@@ -142,7 +174,7 @@ fun MainScreen(
                         Modifier.tabIndicatorOffset(selectedTab.index, matchContentSize = false),
                     )
                 },
-                divider = { HorizontalDivider() },
+                divider = { }, // Removed divider here as we have HorizontalDivider() above
             ) {
                 tabs.forEach { tab ->
                     Tab(
@@ -152,12 +184,80 @@ fun MainScreen(
                     )
                 }
             }
-
-            errorMsg?.let { TextError(it) }
-
-            selectedTab.content(screenModifier)
         }
     } ?: TextError("Error while loading the tabs")
+}
+
+@Composable
+fun StatusBar(
+    status: JiminyConnectionStatus,
+    onSaveClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ConnectionStatusIcon(status)
+            TextTitle(text = "Jiminy")
+        }
+
+        IconButton(onClick = onSaveClick) {
+            Icon(
+                imageVector = Icons.Default.Save,
+                contentDescription = "Save Config",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+fun ConnectionStatusIcon(status: JiminyConnectionStatus) {
+    val infiniteTransition = rememberInfiniteTransition(label = "connection")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "rotation",
+    )
+
+    when (status) {
+        JiminyConnectionStatus.Connected -> Icon(
+            imageVector = Icons.Default.CloudDone,
+            contentDescription = "Connected",
+            tint = Color(0xFF4CAF50),
+        )
+
+        JiminyConnectionStatus.Connecting -> Icon(
+            imageVector = Icons.Default.Sync,
+            contentDescription = "Connecting",
+            tint = Color(0xFFFFC107),
+            modifier = Modifier.graphicsLayer { rotationZ = rotation },
+        )
+
+        JiminyConnectionStatus.Disconnected -> Icon(
+            imageVector = Icons.Default.CloudOff,
+            contentDescription = "Disconnected",
+            tint = Color.Gray,
+        )
+
+        is JiminyConnectionStatus.Error -> Icon(
+            imageVector = Icons.Default.Error,
+            contentDescription = "Error",
+            tint = MaterialTheme.colorScheme.error,
+        )
+    }
 }
 
 @Composable
