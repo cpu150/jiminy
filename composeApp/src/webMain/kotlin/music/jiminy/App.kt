@@ -49,6 +49,7 @@ import music.jiminy.screen.ConnectionScreen
 import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
+import music.jiminy.screen.common.MarqueeText
 import music.jiminy.screen.common.TextError
 import music.jiminy.screen.common.TextTitle
 import music.jiminy.service.JiminyConnectionStatus
@@ -65,15 +66,15 @@ fun App() {
 
         LaunchedEffect(Unit) {
             viewModel.addTab(
-                { TabTitle(Icons.AutoMirrored.Outlined.AltRoute, "Audio Links") },
-                ::AudioLinksMainScreen,
+                title = { TabTitle(Icons.AutoMirrored.Outlined.AltRoute, "Audio Links") },
+                content = ::AudioLinksMainScreen,
             )
             mixerTab = viewModel.addTab(
-                { TabTitle(Icons.Rounded.Tune, "Mixer") },
+                title = { TabTitle(Icons.Rounded.Tune, "Mixer") },
                 content = ::MixerMainScreen,
             )
             viewModel.addTab(
-                { TabTitle(Icons.Filled.Voicemail, "Record") },
+                title = { TabTitle(Icons.Filled.Voicemail, "Record") },
                 content = ::RecordingMainScreen,
             )
         }
@@ -125,7 +126,7 @@ fun MainScreen(
     val errorFlow = combine(
         connectionViewModel.errorMessage,
         connectionScreenViewModel.errorMessage,
-        recordingScreenViewModel.errorMessage
+        recordingScreenViewModel.errorMessage,
     ) { err1, err2, err3 ->
         buildString {
             err1?.let { append(it) }
@@ -153,11 +154,10 @@ fun MainScreen(
         Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
             StatusBar(
                 status = connectionStatus,
+                error = errorMsg,
                 onSaveClick = { /* TODO */ },
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp),
             )
-
-            errorMsg?.let { TextError(it, modifier = Modifier.padding(horizontal = 12.dp)) }
 
             Box(modifier = Modifier.weight(1f)) {
                 selectedTab.content(screenModifier)
@@ -191,6 +191,7 @@ fun MainScreen(
 @Composable
 fun StatusBar(
     status: JiminyConnectionStatus,
+    error: String?,
     onSaveClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -202,11 +203,22 @@ fun StatusBar(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ConnectionStatusIcon(status)
-            TextTitle(text = "Jiminy")
+
+            if (error != null) {
+                MarqueeText(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                TextTitle(text = "Jiminy")
+            }
         }
 
         IconButton(onClick = onSaveClick) {

@@ -63,7 +63,12 @@ class RecordingScreenViewModel(
                     _errorMessage.update { "Recorder \"$PW_RECORDER_NAME\" does not contain Speakers" }
                 }
 
-                _state.update { it.copy(devices = devices, recorderDevice = recorder) }
+                _state.update { state ->
+                    state.copy(
+                        devices = devices,
+                        recorderDevice = recorder,
+                    )
+                }
             },
             onError = ::handleError,
         )
@@ -80,7 +85,9 @@ class RecordingScreenViewModel(
                     .filter { it.second.deviceName == recorderName }
                     .map { it.first }
 
-                _state.update { it.copy(selectedNodes = selectedNodes) }
+                _state.update { state ->
+                    state.copy(selectedNodes = selectedNodes)
+                }
             },
             onError = ::handleError,
         )
@@ -118,7 +125,11 @@ class RecordingScreenViewModel(
                 recorder.speakers
                     .find { it.fullName !in usedPortFullNames }
                     ?.let { recorderNode ->
-                        val link = JiminyCommand.Link(node.fullName, recorderNode.fullName, LinkType.Connect)
+                        val link = JiminyCommand.Link(
+                            node.fullName,
+                            recorderNode.fullName,
+                            LinkType.Connect,
+                        )
 
                         viewModelScope.launch {
                             mainService.deviceLinks(

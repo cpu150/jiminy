@@ -92,7 +92,7 @@ data class ConnectionScreenState(
     val connectionRows: List<Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>> = listOf(
         ConnectionScreenZoneItem(ConnectionScreenNodeType.Instrument) to ConnectionScreenZoneItem(
             ConnectionScreenNodeType.Speaker,
-        )
+        ),
     ),
     val activeDraggingDevice: JiminyDevice? = null,
     val dragOffset: Offset = Offset.Zero,
@@ -248,7 +248,7 @@ private fun MainConnectionScreen(
                 row = { row },
                 deleteRow = { onAction(OnDeleteRowClick(row)) },
                 onDeleteNode = { zone, node -> onAction(OnDeleteNodeFromRow(zone, node)) },
-                onDeleteDevice = { zone, device -> onAction(OnDeleteDeviceFromRow(zone, device)) }
+                onDeleteDevice = { zone, device -> onAction(OnDeleteDeviceFromRow(zone, device)) },
             )
             Spacer(Modifier.height(6.dp))
         }

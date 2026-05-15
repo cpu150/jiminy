@@ -6,19 +6,27 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
-import kotlin.Int.Companion
 
 @Composable
 fun TextBody(
@@ -170,4 +178,53 @@ fun TextHeadlineLarge(
         style = MaterialTheme.typography.headlineMedium
             .copy(fontWeight = FontWeight.Black, fontSize = 26.sp),
     )
+}
+
+@Composable
+fun MarqueeText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    style: TextStyle = TextStyle.Default,
+) {
+    var textWidth by remember(text) { mutableStateOf(0) }
+    var containerWidth by remember { mutableStateOf(0) }
+
+    val shouldScroll = containerWidth in 1..<textWidth
+
+    val scrollOffset = if (shouldScroll) {
+        val maxOffset = (textWidth - containerWidth).toFloat()
+        val duration = (maxOffset * 30).toInt().coerceIn(2000, 10000)
+
+        val infiniteTransition = rememberInfiniteTransition(label = "marquee")
+        val offset by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = -maxOffset,
+            animationSpec = infiniteRepeatable(
+                animation = tween(duration, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "offset",
+        )
+        offset
+    } else {
+        0f
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .onGloballyPositioned { containerWidth = it.size.width },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text(
+            text = text,
+            color = color,
+            style = style,
+            maxLines = 1,
+            modifier = Modifier
+                .offset { IntOffset(scrollOffset.toInt(), 0) }
+                .onGloballyPositioned { textWidth = it.size.width },
+        )
+    }
 }
