@@ -22,7 +22,7 @@ data class JiminyDevice(val name: String) {
         when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers.remove(node)
             JiminyDeviceNodeType.Instrument -> _instruments.remove(node)
-            else -> println("Unknown node type: $node")
+            else -> Unit
         }
     }
 
@@ -30,10 +30,7 @@ data class JiminyDevice(val name: String) {
         val nodeList = when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers
             JiminyDeviceNodeType.Instrument -> _instruments
-            else -> {
-                println("Unknown node type: $node")
-                null
-            }
+            else -> null
         }
 
         nodeList?.add(node)

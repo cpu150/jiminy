@@ -18,17 +18,21 @@ import music.jiminy.DEBUG_SERVER_PORT
 import music.jiminy.LockedForRecordingException
 import music.jiminy.SERVER_PORT
 import music.jiminy.service.DeviceService
+import music.jiminy.service.JiminyLogger
 import music.jiminy.service.MainService
 import music.jiminy.service.MixerService
 import music.jiminy.service.RecordingService
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
+import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
+    singleOf(::JiminyLogger) { bind<music.jiminy.JiminyLoggerI>() }
+
     single { CoroutineScope(SupervisorJob() + Dispatchers.Main) }
 
     single {
@@ -72,10 +76,11 @@ val appModule = module {
             get<Triple<String, Int, String>>().first,
             get<Triple<String, Int, String>>().second,
             get(),
+            get(),
         )
     }
-    single { DeviceService(get(), get<Triple<String, Int, String>>().third) }
-    single { RecordingService(get(), get<Triple<String, Int, String>>().third) }
+    single { DeviceService(get(), get<Triple<String, Int, String>>().third, get()) }
+    single { RecordingService(get(), get<Triple<String, Int, String>>().third, get()) }
 
     singleOf(::MainService)
 

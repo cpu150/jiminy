@@ -13,6 +13,7 @@ import io.ktor.server.http.content.staticResources
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
@@ -43,6 +44,7 @@ fun main() {
     val port = if (DEBUG) DEBUG_SERVER_PORT else SERVER_PORT
     val host = if (DEBUG) DEBUG_SERVER_HOST else SERVER_HOST
     val logger = if (DEBUG) DebugLogger() else Logger()
+
     val controller = if (DEBUG) MockController() else Controller(logger)
     val json = Json {
         ignoreUnknownKeys = true
@@ -74,6 +76,16 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
     install(ContentNegotiation) {
         json(json)
+    }
+
+    install(CORS) {
+        allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Delete)
+        allowMethod(HttpMethod.Patch)
+        allowHeader(io.ktor.http.HttpHeaders.ContentType)
+        allowHeader(io.ktor.http.HttpHeaders.Authorization)
+        anyHost() // BE CAREFUL: Only for local debugging
     }
 
     install(WebSockets) {

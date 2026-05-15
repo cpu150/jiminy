@@ -15,6 +15,7 @@ import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType.Instrument
 import music.jiminy.JiminyDeviceNodeType.Speaker
 import music.jiminy.JiminyDeviceNodeType.Unknown
+import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyVolume
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.WS_DEVICES
@@ -23,6 +24,7 @@ import music.jiminy.WS_LINK_DEVICES
 class DeviceService(
     private val client: HttpClient,
     private val baseUrl: String,
+    private val logger: JiminyLoggerI,
 ) {
     private val _devices = mutableListOf<JiminyDevice>()
 

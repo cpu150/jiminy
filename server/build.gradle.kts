@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serverWebsockets)
+    implementation(libs.ktor.serverCors)
     // Specifically for Ktor WebSockets serialization
     implementation(libs.ktor.serialization.kotlinx.json)
 

@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyLoggerI
 import music.jiminy.LockedForRecordingException
 import music.jiminy.service.JiminyConnectionStatus.Connected
 import music.jiminy.service.JiminyConnectionStatus.Connecting
@@ -46,6 +47,7 @@ class MainService(
     private val mixerService: MixerService,
     private val deviceService: DeviceService,
     private val recordingService: RecordingService,
+    private val logger: JiminyLoggerI,
 ) {
     val succeededCommands = mixerService.succeededCommands
 

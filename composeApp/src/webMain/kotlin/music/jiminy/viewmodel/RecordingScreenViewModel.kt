@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.screen.RecordingScreenAction
@@ -23,6 +24,7 @@ import music.jiminy.service.MainService
 
 class RecordingScreenViewModel(
     private val mainService: MainService,
+    private val logger: JiminyLoggerI,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RecordingScreenState())

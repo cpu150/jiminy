@@ -15,12 +15,14 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import music.jiminy.JiminyCommand
+import music.jiminy.JiminyLoggerI
 import music.jiminy.WS_MIXER
 
 class MixerService(
     private val hostname: String,
     private val port: Int,
     private val client: HttpClient,
+    private val logger: JiminyLoggerI,
 ) {
     private var session: DefaultClientWebSocketSession? = null
     private val _succeededCommands = MutableSharedFlow<JiminyCommand>(
@@ -45,12 +47,12 @@ class MixerService(
                     _succeededCommands.emit(receiveDeserialized<JiminyCommand>())
                 }
             } catch (e: ClosedReceiveChannelException) {
-                println("Jiminy Client - WebSocket closed - ${e.message}")
+                logger.info("Jiminy Client - WebSocket closed - ${e.message}")
             } catch (e: CancellationException) {
-                println("Jiminy Client - WebSocket stopped - ${e.message}")
+                logger.info("Jiminy Client - WebSocket stopped - ${e.message}")
                 throw e
             } catch (e: Exception) {
-                println("Jiminy Client - ERROR - WebSocket error: $e - ${e.message}")
+                logger.error("Jiminy Client - ERROR - WebSocket error: $e - ${e.message}")
                 throw e
             }
         }

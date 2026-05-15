@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.disconnectionNodesList
@@ -45,6 +46,7 @@ import music.jiminy.service.MainService
 
 class ConnectionScreenViewModel(
     private val mainService: MainService,
+    private val logger: JiminyLoggerI,
 ) : ViewModel() {
 
     private val _errorMessage = MutableStateFlow<String?>(null)

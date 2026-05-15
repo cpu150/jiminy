@@ -21,6 +21,7 @@ import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
+import music.jiminy.JiminyLoggerI
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
@@ -28,6 +29,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class ConnectionViewModel(
     private val mainService: MainService,
+    private val logger: JiminyLoggerI,
 ) : ViewModel() {
 
     private val _errorMessage = MutableStateFlow<String?>(null)
