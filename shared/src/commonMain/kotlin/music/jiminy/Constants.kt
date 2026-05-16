@@ -1,8 +1,6 @@
 package music.jiminy
 
-//val platform = getPlatform()
-
-const val DEBUG = false
+val DEBUG = getPlatform().debug
 
 const val DEBOUNCING_COMMAND_MILLIS = 120
 

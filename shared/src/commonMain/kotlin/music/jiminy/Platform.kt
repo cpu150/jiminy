@@ -1,7 +1,7 @@
 package music.jiminy
 
 interface Platform {
-    val name: String
+    val debug: Boolean
 }
 
 expect fun getPlatform(): Platform

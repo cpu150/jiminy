@@ -44,7 +44,7 @@ in your IDE's toolbar or run it directly from the terminal:
     ./gradlew :server:buildFatJar
 
     # Run (accessible at http://localhost:${DEBUG_SERVER_PORT}/)
-    java --enable-native-access=ALL-UNNAMED -XX:+UseZGC -jar server/build/libs/server-all.jar
+    java --enable-native-access=ALL-UNNAMED -XX:+UseZGC -DDEBUG=true -jar server/build/libs/server-all.jar
     ```
   - on Windows
     ```shell

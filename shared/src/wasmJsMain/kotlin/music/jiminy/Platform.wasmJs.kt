@@ -1,7 +1,7 @@
 package music.jiminy
 
 class WasmPlatform: Platform {
-    override val name: String = "Web with Kotlin/Wasm"
+    override val debug: Boolean = false
 }
 
 actual fun getPlatform(): Platform = WasmPlatform()

@@ -1,7 +1,7 @@
 package music.jiminy
 
 class JsPlatform: Platform {
-    override val name: String = "Web with Kotlin/JS"
+    override val debug: Boolean = false
 }
 
 actual fun getPlatform(): Platform = JsPlatform()
