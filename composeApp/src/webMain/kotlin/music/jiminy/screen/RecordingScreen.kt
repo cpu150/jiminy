@@ -109,7 +109,11 @@ fun RecordingScreenContent(
     onAction: (RecordingScreenAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth().wrapContentHeight()) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .wrapContentHeight(Alignment.Top),
+    ) {
         val recordItemsModifier = Modifier.height((DEVICE_LIST_CARD_HEIGHT + 40).dp).fillMaxWidth()
 
         SelectedNodes(

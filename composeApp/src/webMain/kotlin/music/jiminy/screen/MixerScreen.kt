@@ -64,7 +64,7 @@ fun MixerScreen(
         modifier = modifier
             .horizontalScroll(scrollState)
             .fillMaxWidth()
-            .wrapContentHeight(),
+            .wrapContentHeight(Alignment.Top),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         devices.forEach { device ->
