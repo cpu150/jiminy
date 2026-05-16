@@ -157,6 +157,27 @@ class ConnectionViewModel(
         }
     }
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh(
+        connectionScreenViewModel: ConnectionScreenViewModel,
+        recordingScreenViewModel: RecordingScreenViewModel,
+    ) {
+        viewModelScope.launch {
+            _isRefreshing.update { true }
+
+            // Refresh data in all relevant ViewModels
+            getDevices()
+            connectionScreenViewModel.loadData()
+            recordingScreenViewModel.loadData()
+
+            // Artificial delay to show the refresh indicator
+            delay(500.milliseconds)
+            _isRefreshing.update { false }
+        }
+    }
+
     fun stopRecording() = viewModelScope.launch {
         _isStoppingRecording.update { true }
         mainService.stopRecording(onError = ::handleError)

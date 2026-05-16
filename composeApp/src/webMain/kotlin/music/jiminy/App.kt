@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.combine
 import music.jiminy.screen.ConnectionScreen
@@ -131,6 +132,7 @@ fun MainScreen(
     val logsViewModel: LogsViewModel = koinViewModel()
     val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
     val connectionStatus by connectionViewModel.connectionStatus.collectAsStateWithLifecycle()
+    val isRefreshing by connectionViewModel.isRefreshing.collectAsStateWithLifecycle()
 
     val errorFlow = combine(
         connectionViewModel.errorMessage,
@@ -170,7 +172,16 @@ fun MainScreen(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
 
-            Box(modifier = Modifier.weight(1f)) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    connectionViewModel.refresh(
+                        connectionScreenViewModel = connectionScreenViewModel,
+                        recordingScreenViewModel = recordingScreenViewModel,
+                    )
+                },
+                modifier = Modifier.weight(1f),
+            ) {
                 // Apply verticalScroll only if the tab is marked as scrollable
                 val screenModifier = if (selectedTab.isScrollable) {
                     baseModifier.verticalScroll(scrollState)
