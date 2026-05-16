@@ -6,11 +6,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -20,13 +24,18 @@ import kotlin.math.roundToInt
 fun <T> DraggableScreen(
     draggableItem: @Composable (T) -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable (MutableState<T?>, MutableState<Offset>) -> Unit,
+    content: @Composable (MutableState<T?>, MutableState<Offset>, Offset) -> Unit,
 ) {
     val activeDraggingItem = remember { mutableStateOf<T?>(null) }
     val offset = remember { mutableStateOf(Offset.Zero) }
+    var containerPosition by remember { mutableStateOf(Offset.Zero) }
 
-    Box(modifier.fillMaxSize()) {
-        content(activeDraggingItem, offset)
+    Box(
+        modifier
+            .fillMaxSize()
+            .onGloballyPositioned { containerPosition = it.positionInWindow() },
+    ) {
+        content(activeDraggingItem, offset, containerPosition)
 
         activeDraggingItem.value?.let { item ->
             Box(
@@ -38,7 +47,7 @@ fun <T> DraggableScreen(
                         )
                     }.width(250.dp) // Fixed width for the ghost so it doesn't jump
                     .zIndex(100f)
-                    .graphicsLayer(alpha = 0.9f, scaleX = 1.05f, scaleY = 1.05f),
+                    .graphicsLayer(alpha = 0.9f),
                 content = { draggableItem(item) },
             )
         }

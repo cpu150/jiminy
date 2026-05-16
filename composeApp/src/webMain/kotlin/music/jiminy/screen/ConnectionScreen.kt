@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -135,12 +136,6 @@ sealed interface ConnectionScreenAction {
         ConnectionScreenAction
 }
 
-fun Pair<JiminyDeviceNode, JiminyDeviceNode>.speakers() =
-    if (first.type == JiminyDeviceNodeType.Speaker) first else second
-
-fun Pair<JiminyDeviceNode, JiminyDeviceNode>.instruments() =
-    if (first.type == JiminyDeviceNodeType.Instrument) first else second
-
 fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.speakers() =
     if (first.type == ConnectionScreenNodeType.Speaker) first else second
 
@@ -164,9 +159,16 @@ fun ConnectionRoot(
     LaunchedEffect(Unit) { viewModel.loadData() }
 
     DraggableScreen(
-        draggableItem = { item -> DeviceCard { item } },
+        draggableItem = { item ->
+            val scale = 1.05f
+            DeviceCard(
+                modifier = Modifier
+                    .height((DEVICE_CARD_HEIGHT * scale).dp)
+                    .width((DEVICE_CARD_HEIGHT * scale).dp),
+            ) { item }
+        },
         modifier = modifier,
-    ) { activeDraggingItem, offset ->
+    ) { activeDraggingItem, offset, containerPosition ->
         // We sync the DraggableScreen internal state with our ViewModel when it changes
         // but wait, DraggableScreen seems to OWN this state for the animation.
         // I should probably let DraggableScreen manage its animation state, 
@@ -178,6 +180,7 @@ fun ConnectionRoot(
             // These are still needed by DraggableScreen's internal logic for now
             activeDraggingItem = activeDraggingItem,
             dragOffset = offset,
+            containerPosition = containerPosition,
         )
     }
 }
@@ -188,8 +191,9 @@ private fun MainConnectionScreen(
     onAction: (ConnectionScreenAction) -> Unit,
     activeDraggingItem: androidx.compose.runtime.MutableState<JiminyDevice?>,
     dragOffset: androidx.compose.runtime.MutableState<Offset>,
+    containerPosition: Offset,
 ) {
-    val listener = remember(onAction) {
+    val listener = remember(onAction, containerPosition) {
         object : ConnectionScreenDragListener {
             override fun deviceBeingDragged() = activeDraggingItem.value
 
@@ -208,6 +212,8 @@ private fun MainConnectionScreen(
                 onAction(OnDeviceDragEnd(finalOffset))
                 activeDraggingItem.value = null
             }
+
+            override fun getContainerPosition() = containerPosition
         }
     }
 

@@ -27,6 +27,7 @@ interface ConnectionScreenDragListener {
     fun onDeviceDragStart(device: JiminyDevice, initialOffset: Offset)
     fun onDeviceDrag(newOffset: Offset)
     fun onDeviceDragEnd(finalOffset: Offset)
+    fun getContainerPosition(): Offset
 }
 
 @Stable
@@ -79,15 +80,15 @@ fun DraggableDeviceCard(
     var cardSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val draggingDevice = dragListener?.deviceBeingDragged()
     val isDeviceBeingDragged = draggingDevice?.name == device().name
+    val containerPosition = dragListener?.getContainerPosition() ?: Offset.Zero
 
-    val windowOffset = Offset(12f, 114f)
     DeviceCard(
         device = device,
         modifier = modifier
             .onGloballyPositioned { coord ->
                 // Only update base position if we're not currently dragging this item
                 if (!isDeviceBeingDragged) {
-                    itemPosition = coord.positionInWindow().minus(windowOffset)
+                    itemPosition = coord.positionInWindow().minus(containerPosition)
                     cardSize = coord.size
                 }
             }
@@ -105,13 +106,13 @@ fun DraggableDeviceCard(
                     onDragEnd = {
                         val centerOffset = Offset(cardSize.width / 2f, cardSize.height / 2f)
                         dragListener?.onDeviceDragEnd(
-                            itemPosition.plus(windowOffset).plus(centerOffset)
+                            itemPosition.plus(containerPosition).plus(centerOffset)
                         )
                     },
                     onDragCancel = {
                         val centerOffset = Offset(cardSize.width / 2f, cardSize.height / 2f)
                         dragListener?.onDeviceDragEnd(
-                            itemPosition.plus(windowOffset).plus(centerOffset)
+                            itemPosition.plus(containerPosition).plus(centerOffset)
                         )
                     },
                 )
