@@ -71,11 +71,12 @@ class MainService(
 
         val error = when (e) {
             is WebsocketDeserializeException -> when (e.frame.frameType) {
-                FrameType.CLOSE -> ConnectionClosed.also { _connectionStatus.update { Disconnected } }
+                FrameType.CLOSE -> ConnectionClosed
                 else -> null
             }
 
-            is CancellationException, is ClosedReceiveChannelException -> Cancelled
+            is ClosedReceiveChannelException -> ConnectionClosed
+            is CancellationException -> Cancelled
             is LockedForRecordingException -> Recording
             is ClientRequestException -> handleHttpResponse(logMsg, e.response)
             else -> null
@@ -111,7 +112,7 @@ class MainService(
             },
             catchBlock = { e ->
                 when (e) {
-                    is CancellationException -> _connectionStatus.update { Disconnected }
+                    is CancellationException, is ConnectionClosed -> _connectionStatus.update { Disconnected }
                     else -> _connectionStatus.update { JiminyConnectionStatus.Error(e) }
                 }
             }

@@ -8,9 +8,7 @@ import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.http.HttpMethod
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
@@ -31,33 +29,20 @@ class MixerService(
     )
     val succeededCommands = _succeededCommands.asSharedFlow()
 
-    suspend fun connect(connected: (() -> Unit)? = null) = try {
-        client.webSocket(
-            method = HttpMethod.Get,
-            host = hostname,
-            port = port,
-            path = WS_MIXER,
-        ) {
-            session = this
+    suspend fun connect(connected: (() -> Unit)? = null) = client.webSocket(
+        method = HttpMethod.Get,
+        host = hostname,
+        port = port,
+        path = WS_MIXER,
+    ) {
+        session = this
 
-            // This loop runs until the socket closes
-            try {
-                connected?.invoke()
-                while (true) {
-                    _succeededCommands.emit(receiveDeserialized<JiminyCommand>())
-                }
-            } catch (e: ClosedReceiveChannelException) {
-                logger.info("Jiminy Client - WebSocket closed - ${e.message}")
-            } catch (e: CancellationException) {
-                logger.info("Jiminy Client - WebSocket stopped - ${e.message}")
-                throw e
-            } catch (e: Exception) {
-                logger.error("Jiminy Client - ERROR - WebSocket error: $e - ${e.message}")
-                throw e
-            }
+        connected?.invoke()
+
+        // This loop runs until the socket closes
+        while (true) {
+            _succeededCommands.emit(receiveDeserialized<JiminyCommand>())
         }
-    } catch (e: Exception) {
-        throw e
     }
 
     suspend fun sendCommand(command: JiminyCommand) = try {
