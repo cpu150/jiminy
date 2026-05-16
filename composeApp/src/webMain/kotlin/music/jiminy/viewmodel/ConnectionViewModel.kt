@@ -58,10 +58,12 @@ class ConnectionViewModel(
         _errorMessage.update { null }
     }
 
-    private fun handleError(error: JiminyResponse) = when (error) {
-        is JiminyResponse.Error -> _errorMessage.update { error.message }
-        is JiminyResponse.Cancelled -> _errorMessage.update { "Operation cancelled" }
-        else -> Unit
+    private fun handleError(error: JiminyResponse) {
+        when (error) {
+            is JiminyResponse.Error -> _errorMessage.update { error.message }
+            is JiminyResponse.Cancelled -> _errorMessage.update { "Operation cancelled" }
+            else -> Unit
+        }
     }
 
     //// TAB
@@ -69,6 +71,7 @@ class ConnectionViewModel(
         val index: Int,
         val title: @Composable () -> Unit,
         val content: @Composable (modifier: Modifier) -> Unit,
+        val isScrollable: Boolean,
     )
 
     private val _tabs = MutableStateFlow(emptyList<JiminyTab>())
@@ -81,8 +84,9 @@ class ConnectionViewModel(
 
     fun addTab(
         title: @Composable () -> Unit,
+        isScrollable: Boolean = true,
         content: @Composable (modifier: Modifier) -> Unit,
-    ) = JiminyTab(_tabs.value.count(), title, content)
+    ) = JiminyTab(_tabs.value.count(), title, content, isScrollable)
         .also { tab -> _tabs.update { tabs -> tabs + tab } }
         .takeIf { _selectedTab.value == null }
         ?.also { tab -> _selectedTab.update { tab } }

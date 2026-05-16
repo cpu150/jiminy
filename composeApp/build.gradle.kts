@@ -38,6 +38,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.clientWebsockets)
             implementation(libs.kotlinx.collection.immutable)
+            implementation(libs.kotlinx.datetime)
             // Specifically for Ktor WebSockets serialization
             implementation(libs.ktor.serialization.kotlinx.json)
 

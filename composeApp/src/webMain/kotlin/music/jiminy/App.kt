@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.combine
 import music.jiminy.screen.ConnectionScreen
+import music.jiminy.screen.LogsScreen
 import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
@@ -55,6 +57,7 @@ import music.jiminy.screen.common.TextTitle
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
+import music.jiminy.viewmodel.LogsViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -76,6 +79,11 @@ fun App() {
             viewModel.addTab(
                 title = { TabTitle(Icons.Filled.Voicemail, "Record") },
                 content = ::RecordingMainScreen,
+            )
+            viewModel.addTab(
+                title = { TabTitle(Icons.AutoMirrored.Filled.List, "Logs") },
+                isScrollable = false, // Logs uses LazyColumn, so it handles its own scrolling
+                content = ::LogsMainScreen,
             )
         }
 
@@ -120,6 +128,7 @@ fun MainScreen(
     val connectionViewModel: ConnectionViewModel = koinViewModel()
     val connectionScreenViewModel: ConnectionScreenViewModel = koinViewModel()
     val recordingScreenViewModel: RecordingScreenViewModel = koinViewModel()
+    val logsViewModel: LogsViewModel = koinViewModel()
     val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
     val connectionStatus by connectionViewModel.connectionStatus.collectAsStateWithLifecycle()
 
@@ -127,11 +136,13 @@ fun MainScreen(
         connectionViewModel.errorMessage,
         connectionScreenViewModel.errorMessage,
         recordingScreenViewModel.errorMessage,
-    ) { err1, err2, err3 ->
+        logsViewModel.errorMessage,
+    ) { err1, err2, err3, err4 ->
         buildString {
             err1?.let { append(it) }
             err2?.let { append(it) }
             err3?.let { append(it) }
+            err4?.let { append(it) }
         }.takeIf { it.isNotEmpty() }
     }
 
@@ -139,15 +150,15 @@ fun MainScreen(
         connectionViewModel.resetError()
         connectionScreenViewModel.resetError()
         recordingScreenViewModel.resetError()
+        logsViewModel.resetError()
     }
 
     selectedTab?.let { selectedTab ->
         val errorMsg by errorFlow.collectAsStateWithLifecycle(null)
         val tabs by connectionViewModel.tabs.collectAsStateWithLifecycle()
         val scrollState = rememberScrollState()
-        val screenModifier = Modifier
+        val baseModifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
             .background(MaterialTheme.colorScheme.background)
             .padding(12.dp)
 
@@ -160,6 +171,12 @@ fun MainScreen(
             )
 
             Box(modifier = Modifier.weight(1f)) {
+                // Apply verticalScroll only if the tab is marked as scrollable
+                val screenModifier = if (selectedTab.isScrollable) {
+                    baseModifier.verticalScroll(scrollState)
+                } else {
+                    baseModifier
+                }
                 selectedTab.content(screenModifier)
             }
 
@@ -312,6 +329,15 @@ fun RecordingMainScreen(
     modifier: Modifier = Modifier,
 ) {
     RecordingScreen(
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun LogsMainScreen(
+    modifier: Modifier = Modifier,
+) {
+    LogsScreen(
         modifier = modifier,
     )
 }
