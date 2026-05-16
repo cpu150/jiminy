@@ -16,6 +16,8 @@ const val WS_LINK_DEVICES = "/link-devices"
 const val WS_START_RECORDING = "/start-recording"
 const val WS_STOP_RECORDING = "/stop-recording"
 
+const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
+
 const val DEVICE_CARD_SPEAKERS_LABEL = "SPK"
 const val DEVICE_CARD_INSTRUMENTS_LABEL = "INST"
 const val DEVICE_CARD_HEIGHT = 100

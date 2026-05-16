@@ -22,6 +22,7 @@ import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
+import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
@@ -35,6 +36,9 @@ class ConnectionViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?>
         get() = _errorMessage
+
+    private var preferredTabIndex =
+        kotlinx.browser.window.localStorage.getItem(SELECTED_TAB_INDEX_KEY)?.toIntOrNull()
 
     enum class RecordingStatus {
         Idle,
@@ -86,13 +90,28 @@ class ConnectionViewModel(
         title: @Composable () -> Unit,
         isScrollable: Boolean = true,
         content: @Composable (modifier: Modifier) -> Unit,
-    ) = JiminyTab(_tabs.value.count(), title, content, isScrollable)
-        .also { tab -> _tabs.update { tabs -> tabs + tab } }
-        .takeIf { _selectedTab.value == null }
-        ?.also { tab -> _selectedTab.update { tab } }
+    ): JiminyTab {
+        val tab = JiminyTab(_tabs.value.count(), title, content, isScrollable)
+        _tabs.update { tabs -> tabs + tab }
 
-    fun selectTab(index: Int) =
-        _selectedTab.update { tabs.value.find { tab -> tab.index == index } }
+        when (preferredTabIndex) {
+            null -> if (_selectedTab.value == null) {
+                _selectedTab.update { tab }
+            }
+
+            else -> if (tab.index == preferredTabIndex) {
+                _selectedTab.update { tab }
+            }
+        }
+
+        return tab
+    }
+
+    fun selectTab(index: Int) {
+        val tab = tabs.value.find { tab -> tab.index == index }
+        _selectedTab.update { tab }
+        kotlinx.browser.window.localStorage.setItem(SELECTED_TAB_INDEX_KEY, index.toString())
+    }
 
     //// Mixer View
 
