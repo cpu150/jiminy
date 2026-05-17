@@ -3,9 +3,11 @@ package music.jiminy
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.sendSerialized
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
@@ -149,15 +151,11 @@ class Controller(
     override suspend fun startRecording(
         commands: JiminyCommand.StartRecording,
     ) = withContext(Dispatchers.IO) {
-        // At least one node is connected to the recorder
-        runCommand("pw-link", "-l")
-            .firstOrNull { it.contains("${PW_RECORDER_NAME}:$RECORDER_PLAYBACK_ROOT") }
-            ?.takeIf {
-                // Not already recording then set it as recording now
-                _isRecording.compareAndSet(expectedValue = false, newValue = true)
-            }?.let {
+        takeIf { commands.nodes.isNotEmpty() }
+            ?.takeIf { _isRecording.compareAndSet(expectedValue = false, newValue = true) }
+            ?.let {
                 try {
-                    currentRecording = startRecording()
+                    currentRecording = startRecording(commands.nodes)
                     true
                 } catch (e: CancellationException) {
                     logger.info("Jiminy Server - startRecording - Cancelled - $e")
@@ -171,22 +169,48 @@ class Controller(
             } ?: false
     }
 
-    private fun startRecording() = let {
+    private fun startRecording(nodes: List<JiminyDeviceNode>) = let {
         val current = LocalDateTime.now()
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd - HH-mm-ss")
         val date = current.format(formatter)
         val filename = "$date.wav"
 
+        var positionProperty = "\""
+        nodes.forEachIndexed { index, _ ->
+            positionProperty += "$PW_RECORDER_CHANNEL_PREFIX$index"
+            if (index < nodes.size - 1) {
+                positionProperty += ","
+            }
+        }
+        positionProperty += "\""
+
         val task = ProcessBuilder(
             "pw-record",
-            "--target", PW_RECORDER_NAME,
             "--latency", PW_RECORDER_LATENCY_STR,
             "--channels", PW_RECORDER_CHANNEL_COUNT_STR,
             "--rate", PW_RECORDER_RATE,
             "--format", PW_RECORDER_FORMAT,
+            "--channel-map", positionProperty,
             filename,
         )
         task.directory(File(PW_RECORDER_BUFFER_DIRECTORY))
+
+        // We must programmatically issue the pw-link commands right after the process surfaces!
+        CoroutineScope(Dispatchers.IO).launch {
+            // Wait a brief moment for PipeWire to initialize the new raw node ports
+            delay(300)
+
+            nodes.forEachIndexed { index, node ->
+                val link = JiminyCommand.Link(
+                    node.fullName,
+                    "$PW_RECORDER_NAME:$RECORDER_PLAYBACK_ROOT$index",
+                    LinkType.Connect,
+                )
+
+                linkDevice(link)
+            }
+        }
+
         RecordProcessInfo(filename, task.start())
     }
 

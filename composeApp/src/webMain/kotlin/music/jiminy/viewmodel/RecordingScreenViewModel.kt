@@ -176,7 +176,7 @@ class RecordingScreenViewModel(
     private fun startRecording() {
         viewModelScope.launch {
             mainService.startRecording(
-                nodes = JiminyCommand.StartRecording,
+                nodes = JiminyCommand.StartRecording(_state.value.selectedNodes),
                 onError = ::handleError,
             )
         }

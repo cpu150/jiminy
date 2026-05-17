@@ -30,7 +30,7 @@ sealed interface JiminyCommand {
     ) : JiminyCommand
 
     @Serializable
-    data object StartRecording : JiminyCommand
+    data class StartRecording(val nodes: List<JiminyDeviceNode>) : JiminyCommand
 
     @Serializable
     data class StopRecording(val isRecording: Boolean = false) : JiminyCommand
