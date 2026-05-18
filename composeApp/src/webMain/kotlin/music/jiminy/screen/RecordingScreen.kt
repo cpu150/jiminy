@@ -46,6 +46,7 @@ import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.DEVICE_LIST_CARD_WIDTH
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.PW_RECORDER_CHANNEL_COUNT
 import music.jiminy.getAvatar
 import music.jiminy.screen.common.DeviceAvatar
 import music.jiminy.screen.common.DeviceCard
@@ -68,7 +69,6 @@ data class RecordingScreenState(
     val selectedNodes: List<JiminyDeviceNode> = emptyList(),
     val isRecording: Boolean = false,
     val isLoading: Boolean = false,
-    val recorderDevice: JiminyDevice? = null,
     val showDetails: JiminyDevice? = null,
 )
 
@@ -118,7 +118,7 @@ fun RecordingScreenContent(
 
         SelectedNodes(
             deviceNodePairs = { state.selectedNodes },
-            channelCount = { state.recorderDevice?.speakers?.size ?: 0 },
+            channelCount = { PW_RECORDER_CHANNEL_COUNT },
             onNodeClick = { node -> onAction(RecordingScreenAction.OnNodeClick(node)) },
             modifier = recordItemsModifier,
         )

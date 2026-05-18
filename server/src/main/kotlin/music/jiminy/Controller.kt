@@ -175,30 +175,31 @@ class Controller(
         val date = current.format(formatter)
         val filename = "$date.wav"
 
-        var positionProperty = "\""
+        var positionProperty = ""
         nodes.forEachIndexed { index, _ ->
             positionProperty += "$PW_RECORDER_CHANNEL_PREFIX$index"
             if (index < nodes.size - 1) {
                 positionProperty += ","
             }
         }
-        positionProperty += "\""
 
         val task = ProcessBuilder(
             "pw-record",
             "--latency", PW_RECORDER_LATENCY_STR,
-            "--channels", PW_RECORDER_CHANNEL_COUNT_STR,
+            "--target", "0",
             "--rate", PW_RECORDER_RATE,
             "--format", PW_RECORDER_FORMAT,
+            "--channels", "${nodes.count()}",
             "--channel-map", positionProperty,
             filename,
         )
         task.directory(File(PW_RECORDER_BUFFER_DIRECTORY))
+        val process = task.start()
 
         // We must programmatically issue the pw-link commands right after the process surfaces!
         CoroutineScope(Dispatchers.IO).launch {
             // Wait a brief moment for PipeWire to initialize the new raw node ports
-            delay(300)
+            delay(800)
 
             nodes.forEachIndexed { index, node ->
                 val link = JiminyCommand.Link(
@@ -211,7 +212,7 @@ class Controller(
             }
         }
 
-        RecordProcessInfo(filename, task.start())
+        RecordProcessInfo(filename, process)
     }
 
     @OptIn(ExperimentalAtomicApi::class)
