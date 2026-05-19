@@ -118,6 +118,19 @@ class Controller(
     override suspend fun getDeviceLinksList() =
         withContext(Dispatchers.IO) { runCommand("pw-link", "-l") }
 
+    override suspend fun getRecordings() = withContext(Dispatchers.IO) {
+        val directory = File(PW_RECORDER_STORAGE_DIRECTORY)
+        if (directory.exists() && directory.isDirectory) {
+            directory.listFiles { _, name -> name.endsWith(".wav", ignoreCase = true) }
+                ?.map { it.name }
+                ?.sortedDescending()
+                ?: emptyList()
+        } else {
+            logger.error("Jiminy Server - getRecordings - ERROR - Directory does not exist: $PW_RECORDER_STORAGE_DIRECTORY")
+            emptyList()
+        }
+    }
+
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,

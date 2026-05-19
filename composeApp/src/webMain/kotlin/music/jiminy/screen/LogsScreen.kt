@@ -20,13 +20,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.time.Instant
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import music.jiminy.LogEntry
 import music.jiminy.LogType
 import music.jiminy.viewmodel.LogsViewModel
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Instant
 
 @Composable
 fun LogsScreen(
@@ -43,14 +45,14 @@ fun LogsRoot(
     val logs by viewModel.logs.collectAsStateWithLifecycle()
 
     LogsContent(
-        logs = logs,
+        logs = logs.toImmutableList(),
         modifier = modifier,
     )
 }
 
 @Composable
 fun LogsContent(
-    logs: List<LogEntry>,
+    logs: ImmutableList<LogEntry>,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -112,11 +114,11 @@ fun LogItem(entry: LogEntry) {
 private fun formatTimestamp(millis: Long): String {
     val instant = Instant.fromEpochMilliseconds(millis)
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    
+
     val hour = dateTime.hour.toString().padStart(2, '0')
     val minute = dateTime.minute.toString().padStart(2, '0')
     val second = dateTime.second.toString().padStart(2, '0')
     val nano = (dateTime.nanosecond / 1_000_000).toString().padStart(3, '0')
-    
+
     return "$hour:$minute:$second.$nano"
 }

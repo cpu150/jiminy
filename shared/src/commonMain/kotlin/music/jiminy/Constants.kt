@@ -15,6 +15,7 @@ const val WS_DEVICES = "/devices"
 const val WS_LINK_DEVICES = "/link-devices"
 const val WS_START_RECORDING = "/start-recording"
 const val WS_STOP_RECORDING = "/stop-recording"
+const val WS_RECORDINGS = "/recordings"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
 

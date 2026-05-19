@@ -1,5 +1,6 @@
 package music.jiminy
 
+import androidx.compose.runtime.Stable
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,6 +10,7 @@ enum class LogType {
     ERROR,
 }
 
+@Stable
 @Serializable
 data class LogEntry(
     val type: LogType,

@@ -9,6 +9,7 @@ interface JiminyServerControllerI {
     suspend fun getDevicesList(): JiminyDeviceList
     suspend fun linkDevice(link: JiminyCommand.Link): Boolean
     suspend fun getDeviceLinksList(): List<String>
+    suspend fun getRecordings(): List<String>
     suspend fun startRecording(commands: JiminyCommand.StartRecording): Boolean
     suspend fun stopRecording(): Boolean
     suspend fun broadcastAll(

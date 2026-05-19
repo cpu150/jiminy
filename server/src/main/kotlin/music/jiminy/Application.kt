@@ -165,6 +165,8 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         get(WS_LINK_DEVICES) { call.respond(controller.getDeviceLinksList()) }
 
+        get(WS_RECORDINGS) { call.respond(controller.getRecordings()) }
+
         post(WS_LINK_DEVICES) {
             try {
                 val links = call.receive<List<JiminyCommand.Link>>()
