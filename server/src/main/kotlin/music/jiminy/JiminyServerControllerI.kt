@@ -1,6 +1,7 @@
 package music.jiminy
 
 import io.ktor.server.websocket.DefaultWebSocketServerSession
+import java.io.File
 
 interface JiminyServerControllerI {
     val isRecording: Boolean
@@ -11,6 +12,7 @@ interface JiminyServerControllerI {
     suspend fun getDeviceLinksList(): List<String>
     suspend fun getRecordings(): List<String>
     suspend fun deleteRecordings(filenames: List<String>): Boolean
+    fun getRecordingFile(filename: String): File?
     suspend fun startRecording(commands: JiminyCommand.StartRecording): Boolean
     suspend fun stopRecording(): Boolean
     suspend fun broadcastAll(

@@ -1,5 +1,8 @@
 package music.jiminy
 
+import io.ktor.http.ContentDisposition
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
@@ -17,7 +20,10 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondFile
+import io.ktor.server.response.respondOutputStream
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -36,6 +42,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
 import java.util.Collections
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Duration.Companion.seconds
@@ -174,6 +182,60 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
                     call.respond(HttpStatusCode.OK, "Files deleted")
                 } else {
                     call.respond(HttpStatusCode.MultiStatus, "Some files could not be deleted")
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
+        post(WS_DOWNLOAD_RECORDINGS) {
+            try {
+                val filenames = call.receive<List<String>>()
+
+                when {
+                    filenames.isEmpty() ->
+                        call.respond(HttpStatusCode.BadRequest, "No files specified")
+
+                    filenames.size == 1 -> {
+                        val file = controller.getRecordingFile(filenames.first())
+                        if (file != null) {
+                            call.response.header(
+                                HttpHeaders.ContentDisposition,
+                                ContentDisposition.Attachment.withParameter(
+                                    ContentDisposition.Parameters.FileName,
+                                    file.name,
+                                ).toString()
+                            )
+                            call.respondFile(file)
+                        } else {
+                            call.respond(
+                                HttpStatusCode.NotFound,
+                                "File '${filenames.first()}' not found",
+                            )
+                        }
+                    }
+
+                    else -> {
+                        call.response.header(
+                            HttpHeaders.ContentDisposition,
+                            ContentDisposition.Attachment.withParameter(
+                                ContentDisposition.Parameters.FileName,
+                                "recordings.zip",
+                            ).toString()
+                        )
+                        call.respondOutputStream(ContentType.Application.Zip) {
+                            ZipOutputStream(this).use { zip ->
+                                filenames.forEach { filename ->
+                                    val file = controller.getRecordingFile(filename)
+                                    if (file != null) {
+                                        zip.putNextEntry(ZipEntry(file.name))
+                                        file.inputStream().use { it.copyTo(zip) }
+                                        zip.closeEntry()
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")

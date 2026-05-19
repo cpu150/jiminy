@@ -26,6 +26,8 @@ class MockController : JiminyServerControllerI {
 
     override suspend fun deleteRecordings(filenames: List<String>) = true
 
+    override fun getRecordingFile(filename: String): java.io.File? = null
+
     override suspend fun startRecording(commands: JiminyCommand.StartRecording) = true
         .also { _isRecording = true }
 

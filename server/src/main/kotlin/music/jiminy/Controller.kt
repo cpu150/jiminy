@@ -149,6 +149,11 @@ class Controller(
         }.all { it }
     }
 
+    override fun getRecordingFile(
+        filename: String,
+    ): File? = File(PW_RECORDER_STORAGE_DIRECTORY, filename)
+        .takeIf { file -> file.exists() && file.isFile }
+
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,

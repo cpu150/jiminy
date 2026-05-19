@@ -17,6 +17,7 @@ const val WS_START_RECORDING = "/start-recording"
 const val WS_STOP_RECORDING = "/stop-recording"
 const val WS_RECORDINGS = "/recordings"
 const val WS_DELETE_RECORDINGS = "/delete-recordings"
+const val WS_DOWNLOAD_RECORDINGS = "/download-recordings"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
 
