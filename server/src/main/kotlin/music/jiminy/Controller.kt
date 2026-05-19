@@ -177,10 +177,8 @@ class Controller(
 
         var positionProperty = ""
         nodes.forEachIndexed { index, _ ->
-            positionProperty += "$PW_RECORDER_CHANNEL_PREFIX$index"
-            if (index < nodes.size - 1) {
-                positionProperty += ","
-            }
+            // Must end with ',' (ex: "AUX0,AUX1,AUX2,")
+            positionProperty += "$PW_RECORDER_CHANNEL_PREFIX$index,"
         }
 
         val task = ProcessBuilder(
