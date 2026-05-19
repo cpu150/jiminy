@@ -19,7 +19,12 @@ class MockController : JiminyServerControllerI {
 
     override suspend fun getDeviceLinksList() = dummyLinksCmd
 
-    override suspend fun getRecordings() = listOf("2024-05-16 - 12-00-00.wav", "2024-05-16 - 11-00-00.wav")
+    override suspend fun getRecordings() = listOf(
+        "2024-05-16 - 12-00-00.wav",
+        "2024-05-16 - 11-00-00.wav",
+    )
+
+    override suspend fun deleteRecordings(filenames: List<String>) = true
 
     override suspend fun startRecording(commands: JiminyCommand.StartRecording) = true
         .also { _isRecording = true }

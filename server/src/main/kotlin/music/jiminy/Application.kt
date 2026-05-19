@@ -167,6 +167,19 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         get(WS_RECORDINGS) { call.respond(controller.getRecordings()) }
 
+        post(WS_DELETE_RECORDINGS) {
+            try {
+                val filenames = call.receive<List<String>>()
+                if (controller.deleteRecordings(filenames)) {
+                    call.respond(HttpStatusCode.OK, "Files deleted")
+                } else {
+                    call.respond(HttpStatusCode.MultiStatus, "Some files could not be deleted")
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
         post(WS_LINK_DEVICES) {
             try {
                 val links = call.receive<List<JiminyCommand.Link>>()

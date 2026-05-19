@@ -131,6 +131,24 @@ class Controller(
         }
     }
 
+    override suspend fun deleteRecordings(filenames: List<String>) = withContext(Dispatchers.IO) {
+        filenames.map { filename ->
+            try {
+                val file = File(PW_RECORDER_STORAGE_DIRECTORY, filename)
+                if (file.exists() && file.delete()) {
+                    logger.info("Jiminy Server - deleteRecordings - Deleted: $filename")
+                    true
+                } else {
+                    logger.error("Jiminy Server - deleteRecordings - ERROR - File not found or could not be deleted: $filename")
+                    false
+                }
+            } catch (e: Exception) {
+                logger.error("Jiminy Server - deleteRecordings - ERROR - $filename - ${e.message}")
+                false
+            }
+        }.all { it }
+    }
+
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,
