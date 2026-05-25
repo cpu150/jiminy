@@ -34,13 +34,12 @@ const val MIXER_SLIDER_HEIGHT = 300
 const val MIXER_SLIDER_WIDTH = 26
 
 const val PW_RECORDER_NAME = "pw-record"
-const val PW_RECORDER_LATENCY_MILLIS = 2000
+const val PW_RECORDER_LATENCY_MILLIS = 10000
 const val PW_RECORDER_LATENCY_STR = "${PW_RECORDER_LATENCY_MILLIS}ms"
 const val PW_RECORDER_CHANNEL_PREFIX = "AUX"
 const val PW_RECORDER_CHANNEL_COUNT = 8
 const val PW_RECORDER_RATE = "48000"
-const val PW_RECORDER_FORMAT = "s24" // "s32"
-const val PW_RECORDER_BUFFER_DIRECTORY = "/mnt/audio_buffer"
+const val PW_RECORDER_FORMAT = "s16"
 const val PW_RECORDER_STORAGE_DIRECTORY = "/mnt/data"
 
 const val GT_1000 = "usb-BOSS_GT-1000-01"

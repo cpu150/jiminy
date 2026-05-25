@@ -14,7 +14,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatter.ofPattern
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -207,33 +207,40 @@ class Controller(
 
     private fun startRecording(nodes: List<JiminyDeviceNode>) = let {
         val current = LocalDateTime.now()
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd - HH-mm-ss")
+        val formatter = ofPattern("yyyy-MM-dd - HH-mm-ss")
         val date = current.format(formatter)
         val filename = "$date.wav"
+        val channelsCount = nodes.count()
 
-        var positionProperty = ""
-        nodes.forEachIndexed { index, _ ->
-            // Must end with ',' (ex: "AUX0,AUX1,AUX2,")
-            positionProperty += "$PW_RECORDER_CHANNEL_PREFIX$index,"
-        }
 
-        val task = ProcessBuilder(
+        val positionProperty = List(nodes.size) { index -> "$PW_RECORDER_CHANNEL_PREFIX$index" }
+            .joinToString(prefix = "[", separator = ",", postfix = "]")
+
+        val cmd = listOf(
+            // Pins the execution and disk-flushing mechanics to Core 0
+//            "taskset", "-c", "0",
+            "nice", "-n", "-20",
+//            "chrt", "--rr", "20",  <-- very bad
             "pw-record",
             "--latency", PW_RECORDER_LATENCY_STR,
             "--target", "0",
             "--rate", PW_RECORDER_RATE,
             "--format", PW_RECORDER_FORMAT,
-            "--channels", "${nodes.count()}",
+            "--channels", "$channelsCount",
             "--channel-map", positionProperty,
             filename,
         )
-        task.directory(File(PW_RECORDER_BUFFER_DIRECTORY))
-        val process = task.start()
+
+        logger.info(cmd.joinToString(" "))
+
+        val process = ProcessBuilder(cmd)
+            .directory(File(PW_RECORDER_STORAGE_DIRECTORY))
+            .start()
 
         // We must programmatically issue the pw-link commands right after the process surfaces!
         CoroutineScope(Dispatchers.IO).launch {
             // Wait a brief moment for PipeWire to initialize the new raw node ports
-            delay(800)
+            delay(500)
 
             nodes.forEachIndexed { index, node ->
                 val link = JiminyCommand.Link(
@@ -242,6 +249,7 @@ class Controller(
                     LinkType.Connect,
                 )
 
+                logger.info("Linking: $link")
                 linkDevice(link)
             }
         }
@@ -260,18 +268,13 @@ class Controller(
         try {
             recording?.let { recording ->
                 withContext(Dispatchers.IO) {
-                    // Wait for the recording buffer to get fully written
-                    delay(PW_RECORDER_LATENCY_MILLIS.milliseconds)
-
                     // Stop the recording
                     recording.process.takeIf { proc -> proc.isAlive }?.destroy()
 
-                    // Move the recorded file from PW_RECORDER_BUFFER_DIRECTORY to PW_RECORDER_STORAGE_DIRECTORY
-                    move(
-                        recording.filename,
-                        PW_RECORDER_BUFFER_DIRECTORY,
-                        PW_RECORDER_STORAGE_DIRECTORY,
-                    )
+                    // Wait for the recording buffer to get fully written
+                    delay(PW_RECORDER_LATENCY_MILLIS.milliseconds)
+
+                    true
                 }
             } ?: true
         } catch (e: CancellationException) {
@@ -283,25 +286,6 @@ class Controller(
         } finally {
             _isRecording.store(false)
         }
-    }
-
-    private fun move(filename: String, sourceStr: String, destStr: String) = try {
-        val source = File(sourceStr, filename).toPath()
-        val destination = File(destStr, filename).toPath()
-
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING)
-        logger.info("Jiminy Server - File saved to storage: $filename")
-
-        Files.delete(source)
-        logger.info("Jiminy Server - Source file deleted: $filename")
-
-        true
-    } catch (e: CancellationException) {
-        logger.error("Jiminy Server - stopRecording - Cancelled - Failed to save file to storage: $e - ${e.message}")
-        throw e
-    } catch (e: Exception) {
-        logger.error("Jiminy Server - Failed to save file to storage: $e - ${e.message}")
-        false
     }
 
     private fun runCommand(vararg command: String): List<String> {
