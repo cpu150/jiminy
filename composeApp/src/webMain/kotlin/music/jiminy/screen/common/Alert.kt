@@ -6,19 +6,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -223,10 +230,15 @@ fun RecordingsSelectionAlert(
     selectedRecordings: List<String>,
     onDismiss: () -> Unit,
     onToggleSelection: (String) -> Unit,
+    onToggleRecordings: (List<String>) -> Unit,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val groupedRecordings = remember(recordings) {
+        recordings.groupBy { it.substringBefore(" - ") }
+    }
+
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
@@ -248,21 +260,51 @@ fun RecordingsSelectionAlert(
         },
         text = {
             Column {
-                // A grid with exactly 3 columns
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     contentPadding = PaddingValues(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 400.dp),
+                    modifier = Modifier.heightIn(max = 600.dp),
                 ) {
-                    items(recordings) { recording ->
-                        val isSelected = selectedRecordings.contains(recording)
-                        RecordingFileItem(
-                            name = recording,
-                            isSelected = isSelected,
-                            onClick = { onToggleSelection(recording) },
-                        )
+                    groupedRecordings.forEach { (date, files) ->
+                        // Header for the day
+                        item(span = { GridItemSpan(3) }) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                IconButton(
+                                    onClick = { onToggleRecordings(files) },
+                                    modifier = Modifier.size(24.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Select All",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                TextBody(text = date)
+                                Spacer(Modifier.width(8.dp))
+                                HorizontalDivider(
+                                    modifier = Modifier.weight(1f),
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                )
+                            }
+                        }
+
+                        // Files for that day
+                        items(files) { recording ->
+                            val isSelected = selectedRecordings.contains(recording)
+                            RecordingFileItem(
+                                name = recording.substringAfter(" - "),
+                                isSelected = isSelected,
+                                onClick = { onToggleSelection(recording) },
+                            )
+                        }
                     }
                 }
             }

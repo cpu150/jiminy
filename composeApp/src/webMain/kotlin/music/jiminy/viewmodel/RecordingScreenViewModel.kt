@@ -20,6 +20,7 @@ import music.jiminy.screen.RecordingScreenAction.OnDownloadRecordings
 import music.jiminy.screen.RecordingScreenAction.OnHideRecordingsClick
 import music.jiminy.screen.RecordingScreenAction.OnNodeClick
 import music.jiminy.screen.RecordingScreenAction.OnRecordingSelect
+import music.jiminy.screen.RecordingScreenAction.OnRecordingsSelect
 import music.jiminy.screen.RecordingScreenAction.OnShowRecordingsClick
 import music.jiminy.screen.RecordingScreenAction.OnStartRecording
 import music.jiminy.screen.RecordingScreenAction.OnStopRecording
@@ -80,6 +81,7 @@ class RecordingScreenViewModel(
             OnShowRecordingsClick -> showRecordings()
             OnHideRecordingsClick -> _state.update { it.copy(showRecordings = false) }
             is OnRecordingSelect -> toggleRecordingSelection(action.filename)
+            is OnRecordingsSelect -> toggleRecordingsSelection(action.filenames)
             OnDownloadRecordings -> downloadRecordings()
             OnDeleteRecordings -> deleteRecordings()
         }
@@ -109,6 +111,18 @@ class RecordingScreenViewModel(
                 state.selectedRecordings + filename
             }
             state.copy(selectedRecordings = selected)
+        }
+    }
+
+    private fun toggleRecordingsSelection(filenames: List<String>) {
+        _state.update { state ->
+            val allSelected = filenames.all { state.selectedRecordings.contains(it) }
+            val newSelected = if (allSelected) {
+                state.selectedRecordings - filenames.toSet()
+            } else {
+                state.selectedRecordings + (filenames - state.selectedRecordings.toSet())
+            }
+            state.copy(selectedRecordings = newSelected)
         }
     }
 

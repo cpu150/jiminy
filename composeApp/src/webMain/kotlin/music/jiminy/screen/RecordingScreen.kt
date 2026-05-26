@@ -85,6 +85,7 @@ sealed interface RecordingScreenAction {
     data object OnShowRecordingsClick : RecordingScreenAction
     data object OnHideRecordingsClick : RecordingScreenAction
     data class OnRecordingSelect(val filename: String) : RecordingScreenAction
+    data class OnRecordingsSelect(val filenames: List<String>) : RecordingScreenAction
     data object OnDownloadRecordings : RecordingScreenAction
     data object OnDeleteRecordings : RecordingScreenAction
 }
@@ -189,6 +190,7 @@ fun RecordingScreenContent(
             selectedRecordings = state.selectedRecordings,
             onDismiss = { onAction(RecordingScreenAction.OnHideRecordingsClick) },
             onToggleSelection = { onAction(RecordingScreenAction.OnRecordingSelect(it)) },
+            onToggleRecordings = { onAction(RecordingScreenAction.OnRecordingsSelect(it)) },
             onDownload = { onAction(RecordingScreenAction.OnDownloadRecordings) },
             onDelete = { onAction(RecordingScreenAction.OnDeleteRecordings) },
         )
