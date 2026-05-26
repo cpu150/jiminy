@@ -30,6 +30,10 @@ class DebugLogger : JiminyLoggerI {
         logger.error(log)
     }
 
+    override fun clear() {
+        _logEntries.clear()
+    }
+
     private fun addLog(type: LogType, message: String) {
         val entry = LogEntry(
             type = type,

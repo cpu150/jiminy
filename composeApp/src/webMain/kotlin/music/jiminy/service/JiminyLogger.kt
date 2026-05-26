@@ -31,6 +31,10 @@ class JiminyLogger : JiminyLoggerI {
         println("ERROR: $log")
     }
 
+    override fun clear() {
+        _logs.update { emptyList() }
+    }
+
     private fun addLog(type: LogType, message: String) {
         val entry = LogEntry(
             type = type,

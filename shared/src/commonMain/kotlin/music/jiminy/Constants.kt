@@ -19,6 +19,7 @@ const val WS_RECORDINGS = "/recordings"
 const val WS_DELETE_RECORDINGS = "/delete-recordings"
 const val WS_DOWNLOAD_RECORDINGS = "/download-recordings"
 const val WS_SERVER_LOGS = "/server-logs"
+const val WS_FLUSH_SERVER_LOGS = "/flush-server-logs"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
 

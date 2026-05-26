@@ -60,4 +60,16 @@ class LogsViewModel(
             )
         }
     }
+
+    fun flushLogs() {
+        clientLogger.clear()
+        viewModelScope.launch {
+            mainService.flushServerLogs(
+                onSuccess = {
+                    _serverLogs.update { emptyList() }
+                },
+                onError = { /* Handle error */ },
+            )
+        }
+    }
 }

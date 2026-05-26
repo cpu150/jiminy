@@ -195,6 +195,19 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
+    suspend fun flushServerLogs(
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    ) = handleExceptions(
+        logMsg = "flushServerLogs",
+        tryBlock = {
+            handleHttpResponse("flushServerLogs", loggingService.flushServerLogs())
+                ?.let { onError(it) }
+                ?: let { onSuccess?.invoke(EmptySuccess) }
+        },
+        catchBlock = { error -> onError(error) },
+    )
+
     suspend fun getRecordings(
         onSuccess: (Success<List<String>>) -> Unit,
         onError: (JiminyResponse) -> Unit,

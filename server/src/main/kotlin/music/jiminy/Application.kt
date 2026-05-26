@@ -177,6 +177,15 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         get(WS_SERVER_LOGS) { call.respond(logger.logEntries) }
 
+        post(WS_FLUSH_SERVER_LOGS) {
+            try {
+                logger.clear()
+                call.respond(HttpStatusCode.OK, "Server logs flushed")
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
         post(WS_DELETE_RECORDINGS) {
             try {
                 val filenames = call.receive<List<String>>()
