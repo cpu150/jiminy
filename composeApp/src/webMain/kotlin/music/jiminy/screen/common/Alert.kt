@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -13,7 +14,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -223,7 +230,22 @@ fun RecordingsSelectionAlert(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { TextTitle("Recording Files") },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextTitle(text = "Recording Files")
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
         text = {
             Column {
                 // A grid with exactly 3 columns
@@ -248,37 +270,34 @@ fun RecordingsSelectionAlert(
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val hasSelection = selectedRecordings.isNotEmpty()
-                JiminyButton(
+                IconButton(
                     enabled = hasSelection,
                     onClick = onDownload,
                 ) {
-                    TextButton(
-                        text = "Download",
-                        color = if (hasSelection) {
-                            MaterialTheme.colorScheme.onPrimary
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = "Download",
+                        tint = if (hasSelection) {
+                            MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                         },
                     )
                 }
-                JiminyButton(
+                IconButton(
                     enabled = hasSelection,
                     onClick = onDelete,
                 ) {
-                    TextButton(
-                        text = "Delete",
-                        color = if (hasSelection) {
-                            MaterialTheme.colorScheme.onError
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = if (hasSelection) {
+                            MaterialTheme.colorScheme.error
                         } else {
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                         },
                     )
                 }
-            }
-        },
-        dismissButton = {
-            JiminyButton(onClick = onDismiss) {
-                TextButton(text = "Close")
             }
         },
     )
