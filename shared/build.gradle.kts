@@ -22,8 +22,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // For the @Serializable annotation and Json.decode
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
+            api(libs.kotlinx.serialization.json)
+            api(libs.androidx.lifecycle.runtimeCompose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

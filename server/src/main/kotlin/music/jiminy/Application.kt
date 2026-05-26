@@ -175,6 +175,8 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         get(WS_RECORDINGS) { call.respond(controller.getRecordings()) }
 
+        get(WS_SERVER_LOGS) { call.respond(logger.logEntries) }
+
         post(WS_DELETE_RECORDINGS) {
             try {
                 val filenames = call.receive<List<String>>()

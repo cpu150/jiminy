@@ -20,6 +20,8 @@ data class LogEntry(
 )
 
 interface JiminyLoggerI {
+    val logEntries: List<LogEntry>
+
     fun info(log: String)
     fun warning(log: String)
     fun error(log: String)

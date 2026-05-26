@@ -13,6 +13,9 @@ class JiminyLogger : JiminyLoggerI {
     private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
     val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
 
+    override val logEntries: List<LogEntry>
+        get() = _logs.value
+
     override fun info(log: String) {
         addLog(LogType.INFO, log)
         println("INFO: $log")
