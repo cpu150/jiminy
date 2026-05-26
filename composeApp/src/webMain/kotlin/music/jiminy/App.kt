@@ -178,6 +178,7 @@ fun MainScreen(
                     connectionViewModel.refresh(
                         connectionScreenViewModel = connectionScreenViewModel,
                         recordingScreenViewModel = recordingScreenViewModel,
+                        logsViewModel = logsViewModel,
                     )
                 },
                 modifier = Modifier.weight(1f),

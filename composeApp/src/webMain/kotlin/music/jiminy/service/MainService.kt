@@ -16,6 +16,7 @@ import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyLoggerI
+import music.jiminy.LogEntry
 import music.jiminy.LockedForRecordingException
 import music.jiminy.service.JiminyConnectionStatus.Connected
 import music.jiminy.service.JiminyConnectionStatus.Connecting
@@ -47,6 +48,7 @@ class MainService(
     private val mixerService: MixerService,
     private val deviceService: DeviceService,
     private val recordingService: RecordingService,
+    private val loggingService: LoggingService,
     private val logger: JiminyLoggerI,
 ) {
     val succeededCommands = mixerService.succeededCommands
@@ -172,6 +174,15 @@ class MainService(
                 ?.let { onError(it) }
                 ?: let { onSuccess?.invoke(EmptySuccess) }
         },
+        catchBlock = { error -> onError(error) },
+    )
+
+    suspend fun getServerLogs(
+        onSuccess: (Success<List<LogEntry>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    ) = handleExceptions(
+        logMsg = "getServerLogs",
+        tryBlock = { onSuccess(Success(loggingService.getServerLogs())) },
         catchBlock = { error -> onError(error) },
     )
 

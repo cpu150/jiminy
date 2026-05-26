@@ -182,6 +182,7 @@ class ConnectionViewModel(
     fun refresh(
         connectionScreenViewModel: ConnectionScreenViewModel,
         recordingScreenViewModel: RecordingScreenViewModel,
+        logsViewModel: LogsViewModel,
     ) {
         viewModelScope.launch {
             _isRefreshing.update { true }
@@ -190,6 +191,7 @@ class ConnectionViewModel(
             getDevices()
             connectionScreenViewModel.loadData()
             recordingScreenViewModel.loadData()
+            logsViewModel.loadServerLogs()
 
             // Artificial delay to show the refresh indicator
             delay(500.milliseconds)

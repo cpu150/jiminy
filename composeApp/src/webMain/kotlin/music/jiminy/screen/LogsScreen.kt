@@ -12,6 +12,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,9 +25,10 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import music.jiminy.LogEntry
 import music.jiminy.LogType
+import music.jiminy.viewmodel.LogSource
 import music.jiminy.viewmodel.LogsViewModel
+import music.jiminy.viewmodel.UiLogEntry
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Instant
 
@@ -44,6 +46,10 @@ fun LogsRoot(
 ) {
     val logs by viewModel.logs.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        viewModel.loadServerLogs()
+    }
+
     LogsContent(
         logs = logs.toImmutableList(),
         modifier = modifier,
@@ -52,15 +58,15 @@ fun LogsRoot(
 
 @Composable
 fun LogsContent(
-    logs: ImmutableList<LogEntry>,
+    logs: ImmutableList<UiLogEntry>,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        items(logs) { entry ->
-            LogItem(entry)
+        items(logs) { uiEntry ->
+            LogItem(uiEntry)
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
             )
@@ -69,11 +75,17 @@ fun LogsContent(
 }
 
 @Composable
-fun LogItem(entry: LogEntry) {
+fun LogItem(uiEntry: UiLogEntry) {
+    val entry = uiEntry.entry
     val textColor = when (entry.type) {
         LogType.INFO -> MaterialTheme.colorScheme.onSurface
         LogType.WARNING -> Color(0xFFFFA500) // Orange
         LogType.ERROR -> MaterialTheme.colorScheme.error
+    }
+
+    val sourceColor = when (uiEntry.source) {
+        LogSource.Client -> Color(0xFF2196F3) // Blue
+        LogSource.Server -> Color(0xFF4CAF50) // Green
     }
 
     val timestamp = formatTimestamp(entry.timestamp)
@@ -91,6 +103,13 @@ fun LogItem(entry: LogEntry) {
                 text = "[$timestamp]",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+            Text(
+                text = uiEntry.source.name.uppercase(),
+                color = sourceColor,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
             )
             Text(
