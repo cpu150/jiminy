@@ -51,6 +51,7 @@ import music.jiminy.getAvatar
 import music.jiminy.screen.common.DeviceAvatar
 import music.jiminy.screen.common.DeviceCard
 import music.jiminy.screen.common.JiminyButton
+import music.jiminy.screen.common.RecordingsSelectionAlert
 import music.jiminy.screen.common.SelectableNodeItem
 import music.jiminy.screen.common.TextBody
 import music.jiminy.screen.common.TextButton
@@ -70,6 +71,9 @@ data class RecordingScreenState(
     val isRecording: Boolean = false,
     val isLoading: Boolean = false,
     val showDetails: JiminyDevice? = null,
+    val recordings: List<String> = emptyList(),
+    val selectedRecordings: List<String> = emptyList(),
+    val showRecordings: Boolean = false,
 )
 
 sealed interface RecordingScreenAction {
@@ -78,6 +82,11 @@ sealed interface RecordingScreenAction {
     data object OnStopRecording : RecordingScreenAction
     data object OnDismissDetails : RecordingScreenAction
     data class OnNodeClick(val node: JiminyDeviceNode) : RecordingScreenAction
+    data object OnShowRecordingsClick : RecordingScreenAction
+    data object OnHideRecordingsClick : RecordingScreenAction
+    data class OnRecordingSelect(val filename: String) : RecordingScreenAction
+    data object OnDownloadRecordings : RecordingScreenAction
+    data object OnDeleteRecordings : RecordingScreenAction
 }
 
 @Composable
@@ -138,10 +147,9 @@ fun RecordingScreenContent(
             ) { TextButton(text = "Start Recording", color = textColor) }
 
             JiminyButton(
-                enabled = isRecordingEnable,
-                onClick = { /* TODO */ },
+                onClick = { onAction(RecordingScreenAction.OnShowRecordingsClick) },
                 modifier = Modifier.padding(4.dp),
-            ) { TextButton(text = "Save Config", color = textColor) }
+            ) { TextButton(text = "Recording Files") }
         }
 
         Spacer(Modifier.size(8.dp))
@@ -173,6 +181,17 @@ fun RecordingScreenContent(
                 modifier = Modifier.padding(vertical = 8.dp).wrapContentHeight().fillMaxWidth(),
             )
         }
+    }
+
+    if (state.showRecordings) {
+        RecordingsSelectionAlert(
+            recordings = state.recordings,
+            selectedRecordings = state.selectedRecordings,
+            onDismiss = { onAction(RecordingScreenAction.OnHideRecordingsClick) },
+            onToggleSelection = { onAction(RecordingScreenAction.OnRecordingSelect(it)) },
+            onDownload = { onAction(RecordingScreenAction.OnDownloadRecordings) },
+            onDelete = { onAction(RecordingScreenAction.OnDeleteRecordings) },
+        )
     }
 }
 

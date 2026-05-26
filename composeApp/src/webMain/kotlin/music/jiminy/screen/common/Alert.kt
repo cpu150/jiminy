@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -13,7 +14,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -142,7 +142,7 @@ fun DeleteConfirmationAlert(
 fun NodeSelectionAlert(
     onDismiss: () -> Unit,
     droppedDevice: () -> JiminyDevice,
-    addNodes: (List<JiminyDeviceNode>)-> Unit,
+    addNodes: (List<JiminyDeviceNode>) -> Unit,
     zoneItem: () -> ConnectionScreenZoneItem,
     modifier: Modifier = Modifier,
 ) {
@@ -170,7 +170,7 @@ fun NodeSelectionAlert(
                     contentPadding = PaddingValues(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 400.dp) // Keep popup from taking full screen
+                    modifier = Modifier.heightIn(max = 400.dp), // Keep popup from taking full screen
                 ) {
                     items(availableNodes) { node ->
                         val isSelected = selectedNodes.contains(node)
@@ -186,7 +186,7 @@ fun NodeSelectionAlert(
                                 } else {
                                     selectedNodes.add(node)
                                 }
-                            }
+                            },
                         )
                     }
                 }
@@ -206,8 +206,111 @@ fun NodeSelectionAlert(
                 }
             }) { TextButton("Add") }
         },
-        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } }
+        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
     )
+}
+
+@Composable
+fun RecordingsSelectionAlert(
+    recordings: List<String>,
+    selectedRecordings: List<String>,
+    onDismiss: () -> Unit,
+    onToggleSelection: (String) -> Unit,
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = { TextTitle("Recording Files") },
+        text = {
+            Column {
+                // A grid with exactly 3 columns
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.heightIn(max = 400.dp),
+                ) {
+                    items(recordings) { recording ->
+                        val isSelected = selectedRecordings.contains(recording)
+                        RecordingFileItem(
+                            name = recording,
+                            isSelected = isSelected,
+                            onClick = { onToggleSelection(recording) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val hasSelection = selectedRecordings.isNotEmpty()
+                JiminyButton(
+                    enabled = hasSelection,
+                    onClick = onDownload,
+                ) {
+                    TextButton(
+                        text = "Download",
+                        color = if (hasSelection) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        },
+                    )
+                }
+                JiminyButton(
+                    enabled = hasSelection,
+                    onClick = onDelete,
+                ) {
+                    TextButton(
+                        text = "Delete",
+                        color = if (hasSelection) {
+                            MaterialTheme.colorScheme.onError
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        },
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            JiminyButton(onClick = onDismiss) {
+                TextButton(text = "Close")
+            }
+        },
+    )
+}
+
+@Composable
+fun RecordingFileItem(
+    name: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val color =
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = color,
+        border = border,
+        modifier = modifier.height(60.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(4.dp)) {
+            TextBody(
+                text = name,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 @Composable

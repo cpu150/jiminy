@@ -175,6 +175,43 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
+    suspend fun getRecordings(
+        onSuccess: (Success<List<String>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    ) = handleExceptions(
+        logMsg = "getRecordings",
+        tryBlock = { onSuccess(Success(recordingService.getRecordings())) },
+        catchBlock = { error -> onError(error) },
+    )
+
+    suspend fun deleteRecordings(
+        filenames: List<String>,
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    ) = handleExceptions(
+        logMsg = "deleteRecordings",
+        tryBlock = {
+            handleHttpResponse("deleteRecordings", recordingService.deleteRecordings(filenames))
+                ?.let { onError(it) }
+                ?: let { onSuccess?.invoke(EmptySuccess) }
+        },
+        catchBlock = { error -> onError(error) },
+    )
+
+    suspend fun downloadRecordings(
+        filenames: List<String>,
+        onSuccess: ((Success<HttpResponse>) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    ) = handleExceptions(
+        logMsg = "downloadRecordings",
+        tryBlock = {
+            val response = recordingService.downloadRecordings(filenames)
+            handleHttpResponse("downloadRecordings", response)
+                ?.let { onError(it) }
+                ?: let { onSuccess?.invoke(Success(response)) }
+        },
+        catchBlock = { error -> onError(error) },
+    )
 
     suspend fun stopRecording(
         onSuccess: ((EmptySuccess) -> Unit)? = null,

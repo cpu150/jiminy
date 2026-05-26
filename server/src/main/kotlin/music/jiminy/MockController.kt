@@ -83,14 +83,11 @@ class MockController : JiminyServerControllerI {
 //    JiminyDeviceNode("alsa_input.usb-Roland_TD-07-01.analog-stereo:capture_FR", "usb-Roland_TD-07-01", "capture_FR", JiminyDeviceNodeType.Instruments),
 
 val dummyLinksCmd = listOf(
-    "Jiminy-MultiSink:playback_AUX0",
-    "  |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
     "  |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR",
     "  |<- alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
     "alsa_input.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:capture_FR",
-    "  |-> Jiminy-MultiSink:playback_AUX0",
     "  |-> alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
     "  |-> alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR",
 )
@@ -171,16 +168,6 @@ val dummyInstrumentsCmd = listOf(
 )
 
 val dummySpeakersCmd = listOf(
-    "Jiminy-MultiSink:playback_AUX0",
-    "Jiminy-MultiSink:playback_AUX1",
-    "Jiminy-MultiSink:playback_AUX2",
-    "Jiminy-MultiSink:playback_AUX3",
-    "Jiminy-MultiSink:playback_AUX4",
-    "Jiminy-MultiSink:playback_AUX5",
-    "Jiminy-MultiSink:playback_AUX6",
-    "Jiminy-MultiSink:playback_AUX7",
-    "Jiminy-MultiSink:playback_AUX8",
-    "Jiminy-MultiSink:playback_AUX9",
     "Midi-Bridge:Midi Through Port-0 (playback)",
     "Midi-Bridge:FLUID Synth (928)Synth input port (928:0) (playback)",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
@@ -203,7 +190,6 @@ val dummyStatusCmd = listOf(
     " │      65. alsa_card.platform-107c706400.hdmi  [alsa]",
     " │  ",
     " ├─ Sinks:",
-    " │      33. Jiminy-MultiSink                    [vol: 1.00]",
     " │  *   91. alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo [vol: 0.49]",
     " │  ",
     " ├─ Sources:",

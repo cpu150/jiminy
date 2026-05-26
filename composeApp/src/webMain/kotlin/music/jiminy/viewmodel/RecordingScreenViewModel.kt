@@ -13,9 +13,14 @@ import music.jiminy.JiminyLoggerI
 import music.jiminy.PW_RECORDER_CHANNEL_COUNT
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.screen.RecordingScreenAction
+import music.jiminy.screen.RecordingScreenAction.OnDeleteRecordings
 import music.jiminy.screen.RecordingScreenAction.OnDeviceClick
 import music.jiminy.screen.RecordingScreenAction.OnDismissDetails
+import music.jiminy.screen.RecordingScreenAction.OnDownloadRecordings
+import music.jiminy.screen.RecordingScreenAction.OnHideRecordingsClick
 import music.jiminy.screen.RecordingScreenAction.OnNodeClick
+import music.jiminy.screen.RecordingScreenAction.OnRecordingSelect
+import music.jiminy.screen.RecordingScreenAction.OnShowRecordingsClick
 import music.jiminy.screen.RecordingScreenAction.OnStartRecording
 import music.jiminy.screen.RecordingScreenAction.OnStopRecording
 import music.jiminy.screen.RecordingScreenState
@@ -72,6 +77,68 @@ class RecordingScreenViewModel(
             OnStartRecording -> startRecording()
             OnStopRecording -> stopRecording()
             OnDismissDetails -> _state.update { it.copy(showDetails = null) }
+            OnShowRecordingsClick -> showRecordings()
+            OnHideRecordingsClick -> _state.update { it.copy(showRecordings = false) }
+            is OnRecordingSelect -> toggleRecordingSelection(action.filename)
+            OnDownloadRecordings -> downloadRecordings()
+            OnDeleteRecordings -> deleteRecordings()
+        }
+    }
+
+    private fun showRecordings() {
+        viewModelScope.launch {
+            mainService.getRecordings(
+                onSuccess = { response ->
+                    _state.update { state ->
+                        state.copy(
+                            recordings = response.value,
+                            showRecordings = true,
+                        )
+                    }
+                },
+                onError = { handleError(it) },
+            )
+        }
+    }
+
+    private fun toggleRecordingSelection(filename: String) {
+        _state.update { state ->
+            val selected = if (state.selectedRecordings.contains(filename)) {
+                state.selectedRecordings - filename
+            } else {
+                state.selectedRecordings + filename
+            }
+            state.copy(selectedRecordings = selected)
+        }
+    }
+
+    private fun deleteRecordings() {
+        viewModelScope.launch {
+            val toDelete = _state.value.selectedRecordings
+            mainService.deleteRecordings(
+                filenames = toDelete,
+                onSuccess = {
+                    _state.update { it.copy(selectedRecordings = emptyList()) }
+                    showRecordings()
+                },
+                onError = { handleError(it) },
+            )
+        }
+    }
+
+    private fun downloadRecordings() {
+        viewModelScope.launch {
+            val toDownload = _state.value.selectedRecordings
+            mainService.downloadRecordings(
+                filenames = toDownload,
+                onSuccess = { response ->
+                    // Handle download in browser: we can't easily handle a POST response file download
+                    // in pure KMP without some JS hacks.
+                    // For now, logging the intent.
+                    logger.info("Downloading ${toDownload.size} files: $response")
+                },
+                onError = { handleError(it) },
+            )
         }
     }
 
