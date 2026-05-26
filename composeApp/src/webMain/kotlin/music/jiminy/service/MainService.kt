@@ -84,6 +84,15 @@ class MainService(
             else -> null
         } ?: JiminyResponse.Error("$logMsg - ${e.message} - $e")
 
+        when(error) {
+            is JiminyResponse.Error -> logger.error(error.message)
+            Cancelled -> logger.warning("Cancelled")
+            ConnectionClosed -> logger.info("Connection Closed")
+            EmptySuccess -> logger.info("Success! Empty")
+            Recording -> logger.warning("Request happened when Recording")
+            is Success<*> -> logger.info("Success! ${error.value}")
+        }
+
         catchBlock(error)
             .takeIf { error is CancellationException }
             ?.let { throw e }
