@@ -71,7 +71,11 @@ class ConnectionScreenViewModel(
         viewModelScope.launch {
             mainService.getDevices(
                 onSuccess = { response ->
-                    _internalState.update { state -> state.copy(devices = response.value.filter { it.name != PW_RECORDER_NAME }) }
+                    _internalState.update { state ->
+                        state.copy(
+                            devices = response.value.audioDevices.filter { it.name != PW_RECORDER_NAME }
+                        )
+                    }
                 },
                 onError = ::handleError,
             )

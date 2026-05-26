@@ -15,8 +15,12 @@ import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType.Instrument
 import music.jiminy.JiminyDeviceNodeType.Speaker
 import music.jiminy.JiminyDeviceNodeType.Unknown
+import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLoggerI
+import music.jiminy.JiminyMidiDevice
+import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.JiminyVolume
+import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.WS_DEVICES
 import music.jiminy.WS_LINK_DEVICES
@@ -27,6 +31,7 @@ class DeviceService(
     private val logger: JiminyLoggerI,
 ) {
     private val _devices = mutableListOf<JiminyDevice>()
+    private val _midiDevices = mutableListOf<JiminyMidiDevice>()
 
     suspend fun getDevices() = client
         .get("$baseUrl$WS_DEVICES")
@@ -44,19 +49,40 @@ class DeviceService(
             setBody(links)
         }
 
-    private fun processDevicesOutput(output: JiminyDeviceList): List<JiminyDevice> {
+    private fun processDevicesOutput(output: JiminyDeviceList): JiminyDevices {
         _devices.clear()
+        _midiDevices.clear()
 
-        for (list in listOf(output.instruments, output.speakers)) {
+        val (midiInstruments, audioInstruments) = output.instruments.partition { it.startsWith(MIDI_BRIDGE_PREFIX) }
+        val (midiSpeakers, audioSpeakers) = output.speakers.partition { it.startsWith(MIDI_BRIDGE_PREFIX) }
+
+        // Audio Devices
+        for (list in listOf(audioInstruments, audioSpeakers)) {
             list.forEach { fullName ->
                 parseOutputCmd(fullName)?.let { data ->
                     with(data) {
                         val dev = _devices.find { it.name == deviceName }
                             ?: JiminyDevice(deviceName).also { _devices.add(it) }
 
-                        val type = if (list == output.instruments) Instrument else Speaker
+                        val type = if (list == audioInstruments) Instrument else Speaker
 
                         dev.addNode(JiminyDeviceNode(fullName, deviceName, portName, type))
+                    }
+                }
+            }
+        }
+
+        // MIDI Devices
+        for (list in listOf(midiInstruments, midiSpeakers)) {
+            list.forEach { fullName ->
+                parseMidiOutputCmd(fullName)?.let { data ->
+                    with(data) {
+                        val dev = _midiDevices.find { it.name == deviceName }
+                            ?: JiminyMidiDevice(deviceName).also { _midiDevices.add(it) }
+
+                        val type = if (list == midiInstruments) Instrument else Speaker
+
+                        dev.addNode(JiminyMidiDeviceNode(fullName, deviceName, portName, type))
                     }
                 }
             }
@@ -96,7 +122,7 @@ class DeviceService(
             }
         }
 
-        return _devices
+        return JiminyDevices(_devices.toList(), _midiDevices.toList())
     }
 
     private fun processDeviceLinksOutput(output: List<String>) = buildList {
@@ -111,7 +137,8 @@ class DeviceService(
                 fullName.startsWith("alsa_playback") ||
                 fullName.startsWith(FLUIDSYNTH, true) ||
                 fullName.startsWith(PW_RECORDER_NAME, true) ||
-                fullName.contains(":monitor_")
+                fullName.contains(":monitor_") ||
+                fullName.startsWith(MIDI_BRIDGE_PREFIX)
             ) {
                 parseOutputCmd(fullName)?.let { data ->
                     nodeInstrument = JiminyDeviceNode(
@@ -158,6 +185,30 @@ class DeviceService(
         val portName: String,
     )
 
+    private fun parseMidiOutputCmd(
+        fullName: String,
+    ): OutputParsedData? {
+        // Midi-Bridge:GT-1000 MIDI 1 (capture)
+        // Midi-Bridge:FLUID Synth (935)Synth input port (935:0) (playback)
+        val arr = fullName.split(":")
+        val prefix = arr.getOrNull(0)?.let { "$it:" }
+        val fullPortName = arr.getOrNull(1)
+
+        return if (prefix == MIDI_BRIDGE_PREFIX && fullPortName != null) {
+            // We want the device name to be part of the port name before (capture)/(playback)
+            // But actually, grouped by device would be better.
+            // Example: "GT-1000 MIDI 1"
+            val deviceName = fullPortName
+                .removeSuffix(" (capture)")
+                .removeSuffix(" (playback)")
+                .trim()
+
+            OutputParsedData(fullName, deviceName, fullPortName)
+        } else {
+            null
+        }
+    }
+
     // TODO - Process midi devices:
     // Midi-Bridge:Midi Through Port-0 (capture)
     // Midi-Bridge:Midi Through Port-0 (playback)
@@ -165,10 +216,12 @@ class DeviceService(
     private fun parseOutputCmd(
         fullName: String,
     ) = if (fullName.startsWith(FLUIDSYNTH, true) ||
-        fullName.startsWith(PW_RECORDER_NAME, true)
+        fullName.startsWith(PW_RECORDER_NAME, true) ||
+        fullName.startsWith(MIDI_BRIDGE_PREFIX)
     ) {
         // FluidSynth:output_FL
         // Jiminy-MultiSink:playback_AUX0 || Jiminy-MultiSink:monitor_AUX0
+        // Midi-Bridge:port_name
         val arr = fullName.split(":")
         val deviceName = arr.getOrNull(0)
         val portName = arr.getOrNull(1)

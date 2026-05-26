@@ -13,11 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLoggerI
-import music.jiminy.LogEntry
 import music.jiminy.LockedForRecordingException
+import music.jiminy.LogEntry
 import music.jiminy.service.JiminyConnectionStatus.Connected
 import music.jiminy.service.JiminyConnectionStatus.Connecting
 import music.jiminy.service.JiminyConnectionStatus.Disconnected
@@ -139,7 +139,7 @@ class MainService(
     }
 
     suspend fun getDevices(
-        onSuccess: (Success<List<JiminyDevice>>) -> Unit,
+        onSuccess: (Success<JiminyDevices>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
         logMsg = "getDevices",

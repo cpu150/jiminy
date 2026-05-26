@@ -20,8 +20,10 @@ import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
+import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
+import music.jiminy.JiminyMidiDevice
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
@@ -165,12 +167,20 @@ class ConnectionViewModel(
     val devices: StateFlow<List<JiminyDevice>>
         get() = _devices
 
+    private val _midiDevices = MutableStateFlow(emptyList<JiminyMidiDevice>())
+    val midiDevices: StateFlow<List<JiminyMidiDevice>>
+        get() = _midiDevices
+
     fun getDevices() {
         resetError()
         viewModelScope.launch {
             _devices.update { emptyList() }
+            _midiDevices.update { emptyList() }
             mainService.getDevices(
-                { response -> _devices.update { response.value } },
+                { response ->
+                    _devices.update { response.value.audioDevices }
+                    _midiDevices.update { response.value.midiDevices }
+                },
                 ::handleError,
             )
         }

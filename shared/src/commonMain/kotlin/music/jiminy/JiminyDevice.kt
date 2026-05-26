@@ -5,6 +5,12 @@ import kotlinx.serialization.Serializable
 fun JiminyDeviceNode.getAvatar() = deviceNameToAvatar[deviceName] ?: AvatarIconsEnum.Unknown
 
 @Serializable
+data class JiminyDevices(
+    val audioDevices: List<JiminyDevice>,
+    val midiDevices: List<JiminyMidiDevice>,
+)
+
+@Serializable
 data class JiminyDevice(val name: String) {
     val avatarIcon = deviceNameToAvatar[name] ?: AvatarIconsEnum.Unknown
     val alias = deviceNameToAlias[name]
@@ -120,6 +126,36 @@ data class JiminyVolume(
         return result
     }
 }
+
+@Serializable
+data class JiminyMidiDevice(val name: String) {
+    private val _speakers = mutableListOf<JiminyMidiDeviceNode>()
+    val speakers: List<JiminyMidiDeviceNode>
+        get() = _speakers
+
+    private val _instruments = mutableListOf<JiminyMidiDeviceNode>()
+    val instruments: List<JiminyMidiDeviceNode>
+        get() = _instruments
+
+    fun addNode(node: JiminyMidiDeviceNode) {
+        val nodeList = when (node.type) {
+            JiminyDeviceNodeType.Speaker -> _speakers
+            JiminyDeviceNodeType.Instrument -> _instruments
+            else -> null
+        }
+
+        nodeList?.add(node)
+        nodeList?.sortBy { it.fullName }
+    }
+}
+
+@Serializable
+data class JiminyMidiDeviceNode(
+    val fullName: String,
+    val deviceName: String,
+    val portName: String,
+    val type: JiminyDeviceNodeType,
+)
 
 @Serializable
 enum class JiminyDeviceNodeType {

@@ -58,7 +58,7 @@ class RecordingScreenViewModel(
     private suspend fun loadDevices() {
         mainService.getDevices(
             onSuccess = { response ->
-                val devices = response.value
+                val devices = response.value.audioDevices
                     .filter { dev -> (dev.instruments.isNotEmpty() && dev.name != PW_RECORDER_NAME) }
 
                 _state.update { state ->
