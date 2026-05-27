@@ -41,7 +41,7 @@ import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_CARD_WIDTH
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDevice
+import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceNodeType.Instrument
 import music.jiminy.JiminyVolume
 import music.jiminy.MIXER_SLIDER_HEIGHT
@@ -51,7 +51,7 @@ import music.jiminy.screen.common.TextLabel
 
 @Composable
 fun MixerScreen(
-    devices: () -> List<JiminyDevice>,
+    devices: () -> List<JiminyAudioDevice>,
     succeededCommands: JiminyCommand?,
     onVolumeChange: (JiminyVolume, Float) -> Unit,
     onMuteStateChange: (JiminyVolume, Boolean) -> Unit,

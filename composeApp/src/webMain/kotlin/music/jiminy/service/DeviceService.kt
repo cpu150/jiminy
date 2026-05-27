@@ -9,7 +9,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import music.jiminy.FLUIDSYNTH
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDevice
+import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceList
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType.Instrument
@@ -30,7 +30,7 @@ class DeviceService(
     private val baseUrl: String,
     private val logger: JiminyLoggerI,
 ) {
-    private val _devices = mutableListOf<JiminyDevice>()
+    private val _devices = mutableListOf<JiminyAudioDevice>()
     private val _midiDevices = mutableListOf<JiminyMidiDevice>()
 
     suspend fun getDevices() = client
@@ -62,7 +62,7 @@ class DeviceService(
                 parseOutputCmd(fullName)?.let { data ->
                     with(data) {
                         val dev = _devices.find { it.name == deviceName }
-                            ?: JiminyDevice(deviceName).also { _devices.add(it) }
+                            ?: JiminyAudioDevice(deviceName).also { _devices.add(it) }
 
                         val type = if (list == audioInstruments) Instrument else Speaker
 

@@ -24,7 +24,6 @@ import jiminy.composeapp.generated.resources.raspberry_pi2
 import jiminy.composeapp.generated.resources.snd_interface2
 import jiminy.composeapp.generated.resources.synth1
 import music.jiminy.AvatarIconsEnum
-import music.jiminy.JiminyDevice
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 

@@ -6,12 +6,12 @@ fun JiminyDeviceNode.getAvatar() = deviceNameToAvatar[deviceName] ?: AvatarIcons
 
 @Serializable
 data class JiminyDevices(
-    val audioDevices: List<JiminyDevice>,
+    val audioDevices: List<JiminyAudioDevice>,
     val midiDevices: List<JiminyMidiDevice>,
 )
 
 @Serializable
-data class JiminyDevice(val name: String) {
+data class JiminyAudioDevice(val name: String) {
     val avatarIcon = deviceNameToAvatar[name] ?: AvatarIconsEnum.Unknown
     val alias = deviceNameToAlias[name]
     val displayName = alias ?: name
@@ -56,7 +56,7 @@ data class JiminyDevice(val name: String) {
     fun addVolume(volume: JiminyVolume) = _volumes.add(volume)
         .also { _volumes.sortBy { it.type } }
 
-    operator fun plus(other: JiminyDevice) = JiminyDevice(
+    operator fun plus(other: JiminyAudioDevice) = JiminyAudioDevice(
         name = name
     ).also { new ->
         val speakers = _speakers + other._speakers.filter { !_speakers.contains(it) }
@@ -69,7 +69,7 @@ data class JiminyDevice(val name: String) {
         "$displayName, ${_instruments.count()} instrument(s), ${_speakers.count()} speaker(s), ${_volumes.count()} volume device(s)"
 
     override fun equals(other: Any?) = when (other) {
-        is JiminyDevice -> {
+        is JiminyAudioDevice -> {
             name == other.name &&
                     _speakers == other._speakers &&
                     _instruments == other._instruments

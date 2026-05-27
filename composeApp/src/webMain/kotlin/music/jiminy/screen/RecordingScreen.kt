@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.DEVICE_LIST_CARD_WIDTH
-import music.jiminy.JiminyDevice
+import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.PW_RECORDER_CHANNEL_COUNT
 import music.jiminy.getAvatar
@@ -66,18 +66,18 @@ import kotlin.math.sin
 
 @Stable
 data class RecordingScreenState(
-    val devices: List<JiminyDevice> = emptyList(),
+    val devices: List<JiminyAudioDevice> = emptyList(),
     val selectedNodes: List<JiminyDeviceNode> = emptyList(),
     val isRecording: Boolean = false,
     val isLoading: Boolean = false,
-    val showDetails: JiminyDevice? = null,
+    val showDetails: JiminyAudioDevice? = null,
     val recordings: List<String> = emptyList(),
     val selectedRecordings: List<String> = emptyList(),
     val showRecordings: Boolean = false,
 )
 
 sealed interface RecordingScreenAction {
-    data class OnDeviceClick(val device: JiminyDevice) : RecordingScreenAction
+    data class OnDeviceClick(val device: JiminyAudioDevice) : RecordingScreenAction
     data object OnStartRecording : RecordingScreenAction
     data object OnStopRecording : RecordingScreenAction
     data object OnDismissDetails : RecordingScreenAction
@@ -199,7 +199,7 @@ fun RecordingScreenContent(
 
 @Composable
 fun DeviceDetails(
-    device: () -> JiminyDevice,
+    device: () -> JiminyAudioDevice,
     selectedNodes: () -> List<JiminyDeviceNode>,
     onNodeClick: (JiminyDeviceNode) -> Unit,
     modifier: Modifier = Modifier,

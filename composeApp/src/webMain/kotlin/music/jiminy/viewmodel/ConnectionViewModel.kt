@@ -17,10 +17,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.DEBOUNCING_COMMAND_MILLIS
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDevice
+import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
-import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyMidiDevice
@@ -163,8 +162,8 @@ class ConnectionViewModel(
     val succeededCommands = _succeededCommands.asStateFlow()
 
     //// Connection View
-    private val _devices = MutableStateFlow(emptyList<JiminyDevice>())
-    val devices: StateFlow<List<JiminyDevice>>
+    private val _devices = MutableStateFlow(emptyList<JiminyAudioDevice>())
+    val devices: StateFlow<List<JiminyAudioDevice>>
         get() = _devices
 
     private val _midiDevices = MutableStateFlow(emptyList<JiminyMidiDevice>())
@@ -225,9 +224,9 @@ fun Pair<JiminyDeviceNode, JiminyDeviceNode>.instrument() =
 fun List<Pair<JiminyDeviceNode, JiminyDeviceNode>>.toJiminyLinks() =
     sortedBy { it.speaker().fullName }.takeIf { isNotEmpty() }?.run {
         val list = mutableListOf<JiminyLink>()
-        val devices = mutableListOf<JiminyDevice>()
+        val devices = mutableListOf<JiminyAudioDevice>()
 
-        var speakerDev = JiminyDevice(first().speaker().deviceName)
+        var speakerDev = JiminyAudioDevice(first().speaker().deviceName)
             .apply { addNode(first().speaker()) }
         val speakers = mutableListOf(speakerDev)
 
@@ -235,13 +234,13 @@ fun List<Pair<JiminyDeviceNode, JiminyDeviceNode>>.toJiminyLinks() =
             if (!speakerDev.speakers.contains(it.speaker())) {
                 list.add(JiminyLink(devices.toList(), speakerDev))
                 devices.clear()
-                speakerDev = JiminyDevice(it.speaker().deviceName)
+                speakerDev = JiminyAudioDevice(it.speaker().deviceName)
                     .apply { addNode(it.speaker()) }
                     .also { newSpk -> speakers += newSpk }
             }
 
             val instrumentDev = devices.find { dev -> dev.name == it.instrument().deviceName }
-                ?: JiminyDevice(it.instrument().deviceName).also { dev -> devices.add(dev) }
+                ?: JiminyAudioDevice(it.instrument().deviceName).also { dev -> devices.add(dev) }
             if (!instrumentDev.instruments.contains(it.instrument())) {
                 instrumentDev.addNode(it.instrument())
             }
@@ -271,4 +270,4 @@ fun List<Pair<JiminyDeviceNode, JiminyDeviceNode>>.toJiminyLinks() =
         links
     } ?: emptyList()
 
-fun List<JiminyDevice>.nodes() = flatMap { it.nodes() }
+fun List<JiminyAudioDevice>.nodes() = flatMap { it.nodes() }

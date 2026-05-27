@@ -361,7 +361,7 @@ val dummyLinks = listOf(
 )
 
 val dummyDevices = listOf(
-    JiminyDevice("usb-BOSS_GT-1000-01").apply {
+    JiminyAudioDevice("usb-BOSS_GT-1000-01").apply {
         addNode(
             JiminyDeviceNode(
                 "alsa_output.usb-BOSS_GT-1000-01.multichannel-output:monitor_FL",
@@ -523,7 +523,7 @@ val dummyDevices = listOf(
             )
         )
     },
-    JiminyDevice("FluidSynth").apply {
+    JiminyAudioDevice("FluidSynth").apply {
         addNode(
             JiminyDeviceNode(
                 "alsa_playback.FluidSynth:input_FL",
@@ -541,7 +541,7 @@ val dummyDevices = listOf(
             )
         )
     },
-    JiminyDevice("usb-Roland_TD-07-01").apply {
+    JiminyAudioDevice("usb-Roland_TD-07-01").apply {
         addNode(
             JiminyDeviceNode(
                 "alsa_output.usb-Roland_TD-07-01.analog-stereo:playback_FL",
@@ -591,7 +591,7 @@ val dummyDevices = listOf(
             )
         )
     },
-    JiminyDevice("FluidSynth2").apply {
+    JiminyAudioDevice("FluidSynth2").apply {
         addNode(
             JiminyDeviceNode(
                 "alsa_playback.FluidSynth:input_FL",
@@ -609,7 +609,7 @@ val dummyDevices = listOf(
             )
         )
     },
-    JiminyDevice("FluidSynth3").apply {
+    JiminyAudioDevice("FluidSynth3").apply {
         addNode(
             JiminyDeviceNode(
                 "alsa_playback.FluidSynth:input_FL",
@@ -627,7 +627,7 @@ val dummyDevices = listOf(
             )
         )
     },
-    JiminyDevice("FluidSynth4").apply {
+    JiminyAudioDevice("FluidSynth4").apply {
         addNode(
             JiminyDeviceNode(
                 "alsa_playback.FluidSynth:input_FL",

@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -39,7 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import music.jiminy.JiminyDevice
+import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
@@ -98,7 +97,7 @@ fun GenericMessageAlert(
 
 @Composable
 fun UnlinkConfirmationAlert(
-    pair: () -> Pair<JiminyDevice, JiminyDeviceNode?>,
+    pair: () -> Pair<JiminyAudioDevice, JiminyDeviceNode?>,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -155,7 +154,7 @@ fun DeleteConfirmationAlert(
 @Composable
 fun NodeSelectionAlert(
     onDismiss: () -> Unit,
-    droppedDevice: () -> JiminyDevice,
+    droppedDevice: () -> JiminyAudioDevice,
     addNodes: (List<JiminyDeviceNode>) -> Unit,
     zoneItem: () -> ConnectionScreenZoneItem,
     modifier: Modifier = Modifier,

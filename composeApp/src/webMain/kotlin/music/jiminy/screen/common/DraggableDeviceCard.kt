@@ -17,14 +17,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import music.jiminy.JiminyDevice
+import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
 interface ConnectionScreenDragListener {
-    fun deviceBeingDragged(): JiminyDevice?
-    fun onDeviceDragStart(device: JiminyDevice, initialOffset: Offset)
+    fun deviceBeingDragged(): JiminyAudioDevice?
+    fun onDeviceDragStart(device: JiminyAudioDevice, initialOffset: Offset)
     fun onDeviceDrag(newOffset: Offset)
     fun onDeviceDragEnd(finalOffset: Offset)
     fun getContainerPosition(): Offset
@@ -34,7 +34,7 @@ interface ConnectionScreenDragListener {
 data class ConnectionScreenZoneItem(
     val type: ConnectionScreenNodeType,
     val zone: MutableState<Rect> = mutableStateOf(Rect.Zero),
-    val devices: SnapshotStateList<JiminyDevice> = mutableStateListOf(),
+    val devices: SnapshotStateList<JiminyAudioDevice> = mutableStateListOf(),
 )
 
 fun ConnectionScreenZoneItem.removeNode(node: JiminyDeviceNode) =
@@ -45,7 +45,7 @@ fun ConnectionScreenZoneItem.removeNode(node: JiminyDeviceNode) =
 
 fun ConnectionScreenZoneItem.addNodes(nodes: List<JiminyDeviceNode>) = nodes.forEach { node ->
     (devices.find { it.name == node.deviceName }?.also { devices.remove(it) }
-        ?: JiminyDevice(node.deviceName))
+        ?: JiminyAudioDevice(node.deviceName))
         .also { devices.add(it) }
         .takeIf { it.nodes().contains(node).not() }
         ?.addNode(node)
@@ -74,7 +74,7 @@ fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.isCompleted() =
 fun DraggableDeviceCard(
     dragListener: ConnectionScreenDragListener? = null,
     modifier: Modifier = Modifier,
-    device: () -> JiminyDevice,
+    device: () -> JiminyAudioDevice,
 ) {
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
     var cardSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }

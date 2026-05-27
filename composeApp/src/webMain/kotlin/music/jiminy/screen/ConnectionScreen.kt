@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +42,7 @@ import music.jiminy.DEVICE_CARD_HEIGHT
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
-import music.jiminy.JiminyDevice
+import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
@@ -88,24 +89,24 @@ enum class ConnectionScreenNodeType {
 
 @Stable
 data class ConnectionScreenState(
-    val devices: List<JiminyDevice> = emptyList(),
+    val devices: List<JiminyAudioDevice> = emptyList(),
     val links: List<JiminyLink> = emptyList(),
     val connectionRows: List<Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>> = listOf(
         ConnectionScreenZoneItem(ConnectionScreenNodeType.Instrument) to ConnectionScreenZoneItem(
             ConnectionScreenNodeType.Speaker,
         ),
     ),
-    val activeDraggingDevice: JiminyDevice? = null,
+    val activeDraggingDevice: JiminyAudioDevice? = null,
     val dragOffset: Offset = Offset.Zero,
     val showAddDevicePopup: Boolean = false,
     val showIncompletePopup: Boolean = false,
     val showError: String? = null,
-    val lastDropItem: Pair<ConnectionScreenZoneItem, JiminyDevice>? = null,
+    val lastDropItem: Pair<ConnectionScreenZoneItem, JiminyAudioDevice>? = null,
     val showDeleteAllAlert: Boolean = false,
 )
 
 sealed interface ConnectionScreenAction {
-    data class OnDeviceDragStart(val device: JiminyDevice, val initialOffset: Offset) :
+    data class OnDeviceDragStart(val device: JiminyAudioDevice, val initialOffset: Offset) :
         ConnectionScreenAction
 
     data class OnDeviceDrag(val newOffset: Offset) : ConnectionScreenAction
@@ -132,7 +133,10 @@ sealed interface ConnectionScreenAction {
     data class OnDeleteNodeFromRow(val zone: ConnectionScreenZoneItem, val node: JiminyDeviceNode) :
         ConnectionScreenAction
 
-    data class OnDeleteDeviceFromRow(val zone: ConnectionScreenZoneItem, val device: JiminyDevice) :
+    data class OnDeleteDeviceFromRow(
+        val zone: ConnectionScreenZoneItem,
+        val device: JiminyAudioDevice
+    ) :
         ConnectionScreenAction
 }
 
@@ -189,15 +193,15 @@ fun ConnectionRoot(
 private fun MainConnectionScreen(
     state: ConnectionScreenState,
     onAction: (ConnectionScreenAction) -> Unit,
-    activeDraggingItem: androidx.compose.runtime.MutableState<JiminyDevice?>,
-    dragOffset: androidx.compose.runtime.MutableState<Offset>,
+    activeDraggingItem: MutableState<JiminyAudioDevice?>,
+    dragOffset: MutableState<Offset>,
     containerPosition: Offset,
 ) {
     val listener = remember(onAction, containerPosition) {
         object : ConnectionScreenDragListener {
             override fun deviceBeingDragged() = activeDraggingItem.value
 
-            override fun onDeviceDragStart(device: JiminyDevice, initialOffset: Offset) {
+            override fun onDeviceDragStart(device: JiminyAudioDevice, initialOffset: Offset) {
                 activeDraggingItem.value = device
                 dragOffset.value = initialOffset
                 onAction(OnDeviceDragStart(device, initialOffset))
@@ -324,7 +328,7 @@ fun ConnectionRow(
     row: () -> Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>,
     deleteRow: () -> Unit,
     onDeleteNode: (ConnectionScreenZoneItem, JiminyDeviceNode) -> Unit,
-    onDeleteDevice: (ConnectionScreenZoneItem, JiminyDevice) -> Unit,
+    onDeleteDevice: (ConnectionScreenZoneItem, JiminyAudioDevice) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val instruments = row().instruments()
@@ -332,7 +336,7 @@ fun ConnectionRow(
     var nodeToDelete by remember { mutableStateOf<JiminyDeviceNode?>(null) }
     var showDeleteRowAlert by remember { mutableStateOf(false) }
     var deviceToDelete by remember {
-        mutableStateOf<Pair<ConnectionScreenZoneItem, JiminyDevice>?>(null)
+        mutableStateOf<Pair<ConnectionScreenZoneItem, JiminyAudioDevice>?>(null)
     }
 
     Row(
@@ -429,14 +433,14 @@ fun ConnectionRow(
 @Composable
 fun LinkRow(
     link: () -> JiminyLink,
-    onClick: (Pair<JiminyDevice, JiminyDeviceNode?>) -> Unit,
+    onClick: (Pair<JiminyAudioDevice, JiminyDeviceNode?>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val linkValue = link()
     val instrumentDevs = linkValue.instrumentDevices
     val speakerDev = linkValue.speakerDevice
     var showConfirmationAlert by remember {
-        mutableStateOf<Pair<JiminyDevice, JiminyDeviceNode?>?>(null)
+        mutableStateOf<Pair<JiminyAudioDevice, JiminyDeviceNode?>?>(null)
     }
 
     Row(

@@ -1,8 +1,8 @@
 package music.jiminy
 
 data class JiminyLink(
-    val instrumentDevices: List<JiminyDevice>,
-    val speakerDevice: JiminyDevice,
+    val instrumentDevices: List<JiminyAudioDevice>,
+    val speakerDevice: JiminyAudioDevice,
 ) {
     operator fun plus(other: JiminyLink) = instrumentDevices.map { instrumentDevice ->
         var instrument = instrumentDevice
@@ -25,7 +25,7 @@ data class JiminyLink(
 }
 
 fun JiminyLink.instrumentNodes(
-    dev: JiminyDevice,
+    dev: JiminyAudioDevice,
     node: JiminyDeviceNode? = null,
 ) = if (dev == speakerDevice) {
     instrumentDevices.flatMap { it.nodes() }
@@ -36,7 +36,7 @@ fun JiminyLink.instrumentNodes(
 }
 
 fun JiminyLink.speakerNodes(
-    dev: JiminyDevice,
+    dev: JiminyAudioDevice,
     node: JiminyDeviceNode? = null,
 ) = if (dev != speakerDevice) {
     speakerDevice.nodes()
@@ -47,7 +47,7 @@ fun JiminyLink.speakerNodes(
 }
 
 fun JiminyLink.disconnectionNodesList(
-    dev: JiminyDevice,
+    dev: JiminyAudioDevice,
     node: JiminyDeviceNode? = null,
 ) = buildList {
     instrumentNodes(dev, node).forEach { instrument ->
