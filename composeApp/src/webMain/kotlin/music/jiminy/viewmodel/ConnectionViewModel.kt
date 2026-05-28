@@ -16,13 +16,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.DEBOUNCING_COMMAND_MILLIS
-import music.jiminy.JiminyCommand
 import music.jiminy.JiminyAudioDevice
+import music.jiminy.JiminyCommand
+import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDeviceNodeI
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyMidiDevice
+import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
@@ -166,19 +169,13 @@ class ConnectionViewModel(
     val devices: StateFlow<List<JiminyAudioDevice>>
         get() = _devices
 
-    private val _midiDevices = MutableStateFlow(emptyList<JiminyMidiDevice>())
-    val midiDevices: StateFlow<List<JiminyMidiDevice>>
-        get() = _midiDevices
-
     fun getDevices() {
         resetError()
         viewModelScope.launch {
             _devices.update { emptyList() }
-            _midiDevices.update { emptyList() }
             mainService.getDevices(
                 { response ->
                     _devices.update { response.value.audioDevices }
-                    _midiDevices.update { response.value.midiDevices }
                 },
                 ::handleError,
             )
@@ -190,6 +187,7 @@ class ConnectionViewModel(
 
     fun refresh(
         connectionScreenViewModel: ConnectionScreenViewModel,
+        midiScreenViewModel: MIDIScreenViewModel,
         recordingScreenViewModel: RecordingScreenViewModel,
         logsViewModel: LogsViewModel,
     ) {
@@ -199,6 +197,7 @@ class ConnectionViewModel(
             // Refresh data in all relevant ViewModels
             getDevices()
             connectionScreenViewModel.loadData()
+            midiScreenViewModel.loadData()
             recordingScreenViewModel.loadData()
             logsViewModel.loadServerLogs()
 
@@ -215,45 +214,61 @@ class ConnectionViewModel(
     }
 }
 
-fun Pair<JiminyDeviceNode, JiminyDeviceNode>.speaker() =
+fun <N : JiminyDeviceNodeI> Pair<N, N>.speaker() =
     if (first.type == JiminyDeviceNodeType.Speaker) first else second
 
-fun Pair<JiminyDeviceNode, JiminyDeviceNode>.instrument() =
+fun <N : JiminyDeviceNodeI> Pair<N, N>.instrument() =
     if (first.type == JiminyDeviceNodeType.Instrument) first else second
 
-fun List<Pair<JiminyDeviceNode, JiminyDeviceNode>>.toJiminyLinks() =
-    sortedBy { it.speaker().fullName }.takeIf { isNotEmpty() }?.run {
-        val list = mutableListOf<JiminyLink>()
-        val devices = mutableListOf<JiminyAudioDevice>()
+fun List<Pair<JiminyDeviceNode, JiminyDeviceNode>>.toJiminyLinks(): List<JiminyLink<JiminyAudioDevice>> =
+    toGenericJiminyLinks(
+        deviceFactory = { JiminyAudioDevice(it) },
+        nodeAdder = { dev, node -> dev.addNode(node) }
+    )
 
-        var speakerDev = JiminyAudioDevice(first().speaker().deviceName)
-            .apply { addNode(first().speaker()) }
+fun List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>.toJiminyMidiLinks(): List<JiminyLink<JiminyMidiDevice>> =
+    toGenericJiminyLinks(
+        deviceFactory = { JiminyMidiDevice(it) },
+        nodeAdder = { dev, node -> dev.addNode(node) }
+    )
+
+fun <T : JiminyDeviceI<T>, N : JiminyDeviceNodeI> List<Pair<N, N>>.toGenericJiminyLinks(
+    deviceFactory: (String) -> T,
+    nodeAdder: (T, N) -> Unit
+): List<JiminyLink<T>> =
+    sortedBy { it.speaker().fullName }.takeIf { isNotEmpty() }?.run {
+        val list = mutableListOf<JiminyLink<T>>()
+        val devices = mutableListOf<T>()
+
+        var speakerDev = deviceFactory(first().speaker().deviceName)
+            .apply { nodeAdder(this, first().speaker()) }
         val speakers = mutableListOf(speakerDev)
 
         forEach {
-            if (!speakerDev.speakers.contains(it.speaker())) {
+            if (speakerDev.speakers.none { s -> s.fullName == it.speaker().fullName }) {
                 list.add(JiminyLink(devices.toList(), speakerDev))
                 devices.clear()
-                speakerDev = JiminyAudioDevice(it.speaker().deviceName)
-                    .apply { addNode(it.speaker()) }
+                speakerDev = deviceFactory(it.speaker().deviceName)
+                    .apply { nodeAdder(this, it.speaker()) }
                     .also { newSpk -> speakers += newSpk }
             }
 
             val instrumentDev = devices.find { dev -> dev.name == it.instrument().deviceName }
-                ?: JiminyAudioDevice(it.instrument().deviceName).also { dev -> devices.add(dev) }
-            if (!instrumentDev.instruments.contains(it.instrument())) {
-                instrumentDev.addNode(it.instrument())
+                ?: deviceFactory(it.instrument().deviceName).also { dev -> devices.add(dev) }
+            if (instrumentDev.instruments.none { inst -> inst.fullName == it.instrument().fullName }) {
+                nodeAdder(instrumentDev, it.instrument())
             }
         }
         speakerDev.let { list.add(JiminyLink(devices.toList(), speakerDev)) }
 
-        val links = mutableListOf<JiminyLink>()
+        val links = mutableListOf<JiminyLink<T>>()
         list.firstOrNull()?.let { first ->
             var cur = first
             list.forEachIndexed { index, _ ->
                 list.elementAtOrNull(index + 1)?.let { next ->
                     if (cur.speakerDevice.name == next.speakerDevice.name &&
-                        cur.instrumentDevices.nodes().containsAll(next.instrumentDevices.nodes())
+                        cur.instrumentDevices.nodes().map { it.fullName }
+                            .containsAll(next.instrumentDevices.nodes().map { it.fullName })
                     ) {
                         cur = JiminyLink(
                             instrumentDevices = cur.instrumentDevices,
@@ -270,4 +285,4 @@ fun List<Pair<JiminyDeviceNode, JiminyDeviceNode>>.toJiminyLinks() =
         links
     } ?: emptyList()
 
-fun List<JiminyAudioDevice>.nodes() = flatMap { it.nodes() }
+fun List<JiminyDeviceI<*>>.nodes() = flatMap { it.nodes() }

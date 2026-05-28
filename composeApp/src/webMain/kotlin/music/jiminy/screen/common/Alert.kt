@@ -38,8 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import music.jiminy.JiminyAudioDevice
-import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDeviceI
+import music.jiminy.JiminyDeviceNodeI
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
 @Composable
@@ -97,7 +97,7 @@ fun GenericMessageAlert(
 
 @Composable
 fun UnlinkConfirmationAlert(
-    pair: () -> Pair<JiminyAudioDevice, JiminyDeviceNode?>,
+    pair: () -> Pair<JiminyDeviceI<*>, JiminyDeviceNodeI?>,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -152,15 +152,15 @@ fun DeleteConfirmationAlert(
 }
 
 @Composable
-fun NodeSelectionAlert(
+fun <T : JiminyDeviceI<T>> NodeSelectionAlert(
     onDismiss: () -> Unit,
-    droppedDevice: () -> JiminyAudioDevice,
-    addNodes: (List<JiminyDeviceNode>) -> Unit,
-    zoneItem: () -> ConnectionScreenZoneItem,
+    droppedDevice: () -> T,
+    addNodes: (List<JiminyDeviceNodeI>) -> Unit,
+    zoneItem: () -> ConnectionScreenZoneItem<T>,
     modifier: Modifier = Modifier,
 ) {
     // Track which items the user has clicked inside the popup
-    val selectedNodes = remember { mutableStateListOf<JiminyDeviceNode>() }
+    val selectedNodes = remember { mutableStateListOf<JiminyDeviceNodeI>() }
     val device = remember { droppedDevice() }
     val (label, availableNodes) = remember {
         if (zoneItem().type == Speaker) {
@@ -186,7 +186,7 @@ fun NodeSelectionAlert(
                     modifier = Modifier.heightIn(max = 400.dp), // Keep popup from taking full screen
                 ) {
                     items(availableNodes) { node ->
-                        val isSelected = selectedNodes.contains(node)
+                        val isSelected = selectedNodes.any { it.fullName == node.fullName }
                         SelectableNodeItem(
                             node = { node },
                             isSelected = isSelected,
@@ -195,7 +195,7 @@ fun NodeSelectionAlert(
                                 errorMsg.value = null
 
                                 if (isSelected) {
-                                    selectedNodes.remove(node)
+                                    selectedNodes.removeAll { it.fullName == node.fullName }
                                 } else {
                                     selectedNodes.add(node)
                                 }
@@ -375,7 +375,7 @@ fun RecordingFileItem(
 
 @Composable
 fun SelectableNodeItem(
-    node: () -> JiminyDeviceNode,
+    node: () -> JiminyDeviceNodeI,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

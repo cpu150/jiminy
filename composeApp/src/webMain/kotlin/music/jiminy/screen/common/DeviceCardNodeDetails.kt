@@ -17,15 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.DEVICE_LIST_CARD_WIDTH
-import music.jiminy.JiminyAudioDevice
-import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDeviceI
+import music.jiminy.JiminyDeviceNodeI
 
 @Composable
-fun DeviceCardNodeDetails(
-    device: () -> JiminyAudioDevice,
-    deviceNodes: () -> List<JiminyDeviceNode>,
-    onDeviceClick: (JiminyAudioDevice) -> Unit,
-    onNodeClick: (JiminyDeviceNode) -> Unit,
+fun <T : JiminyDeviceI<T>> DeviceCardNodeDetails(
+    device: () -> T,
+    deviceNodes: () -> List<JiminyDeviceNodeI>,
+    onDeviceClick: (T) -> Unit,
+    onNodeClick: (JiminyDeviceNodeI) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(

@@ -8,12 +8,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyLoggerI
+import music.jiminy.JiminyMidiDevice
+import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.LinkType
-import music.jiminy.PW_RECORDER_NAME
+import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.disconnectionNodesList
 import music.jiminy.screen.ConnectionScreenAction
 import music.jiminy.screen.ConnectionScreenAction.OnAddRowClick
@@ -45,7 +45,7 @@ import music.jiminy.screen.speakers
 import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
 
-class ConnectionScreenViewModel(
+class MIDIScreenViewModel(
     private val mainService: MainService,
     private val logger: JiminyLoggerI,
 ) : ViewModel() {
@@ -54,8 +54,8 @@ class ConnectionScreenViewModel(
     val errorMessage: StateFlow<String?>
         get() = _errorMessage
 
-    private val _internalState = MutableStateFlow(ConnectionScreenState<JiminyAudioDevice>())
-    val state: StateFlow<ConnectionScreenState<JiminyAudioDevice>> = _internalState.asStateFlow()
+    private val _internalState = MutableStateFlow(ConnectionScreenState<JiminyMidiDevice>())
+    val state: StateFlow<ConnectionScreenState<JiminyMidiDevice>> = _internalState.asStateFlow()
 
     fun resetError() {
         _errorMessage.update { null }
@@ -74,7 +74,7 @@ class ConnectionScreenViewModel(
                 onSuccess = { response ->
                     _internalState.update { state ->
                         state.copy(
-                            devices = response.value.audioDevices.filter { it.name != PW_RECORDER_NAME }
+                            devices = response.value.midiDevices
                         )
                     }
                 },
@@ -83,15 +83,29 @@ class ConnectionScreenViewModel(
             mainService.getDeviceLinks(
                 onSuccess = { response ->
                     val filteredLinks =
-                        response.value.filter { it.speaker().deviceName != PW_RECORDER_NAME }
-                    _internalState.update { it.copy(links = filteredLinks.toJiminyLinks()) }
+                        response.value.filter { it.first.fullName.startsWith(MIDI_BRIDGE_PREFIX) }
+                            .map { (inst, spk) ->
+                                JiminyMidiDeviceNode(
+                                    inst.fullName,
+                                    inst.deviceName,
+                                    inst.portName,
+                                    inst.type
+                                ) to
+                                        JiminyMidiDeviceNode(
+                                            spk.fullName,
+                                            spk.deviceName,
+                                            spk.portName,
+                                            spk.type
+                                        )
+                            }
+                    _internalState.update { it.copy(links = filteredLinks.toJiminyMidiLinks()) }
                 },
                 onError = ::handleError,
             )
         }
     }
 
-    fun onAction(action: ConnectionScreenAction<JiminyAudioDevice>) {
+    fun onAction(action: ConnectionScreenAction<JiminyMidiDevice>) {
         resetError()
         when (action) {
             is OnDeviceDragStart -> {
@@ -109,8 +123,10 @@ class ConnectionScreenViewModel(
             is OnAddRowClick -> {
                 if (_internalState.value.connectionRows.lastOrNull()?.isCompleted() != false) {
                     _internalState.update {
-                        val new = ConnectionScreenZoneItem<JiminyAudioDevice>(Instrument) to
-                                ConnectionScreenZoneItem<JiminyAudioDevice>(Speaker)
+                        val new =
+                            ConnectionScreenZoneItem<JiminyMidiDevice>(Instrument) to ConnectionScreenZoneItem<JiminyMidiDevice>(
+                                Speaker
+                            )
                         it.copy(connectionRows = it.connectionRows + new)
                     }
                 } else {
@@ -123,13 +139,35 @@ class ConnectionScreenViewModel(
             }
 
             is OnConnectClick -> handleConnect()
-            is OnDisconnectClick -> disconnect(action.nodes.map { it.first as JiminyDeviceNode to it.second as JiminyDeviceNode })
+            is OnDisconnectClick -> disconnect(action.nodes.map { (inst, spk) ->
+                JiminyMidiDeviceNode(inst.fullName, inst.deviceName, inst.displayPortName, inst.type) to
+                        JiminyMidiDeviceNode(
+                            spk.fullName,
+                            spk.deviceName,
+                            spk.displayPortName,
+                            spk.type,
+                        )
+            })
+
             is OnUnlinkAllClick -> _internalState.update { it.copy(showDeleteAllAlert = true) }
 
             is OnConfirmUnlinkAll -> {
                 val allDisconnections =
                     _internalState.value.links.flatMap { it.disconnectionNodesList(it.speakerDevice) }
-                disconnect(allDisconnections.map { it.first as JiminyDeviceNode to it.second as JiminyDeviceNode })
+                disconnect(allDisconnections.map { (inst, spk) ->
+                    JiminyMidiDeviceNode(
+                        inst.fullName,
+                        inst.deviceName,
+                        inst.displayPortName,
+                        inst.type,
+                    ) to
+                            JiminyMidiDeviceNode(
+                                spk.fullName,
+                                spk.deviceName,
+                                spk.displayPortName,
+                                spk.type,
+                            )
+                })
                 _internalState.update { it.copy(showDeleteAllAlert = false) }
             }
 
@@ -141,14 +179,13 @@ class ConnectionScreenViewModel(
             is OnNodesSelected -> {
                 action.zone.addNodes(
                     nodes = action.nodes,
-                    factory = { JiminyAudioDevice(it) },
+                    factory = { JiminyMidiDevice(it) },
                 )
                 _internalState.update { it.copy(showAddDevicePopup = false) }
             }
 
             is OnDeleteNodeFromRow -> {
                 action.zone.removeNode(action.node)
-                // Force update if needed, but SnapshotStateList inside ConnectionScreenZoneItem might handle it
                 _internalState.update { it.copy() }
             }
 
@@ -162,40 +199,39 @@ class ConnectionScreenViewModel(
     private fun handleDragEnd(finalOffset: Offset) {
         val bufferOffset = 10f
         val state = _internalState.value
-        state.activeDraggingDevice?.let { draggingDevice ->
+        val draggingDevice = state.activeDraggingDevice ?: return
 
-            state.connectionRows.find {
-                val instruments = it.instruments()
-                val speakers = it.speakers()
-                instruments.zone.value.inflate(bufferOffset).contains(finalOffset) ||
-                        speakers.zone.value.inflate(bufferOffset).contains(finalOffset)
-            }?.let { pair ->
-                val instruments = pair.instruments()
-                val droppedInInstrumentsZone =
-                    instruments.zone.value.inflate(bufferOffset).contains(finalOffset)
-                val hasInstruments = draggingDevice.instruments.isNotEmpty()
-                val speakers = pair.speakers()
-                val hasSpeakers = draggingDevice.speakers.isNotEmpty()
-                val typeStr = if (droppedInInstrumentsZone) "Instruments" else "Speakers"
+        state.connectionRows.find {
+            val instruments = it.instruments()
+            val speakers = it.speakers()
+            instruments.zone.value.inflate(bufferOffset).contains(finalOffset) ||
+                    speakers.zone.value.inflate(bufferOffset).contains(finalOffset)
+        }?.let {
+            val instruments = it.instruments()
+            val droppedInInstrumentsZone =
+                instruments.zone.value.inflate(bufferOffset).contains(finalOffset)
+            val hasInstruments = draggingDevice.instruments.isNotEmpty()
+            val speakers = it.speakers()
+            val hasSpeakers = draggingDevice.speakers.isNotEmpty()
+            val typeStr = if (droppedInInstrumentsZone) "Instruments" else "Speakers"
 
-                if (droppedInInstrumentsZone && hasInstruments) {
-                    instruments
-                } else if (hasSpeakers) {
-                    speakers
-                } else {
-                    _internalState.update { it.copy(showError = "No $typeStr for \"${draggingDevice.displayName}\"") }
-                    null
-                }
-            }?.also { zone ->
-                _internalState.update {
-                    it.copy(
-                        lastDropItem = zone to draggingDevice,
-                        showAddDevicePopup = true,
-                    )
-                }
+            if (droppedInInstrumentsZone && hasInstruments) {
+                instruments
+            } else if (hasSpeakers) {
+                speakers
+            } else {
+                _internalState.update { it.copy(showError = "No $typeStr for \"${draggingDevice.displayName}\"") }
+                null
             }
-            _internalState.update { it.copy(activeDraggingDevice = null) }
+        }?.also { zone ->
+            _internalState.update {
+                it.copy(
+                    lastDropItem = zone to draggingDevice,
+                    showAddDevicePopup = true,
+                )
+            }
         }
+        _internalState.update { it.copy(activeDraggingDevice = null) }
     }
 
     private fun handleConnect() {
@@ -205,11 +241,11 @@ class ConnectionScreenViewModel(
         resetError()
 
         if ((incompletedRow == null) && rows.isNotEmpty()) {
-            val connections = mutableListOf<Pair<JiminyDeviceNode, JiminyDeviceNode>>()
+            val connections = mutableListOf<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>()
             rows.forEach { row ->
                 row.speakers().nodes().forEach { speaker ->
                     row.instruments().nodes().forEach { instrument ->
-                        connections += speaker as JiminyDeviceNode to instrument as JiminyDeviceNode
+                        connections += speaker as JiminyMidiDeviceNode to instrument as JiminyMidiDeviceNode
                     }
                 }
             }
@@ -218,7 +254,7 @@ class ConnectionScreenViewModel(
                 _internalState.update {
                     it.copy(
                         connectionRows = listOf(
-                            ConnectionScreenZoneItem<JiminyAudioDevice>(Instrument) to
+                            ConnectionScreenZoneItem<JiminyMidiDevice>(Instrument) to
                                     ConnectionScreenZoneItem(Speaker)
                         )
                     )
@@ -229,22 +265,22 @@ class ConnectionScreenViewModel(
         }
     }
 
-    private fun connect(connections: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) {
+    private fun connect(connections: List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>) {
         resetError()
         deviceLinks(connections, LinkType.Connect)
     }
 
-    private fun disconnect(connections: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) {
+    private fun disconnect(connections: List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>) {
         resetError()
         deviceLinks(connections, LinkType.Disconnect)
     }
 
     private fun deviceLinks(
-        links: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>,
+        links: List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>,
         type: LinkType,
     ) = viewModelScope.launch {
         val linksMap = links.map {
-            JiminyCommand.Link(it.instrument().fullName, it.speaker().fullName, type)
+            JiminyCommand.Link(it.first.fullName, it.second.fullName, type)
         }
 
         mainService.deviceLinks(

@@ -18,15 +18,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,7 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,11 +46,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.combine
 import music.jiminy.screen.ConnectionScreen
 import music.jiminy.screen.LogsScreen
+import music.jiminy.screen.MIDIScreen
 import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
@@ -59,6 +61,7 @@ import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.LogsViewModel
+import music.jiminy.viewmodel.MIDIScreenViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -72,6 +75,10 @@ fun App() {
             viewModel.addTab(
                 title = { TabTitle(Icons.AutoMirrored.Outlined.AltRoute, "Audio Links") },
                 content = ::AudioLinksMainScreen,
+            )
+            viewModel.addTab(
+                title = { TabTitle(Icons.Default.SettingsInputSvideo, "MIDI") },
+                content = ::MIDIMainScreen,
             )
             mixerTab = viewModel.addTab(
                 title = { TabTitle(Icons.Rounded.Tune, "Mixer") },
@@ -128,6 +135,7 @@ fun MainScreen(
 ) {
     val connectionViewModel: ConnectionViewModel = koinViewModel()
     val connectionScreenViewModel: ConnectionScreenViewModel = koinViewModel()
+    val midiScreenViewModel: MIDIScreenViewModel = koinViewModel()
     val recordingScreenViewModel: RecordingScreenViewModel = koinViewModel()
     val logsViewModel: LogsViewModel = koinViewModel()
     val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
@@ -137,20 +145,23 @@ fun MainScreen(
     val errorFlow = combine(
         connectionViewModel.errorMessage,
         connectionScreenViewModel.errorMessage,
+        midiScreenViewModel.errorMessage,
         recordingScreenViewModel.errorMessage,
         logsViewModel.errorMessage,
-    ) { err1, err2, err3, err4 ->
+    ) { err1, err2, err3, err4, err5 ->
         buildString {
             err1?.let { append(it) }
             err2?.let { append(it) }
             err3?.let { append(it) }
             err4?.let { append(it) }
+            err5?.let { append(it) }
         }.takeIf { it.isNotEmpty() }
     }
 
     LaunchedEffect(selectedTab) {
         connectionViewModel.resetError()
         connectionScreenViewModel.resetError()
+        midiScreenViewModel.resetError()
         recordingScreenViewModel.resetError()
         logsViewModel.resetError()
     }
@@ -177,6 +188,7 @@ fun MainScreen(
                 onRefresh = {
                     connectionViewModel.refresh(
                         connectionScreenViewModel = connectionScreenViewModel,
+                        midiScreenViewModel = midiScreenViewModel,
                         recordingScreenViewModel = recordingScreenViewModel,
                         logsViewModel = logsViewModel,
                     )
@@ -306,6 +318,15 @@ fun AudioLinksMainScreen(
     screenModifier: Modifier = Modifier,
 ) {
     ConnectionScreen(
+        modifier = screenModifier,
+    )
+}
+
+@Composable
+fun MIDIMainScreen(
+    screenModifier: Modifier = Modifier,
+) {
+    MIDIScreen(
         modifier = screenModifier,
     )
 }

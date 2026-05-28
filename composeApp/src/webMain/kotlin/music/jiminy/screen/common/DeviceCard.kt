@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import music.jiminy.AvatarIconsEnum
 import music.jiminy.DEVICE_CARD_HEIGHT
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_LABEL
@@ -28,14 +29,16 @@ import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_LABEL
 import music.jiminy.DEVICE_CARD_WIDTH
 import music.jiminy.JiminyAudioDevice
+import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
+import music.jiminy.deviceNameToAvatar
 
 @Composable
 fun DeviceCard(
     showLabels: Boolean = true,
     modifier: Modifier = Modifier,
-    device: () -> JiminyAudioDevice,
+    device: () -> JiminyDeviceI<*>,
 ) {
     Card(
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
@@ -49,7 +52,8 @@ fun DeviceCard(
         ) {
 
             DeviceHeader(device, Modifier.wrapContentHeight().fillMaxWidth())
-            DeviceAvatar(device().avatarIcon.toResource(), Modifier.weight(1f).aspectRatio(1f))
+            val avatarIcon = deviceNameToAvatar[device().name] ?: AvatarIconsEnum.Unknown
+            DeviceAvatar(avatarIcon.toResource(), Modifier.weight(1f).aspectRatio(1f))
 
             if (showLabels) {
                 // Instruments/Speakers info
@@ -106,7 +110,7 @@ private fun DeviceCardPreview() {
 
 @Composable
 fun DeviceHeader(
-    device: () -> JiminyAudioDevice,
+    device: () -> JiminyDeviceI<*>,
     modifier: Modifier = Modifier,
 ) {
     TextTitle(

@@ -17,41 +17,53 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.unit.IntSize
 import music.jiminy.JiminyAudioDevice
+import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDeviceNodeI
+import music.jiminy.JiminyMidiDevice
+import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
-interface ConnectionScreenDragListener {
-    fun deviceBeingDragged(): JiminyAudioDevice?
-    fun onDeviceDragStart(device: JiminyAudioDevice, initialOffset: Offset)
+interface ConnectionScreenDragListener<T : JiminyDeviceI<T>> {
+    fun deviceBeingDragged(): T?
+    fun onDeviceDragStart(device: T, initialOffset: Offset)
     fun onDeviceDrag(newOffset: Offset)
     fun onDeviceDragEnd(finalOffset: Offset)
     fun getContainerPosition(): Offset
 }
 
 @Stable
-data class ConnectionScreenZoneItem(
+data class ConnectionScreenZoneItem<T : JiminyDeviceI<T>>(
     val type: ConnectionScreenNodeType,
     val zone: MutableState<Rect> = mutableStateOf(Rect.Zero),
-    val devices: SnapshotStateList<JiminyAudioDevice> = mutableStateListOf(),
+    val devices: SnapshotStateList<T> = mutableStateListOf(),
 )
 
-fun ConnectionScreenZoneItem.removeNode(node: JiminyDeviceNode) =
+fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.removeNode(node: JiminyDeviceNodeI) =
     devices.find { it.name == node.deviceName }?.also {
-        it.removeNode(node)
+        (it as? JiminyAudioDevice)?.removeNode(node as JiminyDeviceNode)
+        (it as? JiminyMidiDevice)?.removeNode(node as JiminyMidiDeviceNode)
         if (it.nodes().isEmpty()) devices.remove(it)
     }
 
-fun ConnectionScreenZoneItem.addNodes(nodes: List<JiminyDeviceNode>) = nodes.forEach { node ->
+fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.addNodes(
+    nodes: List<JiminyDeviceNodeI>,
+    factory: (String) -> T,
+) = nodes.forEach { node ->
     (devices.find { it.name == node.deviceName }?.also { devices.remove(it) }
-        ?: JiminyAudioDevice(node.deviceName))
+        ?: factory(node.deviceName))
         .also { devices.add(it) }
-        .takeIf { it.nodes().contains(node).not() }
-        ?.addNode(node)
+        .takeIf { it.nodes().any { n -> n.fullName == node.fullName }.not() }
+        ?.let {
+            (it as? JiminyAudioDevice)?.addNode(node as JiminyDeviceNode)
+            (it as? JiminyMidiDevice)?.addNode(node as JiminyMidiDeviceNode)
+        }
 }
 
-fun ConnectionScreenZoneItem.nodes() = devices.flatMap { device ->
+fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.nodes() = devices.flatMap { device ->
     if (type == Speaker) {
         device.speakers
     } else {
@@ -59,7 +71,7 @@ fun ConnectionScreenZoneItem.nodes() = devices.flatMap { device ->
     }
 }
 
-fun ConnectionScreenZoneItem.isCompleted() = devices.find {
+fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.isCompleted() = devices.find {
     if (type == Speaker) {
         it.speakers.isEmpty()
     } else {
@@ -67,17 +79,17 @@ fun ConnectionScreenZoneItem.isCompleted() = devices.find {
     }
 } == null && devices.isNotEmpty()
 
-fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.isCompleted() =
+fun <T : JiminyDeviceI<T>> Pair<ConnectionScreenZoneItem<T>, ConnectionScreenZoneItem<T>>.isCompleted() =
     first.isCompleted() && second.isCompleted()
 
 @Composable
-fun DraggableDeviceCard(
-    dragListener: ConnectionScreenDragListener? = null,
+fun <T : JiminyDeviceI<T>> DraggableDeviceCard(
+    dragListener: ConnectionScreenDragListener<T>? = null,
     modifier: Modifier = Modifier,
-    device: () -> JiminyAudioDevice,
+    device: () -> T,
 ) {
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
-    var cardSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    var cardSize by remember { mutableStateOf(IntSize.Zero) }
     val draggingDevice = dragListener?.deviceBeingDragged()
     val isDeviceBeingDragged = draggingDevice?.name == device().name
     val containerPosition = dragListener?.getContainerPosition() ?: Offset.Zero
