@@ -152,7 +152,7 @@ class DeviceService(
                         data.portName,
                         Instrument,
                     )
-                } ?: add(errorNodeDebug("ERROR parsing: $fullName"))
+                } ?: logger.error("ERROR parsing: $fullName")
             } else if (fullName.startsWith("  |-> ")) {
                 nodeInstrument?.let {
                     parseOutputCmd(fullName.removePrefix("  |-> "))?.let { data ->
@@ -164,28 +164,13 @@ class DeviceService(
                         )
 
                         add(NodeConnection(it, nodeSpeaker))
-                    } ?: add(errorNodeDebug("ERROR parsing: $fullName"))
-                } ?: add(errorNodeDebug("ERROR - NO DEV FOR: $fullName"))
+                    } ?: logger.error("ERROR parsing: $fullName")
+                } ?: logger.error("ERROR - NO DEV FOR: $fullName")
             } else {
-                add(errorNodeDebug("ERROR - $fullName"))
+                logger.error("ERROR - $fullName")
             }
         }
     }
-
-    private fun errorNodeDebug(errorMsg: String) = NodeConnection(
-        JiminyDeviceNode(
-            errorMsg,
-            "ERROR",
-            errorMsg,
-            Unknown,
-        ),
-        JiminyDeviceNode(
-            errorMsg,
-            "ERROR $errorMsg",
-            errorMsg,
-            Unknown,
-        ),
-    )
 
     private data class OutputParsedData(
         val fullName: String,
