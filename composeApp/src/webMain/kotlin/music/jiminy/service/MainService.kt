@@ -18,6 +18,7 @@ import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LockedForRecordingException
 import music.jiminy.LogEntry
+import music.jiminy.NodeConnection
 import music.jiminy.service.JiminyConnectionStatus.Connected
 import music.jiminy.service.JiminyConnectionStatus.Connecting
 import music.jiminy.service.JiminyConnectionStatus.Disconnected
@@ -84,7 +85,7 @@ class MainService(
             else -> null
         } ?: JiminyResponse.Error("$logMsg - ${e.message} - $e")
 
-        when(error) {
+        when (error) {
             is JiminyResponse.Error -> logger.error(error.message)
             Cancelled -> logger.warning("Cancelled")
             ConnectionClosed -> logger.info("Connection Closed")
@@ -148,7 +149,7 @@ class MainService(
     )
 
     suspend fun getDeviceLinks(
-        onSuccess: (Success<List<Pair<JiminyDeviceNode, JiminyDeviceNode>>>) -> Unit,
+        onSuccess: (Success<List<NodeConnection>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
         logMsg = "getDeviceLinks",

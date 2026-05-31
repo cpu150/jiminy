@@ -15,6 +15,7 @@ import music.jiminy.JiminyMidiDevice
 import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.LinkType
 import music.jiminy.MIDI_BRIDGE_PREFIX
+import music.jiminy.NodeConnection
 import music.jiminy.disconnectionNodesList
 import music.jiminy.screen.ConnectionScreenAction
 import music.jiminy.screen.ConnectionScreenAction.OnAddRowClick
@@ -84,21 +85,7 @@ class MIDIScreenViewModel(
             mainService.getDeviceLinks(
                 onSuccess = { response ->
                     val filteredLinks =
-                        response.value.filter { it.instrument().fullName.startsWith(MIDI_BRIDGE_PREFIX) }
-                            .map { (inst, spk) ->
-                                JiminyMidiDeviceNode(
-                                    inst.fullName,
-                                    inst.deviceName,
-                                    inst.portName,
-                                    inst.type
-                                ) to
-                                        JiminyMidiDeviceNode(
-                                            spk.fullName,
-                                            spk.deviceName,
-                                            spk.portName,
-                                            spk.type
-                                        )
-                            }
+                        response.value.filter { it.instrument.fullName.startsWith(MIDI_BRIDGE_PREFIX) }
                     _internalState.update { it.copy(links = filteredLinks.toJiminyMidiLinks()) }
                 },
                 onError = ::handleError,
@@ -221,11 +208,11 @@ class MIDIScreenViewModel(
         resetError()
 
         if ((incompletedRow == null) && rows.isNotEmpty()) {
-            val connections = mutableListOf<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>()
+            val connections = mutableListOf<NodeConnection>()
             rows.forEach { row ->
                 row.speakers().nodes().forEach { speaker ->
                     row.instruments().nodes().forEach { instrument ->
-                        connections += instrument to speaker
+                        connections += NodeConnection(instrument, speaker)
                     }
                 }
             }
@@ -245,22 +232,22 @@ class MIDIScreenViewModel(
         }
     }
 
-    private fun connect(connections: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>) {
+    private fun connect(connections: List<NodeConnection>) {
         resetError()
         deviceLinks(connections, LinkType.Connect)
     }
 
-    private fun disconnect(connections: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>) {
+    private fun disconnect(connections: List<NodeConnection>) {
         resetError()
         deviceLinks(connections, LinkType.Disconnect)
     }
 
     private fun deviceLinks(
-        links: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>,
+        links: List<NodeConnection>,
         type: LinkType,
     ) = viewModelScope.launch {
         val linksMap = links.map {
-            JiminyCommand.Link(it.instrument().fullName, it.speaker().fullName, type)
+            JiminyCommand.Link(it.instrument.fullName, it.speaker.fullName, type)
         }
 
         mainService.deviceLinks(

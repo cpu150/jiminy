@@ -20,6 +20,6 @@ Before suggesting or implementing changes, please refer to the following skills:
 
 Always prioritize the rules defined in the `skills/` folder, specifically:
 
-1.  **Single Return Point**: All functions should have a single exit point where possible.
+1.  **Return Point At The End Of The Function Only**: All functions should have a return exit point at the end of the function where possible. It could be several returns in a `when` or `if` instructions, but it should be the last instruction of the functions
 2.  **Trailing Commas**: Mandatory for all multi-line declarations, function calls, and collections.
-3.  **Conventional Commits**: Use the format `type(scope): description` for all commit messages.
+3.  **Conventional Commits**: Use the format `type(scope): description` for all commit messages. Provide a commit message after applying a change.

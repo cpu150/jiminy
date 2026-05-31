@@ -47,6 +47,7 @@ import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNodeI
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
+import music.jiminy.NodeConnection
 import music.jiminy.disconnectionNodesList
 import music.jiminy.screen.ConnectionScreenAction.OnAddRowClick
 import music.jiminy.screen.ConnectionScreenAction.OnConfirmUnlinkAll
@@ -118,7 +119,7 @@ sealed interface ConnectionScreenAction<T : JiminyDeviceI<T>> {
         ConnectionScreenAction<T>
 
     class OnConnectClick<T : JiminyDeviceI<T>> : ConnectionScreenAction<T>
-    data class OnDisconnectClick<T : JiminyDeviceI<T>>(val nodes: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>) :
+    data class OnDisconnectClick<T : JiminyDeviceI<T>>(val nodes: List<NodeConnection>) :
         ConnectionScreenAction<T>
 
     class OnUnlinkAllClick<T : JiminyDeviceI<T>> : ConnectionScreenAction<T>
@@ -282,9 +283,7 @@ fun <T : JiminyDeviceI<T>> MainConnectionScreen(
         state.links.forEach { link ->
             LinkRow(
                 link = { link },
-                onClick = { (dev, node) ->
-                    onAction(OnDisconnectClick(link.disconnectionNodesList(dev, node)))
-                },
+                onDisconnectRequest = { onAction(OnDisconnectClick(it)) },
             )
         }
 
@@ -430,7 +429,7 @@ fun <T : JiminyDeviceI<T>> ConnectionRow(
 @Composable
 fun <T : JiminyDeviceI<T>> LinkRow(
     link: () -> JiminyLink<T>,
-    onClick: (Pair<T, JiminyDeviceNodeI?>) -> Unit,
+    onDisconnectRequest: (List<NodeConnection>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val linkValue = link()
@@ -480,11 +479,11 @@ fun <T : JiminyDeviceI<T>> LinkRow(
             )
         }
 
-        showConfirmationAlert?.let {
+        showConfirmationAlert?.let { (dev, node) ->
             UnlinkConfirmationAlert(
-                pair = { it },
+                pair = { dev to node },
                 onDismiss = { showConfirmationAlert = null },
-                onConfirm = { onClick(it) },
+                onConfirm = { onDisconnectRequest(linkValue.disconnectionNodesList(dev, node)) },
             )
         }
     }

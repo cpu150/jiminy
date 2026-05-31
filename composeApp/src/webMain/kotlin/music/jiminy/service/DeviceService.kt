@@ -21,6 +21,7 @@ import music.jiminy.JiminyMidiDevice
 import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.JiminyVolume
 import music.jiminy.MIDI_BRIDGE_PREFIX
+import music.jiminy.NodeConnection
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.WS_DEVICES
 import music.jiminy.WS_LINK_DEVICES
@@ -129,7 +130,7 @@ class DeviceService(
         return JiminyDevices(_devices.toList(), _midiDevices.toList())
     }
 
-    private fun processDeviceLinksOutput(output: List<String>) = buildList {
+    private fun processDeviceLinksOutput(output: List<String>): List<NodeConnection> = buildList {
         var nodeInstrument: JiminyDeviceNode? = null
         output.forEach { fullName ->
             if ((fullName.startsWith("alsa_output") && !fullName.contains(":monitor_")) ||
@@ -162,7 +163,7 @@ class DeviceService(
                             Speaker,
                         )
 
-                        add(it to nodeSpeaker)
+                        add(NodeConnection(it, nodeSpeaker))
                     } ?: add(errorNodeDebug("ERROR parsing: $fullName"))
                 } ?: add(errorNodeDebug("ERROR - NO DEV FOR: $fullName"))
             } else {
@@ -171,16 +172,19 @@ class DeviceService(
         }
     }
 
-    private fun errorNodeDebug(errorMsg: String) = JiminyDeviceNode(
-        errorMsg,
-        "ERROR",
-        errorMsg,
-        Unknown,
-    ) to JiminyDeviceNode(
-        errorMsg,
-        "ERROR $errorMsg",
-        errorMsg,
-        Unknown,
+    private fun errorNodeDebug(errorMsg: String) = NodeConnection(
+        JiminyDeviceNode(
+            errorMsg,
+            "ERROR",
+            errorMsg,
+            Unknown,
+        ),
+        JiminyDeviceNode(
+            errorMsg,
+            "ERROR $errorMsg",
+            errorMsg,
+            Unknown,
+        ),
     )
 
     private data class OutputParsedData(
@@ -210,10 +214,6 @@ class DeviceService(
         }
     }
 
-    // TODO - Process midi devices:
-    // Midi-Bridge:Midi Through Port-0 (capture)
-    // Midi-Bridge:Midi Through Port-0 (playback)
-    // Midi-Bridge:FLUID Synth (935)Synth input port (935:0) (playback)
     private fun parseOutputCmd(
         fullName: String,
     ) = if (fullName.startsWith(FLUIDSYNTH, true) ||
@@ -221,7 +221,6 @@ class DeviceService(
         fullName.startsWith(MIDI_BRIDGE_PREFIX)
     ) {
         // FluidSynth:output_FL
-        // Jiminy-MultiSink:playback_AUX0 || Jiminy-MultiSink:monitor_AUX0
         // Midi-Bridge:port_name
         val arr = fullName.split(":")
         val deviceName = arr.getOrNull(0)

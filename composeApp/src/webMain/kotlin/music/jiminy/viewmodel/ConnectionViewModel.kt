@@ -21,11 +21,11 @@ import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeI
-import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyMidiDevice
 import music.jiminy.JiminyMidiDeviceNode
+import music.jiminy.NodeConnection
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
@@ -214,49 +214,43 @@ class ConnectionViewModel(
     }
 }
 
-fun <N : JiminyDeviceNodeI> Pair<N, N>.speaker() =
-    if (first.type == JiminyDeviceNodeType.Speaker) first else second
-
-fun <N : JiminyDeviceNodeI> Pair<N, N>.instrument() =
-    if (first.type == JiminyDeviceNodeType.Instrument) first else second
-
-fun List<Pair<JiminyDeviceNode, JiminyDeviceNode>>.toJiminyLinks(): List<JiminyLink<JiminyAudioDevice>> =
+fun List<NodeConnection>.toJiminyLinks(): List<JiminyLink<JiminyAudioDevice>> =
     toGenericJiminyLinks(
         deviceFactory = { JiminyAudioDevice(it) },
-        nodeAdder = { dev, node -> dev.addNode(node) }
+        nodeAdder = { dev, node -> dev.addNode(node as JiminyDeviceNode) },
     )
 
-fun List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>.toJiminyMidiLinks(): List<JiminyLink<JiminyMidiDevice>> =
+fun List<NodeConnection>.toJiminyMidiLinks(): List<JiminyLink<JiminyMidiDevice>> =
     toGenericJiminyLinks(
         deviceFactory = { JiminyMidiDevice(it) },
-        nodeAdder = { dev, node -> dev.addNode(node) }
+        nodeAdder = { dev, node -> dev.addNode(node as JiminyMidiDeviceNode) },
     )
 
-fun <T : JiminyDeviceI<T>, N : JiminyDeviceNodeI> List<Pair<N, N>>.toGenericJiminyLinks(
+fun <T : JiminyDeviceI<T>> List<NodeConnection>.toGenericJiminyLinks(
     deviceFactory: (String) -> T,
-    nodeAdder: (T, N) -> Unit
+    nodeAdder: (T, JiminyDeviceNodeI) -> Unit,
 ): List<JiminyLink<T>> =
-    sortedBy { it.speaker().fullName }.takeIf { isNotEmpty() }?.run {
+    sortedBy { it.speaker.fullName }.takeIf { isNotEmpty() }?.run {
         val list = mutableListOf<JiminyLink<T>>()
         val devices = mutableListOf<T>()
 
-        var speakerDev = deviceFactory(first().speaker().deviceName)
-            .apply { nodeAdder(this, first().speaker()) }
+        var speakerDev = deviceFactory(first().speaker.deviceName)
+            .apply { nodeAdder(this, first().speaker) }
         val speakers = mutableListOf(speakerDev)
 
         forEach {
-            if (speakerDev.speakers.none { s -> s.fullName == it.speaker().fullName }) {
+            if (speakerDev.speakers.none { s -> s.fullName == it.speaker.fullName }) {
                 list.add(JiminyLink(devices.toList(), speakerDev))
                 devices.clear()
-                speakerDev = deviceFactory(it.speaker().deviceName)
-                    .apply { nodeAdder(this, it.speaker()) }
+                speakerDev = deviceFactory(it.speaker.deviceName)
+                    .apply { nodeAdder(this, it.speaker) }
                     .also { newSpk -> speakers += newSpk }
             }
 
-            val instrumentDev = devices.find { dev -> dev.name == it.instrument().deviceName }
-                ?: deviceFactory(it.instrument().deviceName).also { dev -> devices.add(dev) }
-            if (instrumentDev.instruments.none { inst -> inst.fullName == it.instrument().fullName }) {
-                nodeAdder(instrumentDev, it.instrument())
+            val instrumentDev = devices.find { dev -> dev.name == it.instrument.deviceName }
+                ?: deviceFactory(it.instrument.deviceName).also { dev -> devices.add(dev) }
+            if (instrumentDev.instruments.none { inst -> inst.fullName == it.instrument.fullName }) {
+                nodeAdder(instrumentDev, it.instrument)
             }
         }
         speakerDev.let { list.add(JiminyLink(devices.toList(), speakerDev)) }

@@ -17,6 +17,11 @@ interface JiminyDeviceNodeI {
     val type: JiminyDeviceNodeType
 }
 
+data class NodeConnection(
+    val instrument: JiminyDeviceNodeI,
+    val speaker: JiminyDeviceNodeI,
+)
+
 data class JiminyLink<T : JiminyDeviceI<T>>(
     val instrumentDevices: List<T>,
     val speakerDevice: T,
@@ -69,7 +74,7 @@ fun <T : JiminyDeviceI<T>> JiminyLink<T>.disconnectionNodesList(
 ) = buildList {
     instrumentNodes(dev, node).forEach { instrument ->
         speakerNodes(dev, node).forEach { speaker ->
-            add(instrument to speaker)
+            add(NodeConnection(instrument, speaker))
         }
     }
 }
