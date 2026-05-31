@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
+import music.jiminy.JiminyDeviceNodeI
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyMidiDevice
 import music.jiminy.JiminyMidiDeviceNode
@@ -83,7 +84,7 @@ class MIDIScreenViewModel(
             mainService.getDeviceLinks(
                 onSuccess = { response ->
                     val filteredLinks =
-                        response.value.filter { it.first.fullName.startsWith(MIDI_BRIDGE_PREFIX) }
+                        response.value.filter { it.instrument().fullName.startsWith(MIDI_BRIDGE_PREFIX) }
                             .map { (inst, spk) ->
                                 JiminyMidiDeviceNode(
                                     inst.fullName,
@@ -139,35 +140,14 @@ class MIDIScreenViewModel(
             }
 
             is OnConnectClick -> handleConnect()
-            is OnDisconnectClick -> disconnect(action.nodes.map { (inst, spk) ->
-                JiminyMidiDeviceNode(inst.fullName, inst.deviceName, inst.displayPortName, inst.type) to
-                        JiminyMidiDeviceNode(
-                            spk.fullName,
-                            spk.deviceName,
-                            spk.displayPortName,
-                            spk.type,
-                        )
-            })
+            is OnDisconnectClick -> disconnect(action.nodes)
 
             is OnUnlinkAllClick -> _internalState.update { it.copy(showDeleteAllAlert = true) }
 
             is OnConfirmUnlinkAll -> {
                 val allDisconnections =
                     _internalState.value.links.flatMap { it.disconnectionNodesList(it.speakerDevice) }
-                disconnect(allDisconnections.map { (inst, spk) ->
-                    JiminyMidiDeviceNode(
-                        inst.fullName,
-                        inst.deviceName,
-                        inst.displayPortName,
-                        inst.type,
-                    ) to
-                            JiminyMidiDeviceNode(
-                                spk.fullName,
-                                spk.deviceName,
-                                spk.displayPortName,
-                                spk.type,
-                            )
-                })
+                disconnect(allDisconnections)
                 _internalState.update { it.copy(showDeleteAllAlert = false) }
             }
 
@@ -241,11 +221,11 @@ class MIDIScreenViewModel(
         resetError()
 
         if ((incompletedRow == null) && rows.isNotEmpty()) {
-            val connections = mutableListOf<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>()
+            val connections = mutableListOf<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>()
             rows.forEach { row ->
                 row.speakers().nodes().forEach { speaker ->
                     row.instruments().nodes().forEach { instrument ->
-                        connections += speaker as JiminyMidiDeviceNode to instrument as JiminyMidiDeviceNode
+                        connections += instrument to speaker
                     }
                 }
             }
@@ -265,22 +245,22 @@ class MIDIScreenViewModel(
         }
     }
 
-    private fun connect(connections: List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>) {
+    private fun connect(connections: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>) {
         resetError()
         deviceLinks(connections, LinkType.Connect)
     }
 
-    private fun disconnect(connections: List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>) {
+    private fun disconnect(connections: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>) {
         resetError()
         deviceLinks(connections, LinkType.Disconnect)
     }
 
     private fun deviceLinks(
-        links: List<Pair<JiminyMidiDeviceNode, JiminyMidiDeviceNode>>,
+        links: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>,
         type: LinkType,
     ) = viewModelScope.launch {
         val linksMap = links.map {
-            JiminyCommand.Link(it.first.fullName, it.second.fullName, type)
+            JiminyCommand.Link(it.instrument().fullName, it.speaker().fullName, type)
         }
 
         mainService.deviceLinks(

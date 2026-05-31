@@ -268,7 +268,13 @@ fun <T : JiminyDeviceI<T>> MainConnectionScreen(
                 TextButton("Add Row")
             }
             JiminyButton(onClick = { onAction(OnConnectClick()) }) {
-                TextButton("Connect")
+                TextButton("Link")
+            }
+            JiminyButton(onClick = { onAction(OnUnlinkAllClick()) }) {
+                TextButton("Unlink All")
+            }
+            JiminyButton(onClick = { /* TODO */ }) {
+                TextButton("Save Config")
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -283,15 +289,6 @@ fun <T : JiminyDeviceI<T>> MainConnectionScreen(
         }
 
         Spacer(Modifier.height(6.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JiminyButton(onClick = { onAction(OnUnlinkAllClick()) }) {
-                TextButton("Unlink All")
-            }
-            JiminyButton(onClick = { /* TODO */ }) {
-                TextButton("Save Config")
-            }
-        }
     }
 
     // Alerts

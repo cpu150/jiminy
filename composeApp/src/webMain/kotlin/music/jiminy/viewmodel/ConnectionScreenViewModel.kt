@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDeviceNodeI
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
 import music.jiminy.PW_RECORDER_NAME
@@ -123,13 +123,13 @@ class ConnectionScreenViewModel(
             }
 
             is OnConnectClick -> handleConnect()
-            is OnDisconnectClick -> disconnect(action.nodes.map { it.first as JiminyDeviceNode to it.second as JiminyDeviceNode })
+            is OnDisconnectClick -> disconnect(action.nodes)
             is OnUnlinkAllClick -> _internalState.update { it.copy(showDeleteAllAlert = true) }
 
             is OnConfirmUnlinkAll -> {
                 val allDisconnections =
                     _internalState.value.links.flatMap { it.disconnectionNodesList(it.speakerDevice) }
-                disconnect(allDisconnections.map { it.first as JiminyDeviceNode to it.second as JiminyDeviceNode })
+                disconnect(allDisconnections)
                 _internalState.update { it.copy(showDeleteAllAlert = false) }
             }
 
@@ -205,11 +205,11 @@ class ConnectionScreenViewModel(
         resetError()
 
         if ((incompletedRow == null) && rows.isNotEmpty()) {
-            val connections = mutableListOf<Pair<JiminyDeviceNode, JiminyDeviceNode>>()
+            val connections = mutableListOf<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>()
             rows.forEach { row ->
                 row.speakers().nodes().forEach { speaker ->
                     row.instruments().nodes().forEach { instrument ->
-                        connections += speaker as JiminyDeviceNode to instrument as JiminyDeviceNode
+                        connections += instrument to speaker
                     }
                 }
             }
@@ -229,18 +229,18 @@ class ConnectionScreenViewModel(
         }
     }
 
-    private fun connect(connections: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) {
+    private fun connect(connections: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>) {
         resetError()
         deviceLinks(connections, LinkType.Connect)
     }
 
-    private fun disconnect(connections: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>) {
+    private fun disconnect(connections: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>) {
         resetError()
         deviceLinks(connections, LinkType.Disconnect)
     }
 
     private fun deviceLinks(
-        links: List<Pair<JiminyDeviceNode, JiminyDeviceNode>>,
+        links: List<Pair<JiminyDeviceNodeI, JiminyDeviceNodeI>>,
         type: LinkType,
     ) = viewModelScope.launch {
         val linksMap = links.map {

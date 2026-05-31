@@ -8,8 +8,8 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import music.jiminy.FLUIDSYNTH
-import music.jiminy.JiminyCommand
 import music.jiminy.JiminyAudioDevice
+import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDeviceList
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType.Instrument
@@ -53,8 +53,12 @@ class DeviceService(
         _devices.clear()
         _midiDevices.clear()
 
-        val (midiInstruments, audioInstruments) = output.instruments.partition { it.startsWith(MIDI_BRIDGE_PREFIX) }
-        val (midiSpeakers, audioSpeakers) = output.speakers.partition { it.startsWith(MIDI_BRIDGE_PREFIX) }
+        val (midiInstruments, audioInstruments) = output.instruments.partition {
+            it.startsWith(MIDI_BRIDGE_PREFIX)
+        }
+        val (midiSpeakers, audioSpeakers) = output.speakers.partition {
+            it.startsWith(MIDI_BRIDGE_PREFIX)
+        }
 
         // Audio Devices
         for (list in listOf(audioInstruments, audioSpeakers)) {
@@ -198,10 +202,7 @@ class DeviceService(
             // We want the device name to be part of the port name before (capture)/(playback)
             // But actually, grouped by device would be better.
             // Example: "GT-1000 MIDI 1"
-            val deviceName = fullPortName
-                .removeSuffix(" (capture)")
-                .removeSuffix(" (playback)")
-                .trim()
+            val deviceName = fullPortName.trim()
 
             OutputParsedData(fullName, deviceName, fullPortName)
         } else {
