@@ -1,3 +1,5 @@
+🤖 AI Agents: Please read AGENTS.md before contributing to this project to understand our specific coding standards and architecture patterns.
+
 This is a Kotlin Multiplatform project targeting Web, Server.
 
 * [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.

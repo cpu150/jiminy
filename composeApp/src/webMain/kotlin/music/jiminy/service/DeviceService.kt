@@ -8,6 +8,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import music.jiminy.FLUIDSYNTH
+import music.jiminy.FLUID_SYNTH_NAME
 import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDeviceList
@@ -21,6 +22,7 @@ import music.jiminy.JiminyMidiDevice
 import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.JiminyVolume
 import music.jiminy.MIDI_BRIDGE_PREFIX
+import music.jiminy.MIDI_THROUGH
 import music.jiminy.NodeConnection
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.WS_DEVICES
@@ -152,7 +154,7 @@ class DeviceService(
                         data.portName,
                         Instrument,
                     )
-                } ?: logger.error("ERROR parsing: $fullName")
+                } ?: logger.error("ERROR - processDeviceLinksOutput - parsing device: $fullName")
             } else if (fullName.startsWith("  |-> ")) {
                 nodeInstrument?.let {
                     parseOutputCmd(fullName.removePrefix("  |-> "))?.let { data ->
@@ -164,10 +166,10 @@ class DeviceService(
                         )
 
                         add(NodeConnection(it, nodeSpeaker))
-                    } ?: logger.error("ERROR parsing: $fullName")
-                } ?: logger.error("ERROR - NO DEV FOR: $fullName")
+                    } ?: logger.error("ERROR - processDeviceLinksOutput - parsing: $fullName")
+                } ?: logger.error("ERROR - processDeviceLinksOutput - NO DEV FOR: $fullName")
             } else {
-                logger.error("ERROR - $fullName")
+                logger.error("ERROR - processDeviceLinksOutput - $fullName")
             }
         }
     }
@@ -180,23 +182,49 @@ class DeviceService(
 
     private fun parseMidiOutputCmd(
         fullName: String,
-    ): OutputParsedData? {
-        // Midi-Bridge:GT-1000 MIDI 1 (capture)
-        // Midi-Bridge:FLUID Synth (935)Synth input port (935:0) (playback)
-        val arr = fullName.split(":")
-        val prefix = arr.getOrNull(0)?.let { "$it:" }
-        val fullPortName = arr.getOrNull(1)
+    ): OutputParsedData? = if (fullName.startsWith(MIDI_BRIDGE_PREFIX)) {
+        val nameWithoutType = fullName
+            .removePrefix(MIDI_BRIDGE_PREFIX)
+            .removeSuffix("(capture)")
+            .removeSuffix("(playback)")
+            .trim()
 
-        return if (prefix == MIDI_BRIDGE_PREFIX && fullPortName != null) {
-            // We want the device name to be part of the port name before (capture)/(playback)
-            // But actually, grouped by device would be better.
-            // Example: "GT-1000 MIDI 1"
-            val deviceName = fullPortName.trim()
+        var deviceName: String?
+        var portName: String?
+        when {
+            nameWithoutType.startsWith(MIDI_THROUGH, ignoreCase = true) -> {
+                deviceName = MIDI_THROUGH
+                portName = nameWithoutType.substring(MIDI_THROUGH.length).trim()
+            }
 
-            OutputParsedData(fullName, deviceName, fullPortName)
+            nameWithoutType.startsWith(FLUID_SYNTH_NAME, ignoreCase = true) -> {
+                deviceName = FLUID_SYNTH_NAME
+                portName = Regex("""port \(([^)]+)\)""", RegexOption.IGNORE_CASE)
+                    .findAll(nameWithoutType)
+                    .lastOrNull()
+                    ?.groupValues
+                    ?.getOrNull(1)
+            }
+
+            else -> {
+                val parts = nameWithoutType.split("MIDI", ignoreCase = true)
+                deviceName = parts.getOrNull(0)?.trim()
+                portName = parts.getOrNull(1)?.trim()
+            }
+        }
+
+        if (portName != null && deviceName != null) {
+            OutputParsedData(
+                fullName = fullName,
+                deviceName = deviceName,
+                portName = portName,
+            )
         } else {
+            logger.error("parseMidiOutputCmd - Impossible to parse \"$fullName\"")
             null
         }
+    } else {
+        null
     }
 
     private fun parseOutputCmd(
