@@ -38,7 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import music.jiminy.JiminyDeviceI
+import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
@@ -97,7 +97,7 @@ fun GenericMessageAlert(
 
 @Composable
 fun UnlinkConfirmationAlert(
-    pair: () -> Pair<JiminyDeviceI<*>, JiminyDeviceNode?>,
+    pair: () -> Pair<JiminyDevice, JiminyDeviceNode?>,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -152,11 +152,11 @@ fun DeleteConfirmationAlert(
 }
 
 @Composable
-fun <T : JiminyDeviceI<T>> NodeSelectionAlert(
+fun NodeSelectionAlert(
     onDismiss: () -> Unit,
-    droppedDevice: () -> T,
+    droppedDevice: () -> JiminyDevice,
     addNodes: (List<JiminyDeviceNode>) -> Unit,
-    zoneItem: () -> ConnectionScreenZoneItem<T>,
+    zoneItem: () -> ConnectionScreenZoneItem,
     modifier: Modifier = Modifier,
 ) {
     // Track which items the user has clicked inside the popup

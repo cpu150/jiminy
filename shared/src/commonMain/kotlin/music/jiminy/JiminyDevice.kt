@@ -5,25 +5,38 @@ import kotlinx.serialization.Serializable
 fun JiminyDeviceNode.getAvatar() = deviceNameToAvatar[deviceName] ?: AvatarIconsEnum.Unknown
 
 @Serializable
+enum class JiminyDeviceType {
+    Audio,
+    Midi,
+}
+
+@Serializable
 data class JiminyDevices(
-    val audioDevices: List<JiminyAudioDevice>,
-    val midiDevices: List<JiminyMidiDevice>,
+    val audioDevices: List<JiminyDevice>,
+    val midiDevices: List<JiminyDevice>,
 )
 
 @Serializable
-data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAudioDevice> {
+data class JiminyDevice(
+    val name: String,
+    val type: JiminyDeviceType,
+) {
     val alias = deviceNameToAlias[name]
-    override val displayName = alias ?: name
+    val displayName = alias ?: name
 
     private val _speakers = mutableListOf<JiminyDeviceNode>()
-    override val speakers: List<JiminyDeviceNode>
+    val speakers: List<JiminyDeviceNode>
         get() = _speakers
 
     private val _instruments = mutableListOf<JiminyDeviceNode>()
-    override val instruments: List<JiminyDeviceNode>
+    val instruments: List<JiminyDeviceNode>
         get() = _instruments
 
-    override fun removeNode(node: JiminyDeviceNode) {
+    private val _volumes = mutableListOf<JiminyVolume>()
+    val volumes: List<JiminyVolume>
+        get() = _volumes
+
+    fun removeNode(node: JiminyDeviceNode) {
         when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers.remove(node)
             JiminyDeviceNodeType.Instrument -> _instruments.remove(node)
@@ -31,7 +44,7 @@ data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAu
         }
     }
 
-    override fun addNode(node: JiminyDeviceNode) {
+    fun addNode(node: JiminyDeviceNode) {
         val nodeList = when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers
             JiminyDeviceNodeType.Instrument -> _instruments
@@ -46,17 +59,14 @@ data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAu
         nodes.forEach { addNode(it) }
     }
 
-    override fun nodes(): List<JiminyDeviceNode> = _speakers + _instruments
-
-    private val _volumes = mutableListOf<JiminyVolume>()
-    val volumes: List<JiminyVolume>
-        get() = _volumes
+    fun nodes(): List<JiminyDeviceNode> = _speakers + _instruments
 
     fun addVolume(volume: JiminyVolume) = _volumes.add(volume)
         .also { _volumes.sortBy { it.type } }
 
-    override operator fun plus(other: JiminyAudioDevice) = JiminyAudioDevice(
-        name = name
+    operator fun plus(other: JiminyDevice) = JiminyDevice(
+        name = name,
+        type = type,
     ).also { new ->
         val speakers = _speakers + other._speakers.filter { !_speakers.contains(it) }
         val instruments = _instruments + other._instruments.filter { !_instruments.contains(it) }
@@ -68,8 +78,9 @@ data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAu
         "$displayName, ${_instruments.count()} instrument(s), ${_speakers.count()} speaker(s), ${_volumes.count()} volume device(s)"
 
     override fun equals(other: Any?) = when (other) {
-        is JiminyAudioDevice -> {
+        is JiminyDevice -> {
             name == other.name &&
+                    type == other.type &&
                     _speakers == other._speakers &&
                     _instruments == other._instruments
         }
@@ -79,6 +90,7 @@ data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAu
 
     override fun hashCode(): Int {
         var result = name.hashCode()
+        result = 31 * result + type.hashCode()
         result = 31 * result + _speakers.hashCode()
         result = 31 * result + _instruments.hashCode()
         return result
@@ -122,74 +134,6 @@ data class JiminyVolume(
     override fun hashCode(): Int {
         var result = id.hashCode()
         result = 31 * result + type.hashCode()
-        return result
-    }
-}
-
-@Serializable
-data class JiminyMidiDevice(override val name: String) : JiminyDeviceI<JiminyMidiDevice> {
-    val alias = deviceNameToAlias[name]
-    override val displayName = alias ?: name
-
-    private val _speakers = mutableListOf<JiminyDeviceNode>()
-    override val speakers: List<JiminyDeviceNode>
-        get() = _speakers
-
-    private val _instruments = mutableListOf<JiminyDeviceNode>()
-    override val instruments: List<JiminyDeviceNode>
-        get() = _instruments
-
-    override fun removeNode(node: JiminyDeviceNode) {
-        when (node.type) {
-            JiminyDeviceNodeType.Speaker -> _speakers.remove(node)
-            JiminyDeviceNodeType.Instrument -> _instruments.remove(node)
-            else -> Unit
-        }
-    }
-
-    override fun addNode(node: JiminyDeviceNode) {
-        val nodeList = when (node.type) {
-            JiminyDeviceNodeType.Speaker -> _speakers
-            JiminyDeviceNodeType.Instrument -> _instruments
-            else -> null
-        }
-
-        nodeList?.add(node)
-        nodeList?.sortBy { it.fullName }
-    }
-
-    fun addNodes(nodes: List<JiminyDeviceNode>) {
-        nodes.forEach { addNode(it) }
-    }
-
-    override fun nodes(): List<JiminyDeviceNode> = _speakers + _instruments
-
-    override operator fun plus(other: JiminyMidiDevice) = JiminyMidiDevice(
-        name = name
-    ).also { new ->
-        val speakers = _speakers + other._speakers.filter { !_speakers.contains(it) }
-        val instruments = _instruments + other._instruments.filter { !_instruments.contains(it) }
-
-        new.addNodes(speakers + instruments)
-    }
-
-    override fun toString() =
-        "$displayName, ${_instruments.count()} instrument(s), ${_speakers.count()} speaker(s)"
-
-    override fun equals(other: Any?) = when (other) {
-        is JiminyMidiDevice -> {
-            name == other.name &&
-                    _speakers == other._speakers &&
-                    _instruments == other._instruments
-        }
-
-        else -> super.equals(other)
-    }
-
-    override fun hashCode(): Int {
-        var result = name.hashCode()
-        result = 31 * result + _speakers.hashCode()
-        result = 31 * result + _instruments.hashCode()
         return result
     }
 }

@@ -1,26 +1,15 @@
 package music.jiminy
 
-interface JiminyDeviceI<T> {
-    val name: String
-    val displayName: String
-    val speakers: List<JiminyDeviceNode>
-    val instruments: List<JiminyDeviceNode>
-    fun nodes(): List<JiminyDeviceNode>
-    fun addNode(node: JiminyDeviceNode)
-    fun removeNode(node: JiminyDeviceNode)
-    operator fun plus(other: T): T
-}
-
 data class NodeConnection(
     val instrument: JiminyDeviceNode,
     val speaker: JiminyDeviceNode,
 )
 
-data class JiminyLink<T : JiminyDeviceI<T>>(
-    val instrumentDevices: List<T>,
-    val speakerDevice: T,
+data class JiminyLink(
+    val instrumentDevices: List<JiminyDevice>,
+    val speakerDevice: JiminyDevice,
 ) {
-    operator fun plus(other: JiminyLink<T>) = instrumentDevices.map { instrumentDevice ->
+    operator fun plus(other: JiminyLink) = instrumentDevices.map { instrumentDevice ->
         var instrument = instrumentDevice
         other.instrumentDevices.forEach { otherInstrument ->
             if (instrument.name == otherInstrument.name) {
@@ -36,12 +25,15 @@ data class JiminyLink<T : JiminyDeviceI<T>>(
                 .forEach { add(it) }
         } + mergedInstrumentDevices
     }.let { instrumentDevices ->
-        JiminyLink(instrumentDevices.sortedBy { it.name }, speakerDevice + other.speakerDevice)
+        JiminyLink(
+            instrumentDevices = instrumentDevices.sortedBy { it.name },
+            speakerDevice = speakerDevice + other.speakerDevice,
+        )
     }
 }
 
-fun <T : JiminyDeviceI<T>> JiminyLink<T>.instrumentNodes(
-    dev: T,
+fun JiminyLink.instrumentNodes(
+    dev: JiminyDevice,
     node: JiminyDeviceNode? = null,
 ) = if (dev.name == speakerDevice.name) {
     instrumentDevices.flatMap { it.nodes() }
@@ -51,8 +43,8 @@ fun <T : JiminyDeviceI<T>> JiminyLink<T>.instrumentNodes(
     dev.nodes()
 }
 
-fun <T : JiminyDeviceI<T>> JiminyLink<T>.speakerNodes(
-    dev: T,
+fun JiminyLink.speakerNodes(
+    dev: JiminyDevice,
     node: JiminyDeviceNode? = null,
 ) = if (dev.name != speakerDevice.name) {
     speakerDevice.nodes()
@@ -62,8 +54,8 @@ fun <T : JiminyDeviceI<T>> JiminyLink<T>.speakerNodes(
     dev.nodes()
 }
 
-fun <T : JiminyDeviceI<T>> JiminyLink<T>.disconnectionNodesList(
-    dev: T,
+fun JiminyLink.disconnectionNodesList(
+    dev: JiminyDevice,
     node: JiminyDeviceNode? = null,
 ) = buildList {
     instrumentNodes(dev, node).forEach { instrument ->

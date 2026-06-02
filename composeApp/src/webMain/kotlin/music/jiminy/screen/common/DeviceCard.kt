@@ -28,8 +28,8 @@ import music.jiminy.DEVICE_CARD_INSTRUMENTS_LABEL
 import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_LABEL
 import music.jiminy.DEVICE_CARD_WIDTH
-import music.jiminy.JiminyAudioDevice
-import music.jiminy.JiminyDeviceI
+import music.jiminy.JiminyDevice
+import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.deviceNameToAvatar
@@ -38,7 +38,7 @@ import music.jiminy.deviceNameToAvatar
 fun DeviceCard(
     showLabels: Boolean = true,
     modifier: Modifier = Modifier,
-    device: () -> JiminyDeviceI<*>,
+    device: () -> JiminyDevice,
 ) {
     Card(
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
@@ -79,38 +79,9 @@ fun DeviceCard(
     }
 }
 
-@Preview
-@Composable
-private fun DeviceCardPreview() {
-    MaterialTheme {
-        DeviceCard(
-            device = {
-                JiminyAudioDevice("Test Device").apply {
-                    addNode(
-                        JiminyDeviceNode(
-                            fullName = "dev:instrument",
-                            deviceName = "Test Device",
-                            portName = "In 1",
-                            type = JiminyDeviceNodeType.Instrument
-                        )
-                    )
-                    addNode(
-                        JiminyDeviceNode(
-                            fullName = "dev:speaker",
-                            deviceName = "Test Device",
-                            portName = "Out 1",
-                            type = JiminyDeviceNodeType.Speaker
-                        )
-                    )
-                }
-            }
-        )
-    }
-}
-
 @Composable
 fun DeviceHeader(
-    device: () -> JiminyDeviceI<*>,
+    device: () -> JiminyDevice,
     modifier: Modifier = Modifier,
 ) {
     TextTitle(

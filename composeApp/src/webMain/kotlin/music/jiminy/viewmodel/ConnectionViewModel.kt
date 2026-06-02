@@ -16,13 +16,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.DEBOUNCING_COMMAND_MILLIS
-import music.jiminy.JiminyAudioDevice
+import music.jiminy.JiminyDevice
+import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
-import music.jiminy.JiminyMidiDevice
 import music.jiminy.NodeConnection
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
@@ -45,7 +44,7 @@ class ConnectionViewModel(
     enum class RecordingStatus {
         Idle,
         Recording,
-        Stopping
+        Stopping,
     }
 
     private val _isStoppingRecording = MutableStateFlow(false)
@@ -163,8 +162,8 @@ class ConnectionViewModel(
     val succeededCommands = _succeededCommands.asStateFlow()
 
     //// Connection View
-    private val _devices = MutableStateFlow(emptyList<JiminyAudioDevice>())
-    val devices: StateFlow<List<JiminyAudioDevice>>
+    private val _devices = MutableStateFlow(emptyList<JiminyDevice>())
+    val devices: StateFlow<List<JiminyDevice>>
         get() = _devices
 
     fun getDevices() {
@@ -212,48 +211,41 @@ class ConnectionViewModel(
     }
 }
 
-fun List<NodeConnection>.toJiminyLinks(): List<JiminyLink<JiminyAudioDevice>> =
-    toGenericJiminyLinks(
-        deviceFactory = { JiminyAudioDevice(it) },
-        nodeAdder = { dev, node -> dev.addNode(node) },
-    )
+fun List<NodeConnection>.toJiminyLinks(): List<JiminyLink> =
+    toGenericJiminyLinks(JiminyDeviceType.Audio)
 
-fun List<NodeConnection>.toJiminyMidiLinks(): List<JiminyLink<JiminyMidiDevice>> =
-    toGenericJiminyLinks(
-        deviceFactory = { JiminyMidiDevice(it) },
-        nodeAdder = { dev, node -> dev.addNode(node) },
-    )
+fun List<NodeConnection>.toJiminyMidiLinks(): List<JiminyLink> =
+    toGenericJiminyLinks(JiminyDeviceType.Midi)
 
-fun <T : JiminyDeviceI<T>> List<NodeConnection>.toGenericJiminyLinks(
-    deviceFactory: (String) -> T,
-    nodeAdder: (T, JiminyDeviceNode) -> Unit,
-): List<JiminyLink<T>> =
+fun List<NodeConnection>.toGenericJiminyLinks(
+    type: JiminyDeviceType,
+): List<JiminyLink> =
     sortedBy { it.speaker.fullName }.takeIf { isNotEmpty() }?.run {
-        val list = mutableListOf<JiminyLink<T>>()
-        val devices = mutableListOf<T>()
+        val list = mutableListOf<JiminyLink>()
+        val devices = mutableListOf<JiminyDevice>()
 
-        var speakerDev = deviceFactory(first().speaker.deviceName)
-            .apply { nodeAdder(this, first().speaker) }
+        var speakerDev = JiminyDevice(first().speaker.deviceName, type)
+            .apply { addNode(first().speaker) }
         val speakers = mutableListOf(speakerDev)
 
         forEach {
             if (speakerDev.speakers.none { s -> s.fullName == it.speaker.fullName }) {
                 list.add(JiminyLink(devices.toList(), speakerDev))
                 devices.clear()
-                speakerDev = deviceFactory(it.speaker.deviceName)
-                    .apply { nodeAdder(this, it.speaker) }
+                speakerDev = JiminyDevice(it.speaker.deviceName, type)
+                    .apply { addNode(it.speaker) }
                     .also { newSpk -> speakers += newSpk }
             }
 
             val instrumentDev = devices.find { dev -> dev.name == it.instrument.deviceName }
-                ?: deviceFactory(it.instrument.deviceName).also { dev -> devices.add(dev) }
+                ?: JiminyDevice(it.instrument.deviceName, type).also { dev -> devices.add(dev) }
             if (instrumentDev.instruments.none { inst -> inst.fullName == it.instrument.fullName }) {
-                nodeAdder(instrumentDev, it.instrument)
+                instrumentDev.addNode(it.instrument)
             }
         }
         speakerDev.let { list.add(JiminyLink(devices.toList(), speakerDev)) }
 
-        val links = mutableListOf<JiminyLink<T>>()
+        val links = mutableListOf<JiminyLink>()
         list.firstOrNull()?.let { first ->
             var cur = first
             list.forEachIndexed { index, _ ->
@@ -277,4 +269,4 @@ fun <T : JiminyDeviceI<T>> List<NodeConnection>.toGenericJiminyLinks(
         links
     } ?: emptyList()
 
-fun List<JiminyDeviceI<*>>.nodes() = flatMap { it.nodes() }
+fun List<JiminyDevice>.nodes() = flatMap { it.nodes() }

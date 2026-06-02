@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import music.jiminy.JiminyAudioDevice
+import music.jiminy.JiminyDevice
+import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
@@ -54,8 +55,8 @@ class ConnectionScreenViewModel(
     val errorMessage: StateFlow<String?>
         get() = _errorMessage
 
-    private val _internalState = MutableStateFlow(ConnectionScreenState<JiminyAudioDevice>())
-    val state: StateFlow<ConnectionScreenState<JiminyAudioDevice>> = _internalState.asStateFlow()
+    private val _internalState = MutableStateFlow(ConnectionScreenState())
+    val state: StateFlow<ConnectionScreenState> = _internalState.asStateFlow()
 
     fun resetError() {
         _errorMessage.update { null }
@@ -91,7 +92,7 @@ class ConnectionScreenViewModel(
         }
     }
 
-    fun onAction(action: ConnectionScreenAction<JiminyAudioDevice>) {
+    fun onAction(action: ConnectionScreenAction) {
         resetError()
         when (action) {
             is OnDeviceDragStart -> {
@@ -109,8 +110,8 @@ class ConnectionScreenViewModel(
             is OnAddRowClick -> {
                 if (_internalState.value.connectionRows.lastOrNull()?.isCompleted() != false) {
                     _internalState.update {
-                        val new = ConnectionScreenZoneItem<JiminyAudioDevice>(Instrument) to
-                                ConnectionScreenZoneItem<JiminyAudioDevice>(Speaker)
+                        val new = ConnectionScreenZoneItem(Instrument) to
+                                ConnectionScreenZoneItem(Speaker)
                         it.copy(connectionRows = it.connectionRows + new)
                     }
                 } else {
@@ -141,14 +142,13 @@ class ConnectionScreenViewModel(
             is OnNodesSelected -> {
                 action.zone.addNodes(
                     nodes = action.nodes,
-                    factory = { JiminyAudioDevice(it) },
+                    factory = { JiminyDevice(it, JiminyDeviceType.Audio) },
                 )
                 _internalState.update { it.copy(showAddDevicePopup = false) }
             }
 
             is OnDeleteNodeFromRow -> {
                 action.zone.removeNode(action.node)
-                // Force update if needed, but SnapshotStateList inside ConnectionScreenZoneItem might handle it
                 _internalState.update { it.copy() }
             }
 
@@ -197,7 +197,7 @@ class ConnectionScreenViewModel(
                 if (availableNodes.size == 1) {
                     zone.addNodes(
                         nodes = availableNodes,
-                        factory = { JiminyAudioDevice(it) },
+                        factory = { JiminyDevice(it, JiminyDeviceType.Audio) },
                     )
                     _internalState.update { it.copy() }
                 } else {
@@ -233,7 +233,7 @@ class ConnectionScreenViewModel(
                 _internalState.update {
                     it.copy(
                         connectionRows = listOf(
-                            ConnectionScreenZoneItem<JiminyAudioDevice>(Instrument) to
+                            ConnectionScreenZoneItem(Instrument) to
                                     ConnectionScreenZoneItem(Speaker)
                         )
                     )

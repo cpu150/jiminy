@@ -9,7 +9,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import music.jiminy.FLUIDSYNTH
 import music.jiminy.FLUID_SYNTH_NAME
-import music.jiminy.JiminyAudioDevice
+import music.jiminy.JiminyDevice
+import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDeviceList
 import music.jiminy.JiminyDeviceNode
@@ -18,7 +19,6 @@ import music.jiminy.JiminyDeviceNodeType.Speaker
 import music.jiminy.JiminyDeviceNodeType.Unknown
 import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLoggerI
-import music.jiminy.JiminyMidiDevice
 import music.jiminy.JiminyVolume
 import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.MIDI_THROUGH
@@ -32,8 +32,8 @@ class DeviceService(
     private val baseUrl: String,
     private val logger: JiminyLoggerI,
 ) {
-    private val _devices = mutableListOf<JiminyAudioDevice>()
-    private val _midiDevices = mutableListOf<JiminyMidiDevice>()
+    private val _devices = mutableListOf<JiminyDevice>()
+    private val _midiDevices = mutableListOf<JiminyDevice>()
 
     suspend fun getDevices() = client
         .get("$baseUrl$WS_DEVICES")
@@ -68,7 +68,7 @@ class DeviceService(
                 parseOutputCmd(fullName)?.let { data ->
                     with(data) {
                         val dev = _devices.find { it.name == deviceName }
-                            ?: JiminyAudioDevice(deviceName).also { _devices.add(it) }
+                            ?: JiminyDevice(deviceName, JiminyDeviceType.Audio).also { _devices.add(it) }
 
                         val type = if (list == audioInstruments) Instrument else Speaker
 
@@ -84,7 +84,7 @@ class DeviceService(
                 parseMidiOutputCmd(fullName)?.let { data ->
                     with(data) {
                         val dev = _midiDevices.find { it.name == deviceName }
-                            ?: JiminyMidiDevice(deviceName).also { _midiDevices.add(it) }
+                            ?: JiminyDevice(deviceName, JiminyDeviceType.Midi).also { _midiDevices.add(it) }
 
                         val type = if (list == midiInstruments) Instrument else Speaker
 

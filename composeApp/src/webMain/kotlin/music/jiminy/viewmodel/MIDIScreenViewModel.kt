@@ -8,9 +8,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import music.jiminy.JiminyDevice
+import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyLoggerI
-import music.jiminy.JiminyMidiDevice
 import music.jiminy.LinkType
 import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.NodeConnection
@@ -54,8 +55,8 @@ class MIDIScreenViewModel(
     val errorMessage: StateFlow<String?>
         get() = _errorMessage
 
-    private val _internalState = MutableStateFlow(ConnectionScreenState<JiminyMidiDevice>())
-    val state: StateFlow<ConnectionScreenState<JiminyMidiDevice>> = _internalState.asStateFlow()
+    private val _internalState = MutableStateFlow(ConnectionScreenState())
+    val state: StateFlow<ConnectionScreenState> = _internalState.asStateFlow()
 
     fun resetError() {
         _errorMessage.update { null }
@@ -89,7 +90,7 @@ class MIDIScreenViewModel(
         }
     }
 
-    fun onAction(action: ConnectionScreenAction<JiminyMidiDevice>) {
+    fun onAction(action: ConnectionScreenAction) {
         resetError()
         when (action) {
             is OnDeviceDragStart -> {
@@ -107,8 +108,8 @@ class MIDIScreenViewModel(
             is OnAddRowClick -> {
                 if (_internalState.value.connectionRows.lastOrNull()?.isCompleted() != false) {
                     _internalState.update {
-                        val new = ConnectionScreenZoneItem<JiminyMidiDevice>(Instrument) to
-                                ConnectionScreenZoneItem<JiminyMidiDevice>(Speaker)
+                        val new = ConnectionScreenZoneItem(Instrument) to
+                                ConnectionScreenZoneItem(Speaker)
                         it.copy(connectionRows = it.connectionRows + new)
                     }
                 } else {
@@ -140,7 +141,7 @@ class MIDIScreenViewModel(
             is OnNodesSelected -> {
                 action.zone.addNodes(
                     nodes = action.nodes,
-                    factory = { JiminyMidiDevice(it) },
+                    factory = { JiminyDevice(it, JiminyDeviceType.Midi) },
                 )
                 _internalState.update { it.copy(showAddDevicePopup = false) }
             }
@@ -195,7 +196,7 @@ class MIDIScreenViewModel(
             if (availableNodes.size == 1) {
                 zone.addNodes(
                     nodes = availableNodes,
-                    factory = { JiminyMidiDevice(it) },
+                    factory = { JiminyDevice(it, JiminyDeviceType.Midi) },
                 )
                 _internalState.update { it.copy() }
             } else {
@@ -230,7 +231,7 @@ class MIDIScreenViewModel(
                 _internalState.update {
                     it.copy(
                         connectionRows = listOf(
-                            ConnectionScreenZoneItem<JiminyMidiDevice>(Instrument) to
+                            ConnectionScreenZoneItem(Instrument) to
                                     ConnectionScreenZoneItem(Speaker)
                         )
                     )

@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import music.jiminy.DEVICE_CARD_HEIGHT
-import music.jiminy.JiminyMidiDevice
+import music.jiminy.JiminyDevice
 import music.jiminy.screen.common.DeviceCard
 import music.jiminy.screen.common.DraggableScreen
 import music.jiminy.viewmodel.MIDIScreenViewModel
@@ -32,7 +32,7 @@ fun MIDIRoot(
     LaunchedEffect(Unit) { viewModel.loadData() }
 
     DraggableScreen(
-        draggableItem = { item: JiminyMidiDevice ->
+        draggableItem = { item: JiminyDevice ->
             val scale = 1.05f
             DeviceCard(
                 modifier = Modifier

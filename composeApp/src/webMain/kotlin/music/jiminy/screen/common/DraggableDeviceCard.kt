@@ -18,35 +18,35 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntSize
-import music.jiminy.JiminyDeviceI
+import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
-interface ConnectionScreenDragListener<T : JiminyDeviceI<T>> {
-    fun deviceBeingDragged(): T?
-    fun onDeviceDragStart(device: T, initialOffset: Offset)
+interface ConnectionScreenDragListener {
+    fun deviceBeingDragged(): JiminyDevice?
+    fun onDeviceDragStart(device: JiminyDevice, initialOffset: Offset)
     fun onDeviceDrag(newOffset: Offset)
     fun onDeviceDragEnd(finalOffset: Offset)
     fun getContainerPosition(): Offset
 }
 
 @Stable
-data class ConnectionScreenZoneItem<T : JiminyDeviceI<T>>(
+data class ConnectionScreenZoneItem(
     val type: ConnectionScreenNodeType,
     val zone: MutableState<Rect> = mutableStateOf(Rect.Zero),
-    val devices: SnapshotStateList<T> = mutableStateListOf(),
+    val devices: SnapshotStateList<JiminyDevice> = mutableStateListOf(),
 )
 
-fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.removeNode(node: JiminyDeviceNode) =
+fun ConnectionScreenZoneItem.removeNode(node: JiminyDeviceNode) =
     devices.find { it.name == node.deviceName }?.also {
         it.removeNode(node)
         if (it.nodes().isEmpty()) devices.remove(it)
     }
 
-fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.addNodes(
+fun ConnectionScreenZoneItem.addNodes(
     nodes: List<JiminyDeviceNode>,
-    factory: (String) -> T,
+    factory: (String) -> JiminyDevice,
 ) = nodes.forEach { node ->
     (devices.find { it.name == node.deviceName }?.also { devices.remove(it) }
         ?: factory(node.deviceName))
@@ -57,7 +57,7 @@ fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.addNodes(
         }
 }
 
-fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.nodes() = devices.flatMap { device ->
+fun ConnectionScreenZoneItem.nodes() = devices.flatMap { device ->
     if (type == Speaker) {
         device.speakers
     } else {
@@ -65,7 +65,7 @@ fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.nodes() = devices.flatMap
     }
 }
 
-fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.isCompleted() = devices.find {
+fun ConnectionScreenZoneItem.isCompleted() = devices.find {
     if (type == Speaker) {
         it.speakers.isEmpty()
     } else {
@@ -73,14 +73,14 @@ fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.isCompleted() = devices.f
     }
 } == null && devices.isNotEmpty()
 
-fun <T : JiminyDeviceI<T>> Pair<ConnectionScreenZoneItem<T>, ConnectionScreenZoneItem<T>>.isCompleted() =
+fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.isCompleted() =
     first.isCompleted() && second.isCompleted()
 
 @Composable
-fun <T : JiminyDeviceI<T>> DraggableDeviceCard(
-    dragListener: ConnectionScreenDragListener<T>? = null,
+fun DraggableDeviceCard(
+    dragListener: ConnectionScreenDragListener? = null,
     modifier: Modifier = Modifier,
-    device: () -> T,
+    device: () -> JiminyDevice,
 ) {
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
@@ -112,13 +112,13 @@ fun <T : JiminyDeviceI<T>> DraggableDeviceCard(
                     onDragEnd = {
                         val centerOffset = Offset(cardSize.width / 2f, cardSize.height / 2f)
                         dragListener?.onDeviceDragEnd(
-                            itemPosition.plus(containerPosition).plus(centerOffset)
+                            itemPosition.plus(containerPosition).plus(centerOffset),
                         )
                     },
                     onDragCancel = {
                         val centerOffset = Offset(cardSize.width / 2f, cardSize.height / 2f)
                         dragListener?.onDeviceDragEnd(
-                            itemPosition.plus(containerPosition).plus(centerOffset)
+                            itemPosition.plus(containerPosition).plus(centerOffset),
                         )
                     },
                 )
