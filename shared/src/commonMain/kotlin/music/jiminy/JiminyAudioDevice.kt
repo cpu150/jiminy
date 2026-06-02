@@ -87,15 +87,15 @@ data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAu
 
 @Serializable
 data class JiminyDeviceNode(
-    override val fullName: String,
-    override val deviceName: String,
+    val fullName: String,
+    val deviceName: String,
     val portName: String,
-    override val type: JiminyDeviceNodeType,
-) : JiminyDeviceNodeI {
+    val type: JiminyDeviceNodeType,
+) {
     val aliasName = deviceNameToAlias[deviceName]
-    override val displayName = aliasName ?: deviceName
+    val displayName = aliasName ?: deviceName
     val aliasPortName = deviceNameToAlias["$deviceName:$portName"]
-    override val displayPortName = aliasPortName ?: portName
+    val displayPortName = aliasPortName ?: portName
 
     override fun toString() = "$type name: $displayName port: $displayPortName fullName: $fullName"
     override fun hashCode() = fullName.hashCode()

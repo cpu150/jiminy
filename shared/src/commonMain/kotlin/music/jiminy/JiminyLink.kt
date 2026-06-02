@@ -11,14 +11,6 @@ interface JiminyDeviceI<T> {
     operator fun plus(other: T): T
 }
 
-interface JiminyDeviceNodeI {
-    val fullName: String
-    val deviceName: String
-    val displayName: String
-    val displayPortName: String
-    val type: JiminyDeviceNodeType
-}
-
 data class NodeConnection(
     val instrument: JiminyDeviceNode,
     val speaker: JiminyDeviceNode,
