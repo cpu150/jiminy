@@ -74,7 +74,7 @@ class ConnectionScreenViewModel(
                 onSuccess = { response ->
                     _internalState.update { state ->
                         state.copy(
-                            devices = response.value.audioDevices.filter { it.name != PW_RECORDER_NAME }
+                            devices = response.value.audioDevices.filter { it.name != PW_RECORDER_NAME },
                         )
                     }
                 },
@@ -176,15 +176,16 @@ class ConnectionScreenViewModel(
                 val hasInstruments = draggingDevice.instruments.isNotEmpty()
                 val speakers = pair.speakers()
                 val hasSpeakers = draggingDevice.speakers.isNotEmpty()
-                val typeStr = if (droppedInInstrumentsZone) "Instruments" else "Speakers"
 
-                if (droppedInInstrumentsZone && hasInstruments) {
-                    instruments
-                } else if (hasSpeakers) {
-                    speakers
-                } else {
-                    _internalState.update { it.copy(showError = "No $typeStr for \"${draggingDevice.displayName}\"") }
-                    null
+                when {
+                    droppedInInstrumentsZone && hasInstruments -> instruments
+                    !droppedInInstrumentsZone && hasSpeakers -> speakers
+                    else -> {
+                        _internalState.update {
+                            it.copy(showError = "No nodes for \"${draggingDevice.displayName}\"")
+                        }
+                        null
+                    }
                 }
             }?.also { zone ->
                 _internalState.update {

@@ -9,10 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDeviceNodeI
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyMidiDevice
-import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.LinkType
 import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.NodeConnection
@@ -75,9 +73,7 @@ class MIDIScreenViewModel(
             mainService.getDevices(
                 onSuccess = { response ->
                     _internalState.update { state ->
-                        state.copy(
-                            devices = response.value.midiDevices
-                        )
+                        state.copy(devices = response.value.midiDevices)
                     }
                 },
                 onError = ::handleError,
@@ -111,10 +107,8 @@ class MIDIScreenViewModel(
             is OnAddRowClick -> {
                 if (_internalState.value.connectionRows.lastOrNull()?.isCompleted() != false) {
                     _internalState.update {
-                        val new =
-                            ConnectionScreenZoneItem<JiminyMidiDevice>(Instrument) to ConnectionScreenZoneItem<JiminyMidiDevice>(
-                                Speaker
-                            )
+                        val new = ConnectionScreenZoneItem<JiminyMidiDevice>(Instrument) to
+                                ConnectionScreenZoneItem<JiminyMidiDevice>(Speaker)
                         it.copy(connectionRows = it.connectionRows + new)
                     }
                 } else {
@@ -173,22 +167,23 @@ class MIDIScreenViewModel(
             val speakers = it.speakers()
             instruments.zone.value.inflate(bufferOffset).contains(finalOffset) ||
                     speakers.zone.value.inflate(bufferOffset).contains(finalOffset)
-        }?.let {
-            val instruments = it.instruments()
+        }?.let { pair ->
+            val instruments = pair.instruments()
             val droppedInInstrumentsZone =
                 instruments.zone.value.inflate(bufferOffset).contains(finalOffset)
             val hasInstruments = draggingDevice.instruments.isNotEmpty()
-            val speakers = it.speakers()
+            val speakers = pair.speakers()
             val hasSpeakers = draggingDevice.speakers.isNotEmpty()
-            val typeStr = if (droppedInInstrumentsZone) "Instruments" else "Speakers"
 
-            if (droppedInInstrumentsZone && hasInstruments) {
-                instruments
-            } else if (hasSpeakers) {
-                speakers
-            } else {
-                _internalState.update { it.copy(showError = "No $typeStr for \"${draggingDevice.displayName}\"") }
-                null
+            when {
+                droppedInInstrumentsZone && hasInstruments -> instruments
+                !droppedInInstrumentsZone && hasSpeakers -> speakers
+                else -> {
+                    _internalState.update {
+                        it.copy(showError = "No nodes for \"${draggingDevice.displayName}\"")
+                    }
+                    null
+                }
             }
         }?.also { zone ->
             _internalState.update {
