@@ -11,12 +11,6 @@ enum class JiminyDeviceType {
 }
 
 @Serializable
-data class JiminyDevices(
-    val audioDevices: List<JiminyDevice>,
-    val midiDevices: List<JiminyDevice>,
-)
-
-@Serializable
 data class JiminyDevice(
     val name: String,
     val type: JiminyDeviceType,

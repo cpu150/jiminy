@@ -58,6 +58,18 @@ class ConnectionScreenViewModel(
     private val _internalState = MutableStateFlow(ConnectionScreenState())
     val state: StateFlow<ConnectionScreenState> = _internalState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            mainService.audioDevices.collect { devices ->
+                _internalState.update { state ->
+                    state.copy(
+                        devices = devices.filter { it.name != PW_RECORDER_NAME },
+                    )
+                }
+            }
+        }
+    }
+
     fun resetError() {
         _errorMessage.update { null }
     }
@@ -71,16 +83,7 @@ class ConnectionScreenViewModel(
     fun loadData() {
         resetError()
         viewModelScope.launch {
-            mainService.getDevices(
-                onSuccess = { response ->
-                    _internalState.update { state ->
-                        state.copy(
-                            devices = response.value.audioDevices.filter { it.name != PW_RECORDER_NAME },
-                        )
-                    }
-                },
-                onError = ::handleError,
-            )
+            mainService.refreshDevices(onError = ::handleError)
             mainService.getDeviceLinks(
                 onSuccess = { response ->
                     val filteredLinks =

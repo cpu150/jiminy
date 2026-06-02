@@ -58,6 +58,16 @@ class MIDIScreenViewModel(
     private val _internalState = MutableStateFlow(ConnectionScreenState())
     val state: StateFlow<ConnectionScreenState> = _internalState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            mainService.midiDevices.collect { devices ->
+                _internalState.update { state ->
+                    state.copy(devices = devices)
+                }
+            }
+        }
+    }
+
     fun resetError() {
         _errorMessage.update { null }
     }
@@ -71,14 +81,7 @@ class MIDIScreenViewModel(
     fun loadData() {
         resetError()
         viewModelScope.launch {
-            mainService.getDevices(
-                onSuccess = { response ->
-                    _internalState.update { state ->
-                        state.copy(devices = response.value.midiDevices)
-                    }
-                },
-                onError = ::handleError,
-            )
+            mainService.refreshDevices(onError = ::handleError)
             mainService.getDeviceLinks(
                 onSuccess = { response ->
                     val filteredLinks = response.value

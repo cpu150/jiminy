@@ -36,6 +36,18 @@ class RecordingScreenViewModel(
     private val _state = MutableStateFlow(RecordingScreenState())
     val state: StateFlow<RecordingScreenState> = _state.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            mainService.audioDevices.collect { devices ->
+                _state.update { state ->
+                    state.copy(
+                        devices = devices.filter { dev -> (dev.instruments.isNotEmpty() && dev.name != PW_RECORDER_NAME) },
+                    )
+                }
+            }
+        }
+    }
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
@@ -51,24 +63,8 @@ class RecordingScreenViewModel(
 
     fun loadData() {
         viewModelScope.launch {
-            loadDevices()
+            mainService.refreshDevices(onError = ::handleError)
         }
-    }
-
-    private suspend fun loadDevices() {
-        mainService.getDevices(
-            onSuccess = { response ->
-                val devices = response.value.audioDevices
-                    .filter { dev -> (dev.instruments.isNotEmpty() && dev.name != PW_RECORDER_NAME) }
-
-                _state.update { state ->
-                    state.copy(
-                        devices = devices,
-                    )
-                }
-            },
-            onError = ::handleError,
-        )
     }
 
     fun onAction(action: RecordingScreenAction) {

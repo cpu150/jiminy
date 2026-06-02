@@ -19,7 +19,6 @@ import music.jiminy.DEBOUNCING_COMMAND_MILLIS
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.NodeConnection
@@ -47,7 +46,7 @@ class ConnectionViewModel(
         Stopping,
     }
 
-    private val _isStoppingRecording = MutableStateFlow(false)
+    private val _isStoppingRecording = MutableStateFlow(value = false)
     val recordingStatus = combine(
         mainService.isRecording,
         _isStoppingRecording,
@@ -162,20 +161,12 @@ class ConnectionViewModel(
     val succeededCommands = _succeededCommands.asStateFlow()
 
     //// Connection View
-    private val _devices = MutableStateFlow(emptyList<JiminyDevice>())
-    val devices: StateFlow<List<JiminyDevice>>
-        get() = _devices
+    val devices: StateFlow<List<JiminyDevice>> = mainService.audioDevices
 
     fun getDevices() {
         resetError()
         viewModelScope.launch {
-            _devices.update { emptyList() }
-            mainService.getDevices(
-                { response ->
-                    _devices.update { response.value.audioDevices }
-                },
-                ::handleError,
-            )
+            mainService.refreshDevices(::handleError)
         }
     }
 

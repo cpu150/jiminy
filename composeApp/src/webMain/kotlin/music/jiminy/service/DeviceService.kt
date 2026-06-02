@@ -7,6 +7,10 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import music.jiminy.FLUIDSYNTH
 import music.jiminy.FLUID_SYNTH_NAME
 import music.jiminy.JiminyDevice
@@ -17,7 +21,6 @@ import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType.Instrument
 import music.jiminy.JiminyDeviceNodeType.Speaker
 import music.jiminy.JiminyDeviceNodeType.Unknown
-import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyVolume
 import music.jiminy.MIDI_BRIDGE_PREFIX
@@ -32,10 +35,13 @@ class DeviceService(
     private val baseUrl: String,
     private val logger: JiminyLoggerI,
 ) {
-    private val _devices = mutableListOf<JiminyDevice>()
-    private val _midiDevices = mutableListOf<JiminyDevice>()
+    private val _audioDevices = MutableStateFlow<List<JiminyDevice>>(emptyList())
+    val audioDevices: StateFlow<List<JiminyDevice>> = _audioDevices.asStateFlow()
 
-    suspend fun getDevices() = client
+    private val _midiDevices = MutableStateFlow<List<JiminyDevice>>(emptyList())
+    val midiDevices: StateFlow<List<JiminyDevice>> = _midiDevices.asStateFlow()
+
+    suspend fun refreshDevices() = client
         .get("$baseUrl$WS_DEVICES")
         .body<JiminyDeviceList>()
         .let { processDevicesOutput(it) }
@@ -51,9 +57,9 @@ class DeviceService(
             setBody(links)
         }
 
-    private fun processDevicesOutput(output: JiminyDeviceList): JiminyDevices {
-        _devices.clear()
-        _midiDevices.clear()
+    private fun processDevicesOutput(output: JiminyDeviceList) {
+        val audioDevices = mutableListOf<JiminyDevice>()
+        val midiDevices = mutableListOf<JiminyDevice>()
 
         val (midiInstruments, audioInstruments) = output.instruments.partition {
             it.startsWith(MIDI_BRIDGE_PREFIX)
@@ -67,8 +73,8 @@ class DeviceService(
             list.forEach { fullName ->
                 parseOutputCmd(fullName)?.let { data ->
                     with(data) {
-                        val dev = _devices.find { it.name == deviceName }
-                            ?: JiminyDevice(deviceName, JiminyDeviceType.Audio).also { _devices.add(it) }
+                        val dev = audioDevices.find { it.name == deviceName }
+                            ?: JiminyDevice(deviceName, JiminyDeviceType.Audio).also { audioDevices.add(it) }
 
                         val type = if (list == audioInstruments) Instrument else Speaker
 
@@ -83,8 +89,8 @@ class DeviceService(
             list.forEach { fullName ->
                 parseMidiOutputCmd(fullName)?.let { data ->
                     with(data) {
-                        val dev = _midiDevices.find { it.name == deviceName }
-                            ?: JiminyDevice(deviceName, JiminyDeviceType.Midi).also { _midiDevices.add(it) }
+                        val dev = midiDevices.find { it.name == deviceName }
+                            ?: JiminyDevice(deviceName, JiminyDeviceType.Midi).also { midiDevices.add(it) }
 
                         val type = if (list == midiInstruments) Instrument else Speaker
 
@@ -101,7 +107,7 @@ class DeviceService(
             } else if (statusLine.contains("─ Sources:")) {
                 type = Instrument
             } else if (statusLine.contains("[vol: ")) {
-                _devices.find { device -> statusLine.contains(device.name) }?.also { device ->
+                audioDevices.find { device -> statusLine.contains(device.name) }?.also { device ->
                     // │ |  *   78. alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo [vol: 0.40]
                     // │ │      75. alsa_input.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo [vol: 0.75 MUTED]
                     val arr = statusLine.split("\\.${device.name}\\..* \\[vol: ".toRegex())
@@ -128,7 +134,9 @@ class DeviceService(
             }
         }
 
-        return JiminyDevices(_devices.toList(), _midiDevices.toList())
+        _audioDevices.update { audioDevices }
+        _midiDevices.update { midiDevices }
+        logger.info("processDevicesOutput - audio: ${audioDevices.size}, midi: ${midiDevices.size}")
     }
 
     private fun processDeviceLinksOutput(output: List<String>): List<NodeConnection> = buildList {

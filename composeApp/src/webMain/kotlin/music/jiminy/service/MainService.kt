@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
-import music.jiminy.JiminyDeviceNode
-import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LockedForRecordingException
 import music.jiminy.LogEntry
@@ -53,12 +51,14 @@ class MainService(
     private val logger: JiminyLoggerI,
 ) {
     val succeededCommands = mixerService.succeededCommands
+    val audioDevices = deviceService.audioDevices
+    val midiDevices = deviceService.midiDevices
 
     private val _connectionStatus = MutableStateFlow<JiminyConnectionStatus>(Disconnected)
     val connectionStatus: StateFlow<JiminyConnectionStatus>
         get() = _connectionStatus
 
-    private val _isRecording = MutableStateFlow(false)
+    private val _isRecording = MutableStateFlow(value = false)
     val isRecording: StateFlow<Boolean>
         get() = _isRecording
 
@@ -139,12 +139,14 @@ class MainService(
         }
     }
 
-    suspend fun getDevices(
-        onSuccess: (Success<JiminyDevices>) -> Unit,
+    suspend fun refreshDevices(
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
-        logMsg = "getDevices",
-        tryBlock = { onSuccess(Success(deviceService.getDevices())) },
+        logMsg = "refreshDevices",
+        tryBlock = {
+            deviceService.refreshDevices()
+            logger.info("refreshDevices - completed")
+        },
         catchBlock = { error -> onError(error) },
     )
 
