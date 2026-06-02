@@ -44,7 +44,7 @@ import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceI
-import music.jiminy.JiminyDeviceNodeI
+import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
 import music.jiminy.NodeConnection
@@ -130,12 +130,12 @@ sealed interface ConnectionScreenAction<T : JiminyDeviceI<T>> {
     class OnDismissDeleteAllAlert<T : JiminyDeviceI<T>> : ConnectionScreenAction<T>
     data class OnNodesSelected<T : JiminyDeviceI<T>>(
         val zone: ConnectionScreenZoneItem<T>,
-        val nodes: List<JiminyDeviceNodeI>,
+        val nodes: List<JiminyDeviceNode>,
     ) : ConnectionScreenAction<T>
 
     data class OnDeleteNodeFromRow<T : JiminyDeviceI<T>>(
         val zone: ConnectionScreenZoneItem<T>,
-        val node: JiminyDeviceNodeI,
+        val node: JiminyDeviceNode,
     ) :
         ConnectionScreenAction<T>
 
@@ -323,13 +323,13 @@ fun <T : JiminyDeviceI<T>> ConnectionRow(
     index: Int,
     row: () -> Pair<ConnectionScreenZoneItem<T>, ConnectionScreenZoneItem<T>>,
     deleteRow: () -> Unit,
-    onDeleteNode: (ConnectionScreenZoneItem<T>, JiminyDeviceNodeI) -> Unit,
+    onDeleteNode: (ConnectionScreenZoneItem<T>, JiminyDeviceNode) -> Unit,
     onDeleteDevice: (ConnectionScreenZoneItem<T>, T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val instruments = row().instruments()
     val speakers = row().speakers()
-    var nodeToDelete by remember { mutableStateOf<JiminyDeviceNodeI?>(null) }
+    var nodeToDelete by remember { mutableStateOf<JiminyDeviceNode?>(null) }
     var showDeleteRowAlert by remember { mutableStateOf(false) }
     var deviceToDelete by remember {
         mutableStateOf<Pair<ConnectionScreenZoneItem<T>, T>?>(null)
@@ -436,7 +436,7 @@ fun <T : JiminyDeviceI<T>> LinkRow(
     val instrumentDevs = linkValue.instrumentDevices
     val speakerDev = linkValue.speakerDevice
     var showConfirmationAlert by remember {
-        mutableStateOf<Pair<T, JiminyDeviceNodeI?>?>(null)
+        mutableStateOf<Pair<T, JiminyDeviceNode?>?>(null)
     }
 
     Row(

@@ -3,9 +3,11 @@ package music.jiminy
 interface JiminyDeviceI<T> {
     val name: String
     val displayName: String
-    val speakers: List<JiminyDeviceNodeI>
-    val instruments: List<JiminyDeviceNodeI>
-    fun nodes(): List<JiminyDeviceNodeI>
+    val speakers: List<JiminyDeviceNode>
+    val instruments: List<JiminyDeviceNode>
+    fun nodes(): List<JiminyDeviceNode>
+    fun addNode(node: JiminyDeviceNode)
+    fun removeNode(node: JiminyDeviceNode)
     operator fun plus(other: T): T
 }
 
@@ -18,8 +20,8 @@ interface JiminyDeviceNodeI {
 }
 
 data class NodeConnection(
-    val instrument: JiminyDeviceNodeI,
-    val speaker: JiminyDeviceNodeI,
+    val instrument: JiminyDeviceNode,
+    val speaker: JiminyDeviceNode,
 )
 
 data class JiminyLink<T : JiminyDeviceI<T>>(
@@ -48,7 +50,7 @@ data class JiminyLink<T : JiminyDeviceI<T>>(
 
 fun <T : JiminyDeviceI<T>> JiminyLink<T>.instrumentNodes(
     dev: T,
-    node: JiminyDeviceNodeI? = null,
+    node: JiminyDeviceNode? = null,
 ) = if (dev.name == speakerDevice.name) {
     instrumentDevices.flatMap { it.nodes() }
 } else if (node != null) {
@@ -59,7 +61,7 @@ fun <T : JiminyDeviceI<T>> JiminyLink<T>.instrumentNodes(
 
 fun <T : JiminyDeviceI<T>> JiminyLink<T>.speakerNodes(
     dev: T,
-    node: JiminyDeviceNodeI? = null,
+    node: JiminyDeviceNode? = null,
 ) = if (dev.name != speakerDevice.name) {
     speakerDevice.nodes()
 } else if (node != null) {
@@ -70,7 +72,7 @@ fun <T : JiminyDeviceI<T>> JiminyLink<T>.speakerNodes(
 
 fun <T : JiminyDeviceI<T>> JiminyLink<T>.disconnectionNodesList(
     dev: T,
-    node: JiminyDeviceNodeI? = null,
+    node: JiminyDeviceNode? = null,
 ) = buildList {
     instrumentNodes(dev, node).forEach { instrument ->
         speakerNodes(dev, node).forEach { speaker ->

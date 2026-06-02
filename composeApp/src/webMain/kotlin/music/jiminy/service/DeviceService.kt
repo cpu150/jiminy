@@ -19,7 +19,6 @@ import music.jiminy.JiminyDeviceNodeType.Unknown
 import music.jiminy.JiminyDevices
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyMidiDevice
-import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.JiminyVolume
 import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.MIDI_THROUGH
@@ -89,7 +88,7 @@ class DeviceService(
 
                         val type = if (list == midiInstruments) Instrument else Speaker
 
-                        dev.addNode(JiminyMidiDeviceNode(fullName, deviceName, portName, type))
+                        dev.addNode(JiminyDeviceNode(fullName, deviceName, portName, type))
                     }
                 }
             }
@@ -147,29 +146,31 @@ class DeviceService(
                 fullName.contains(":monitor_") ||
                 fullName.startsWith(MIDI_BRIDGE_PREFIX)
             ) {
-                parseOutputCmd(fullName)?.let { data ->
-                    nodeInstrument = JiminyDeviceNode(
-                        data.fullName,
-                        data.deviceName,
-                        data.portName,
-                        Instrument,
-                    )
-                } ?: logger.error("ERROR - processDeviceLinksOutput - parsing device: $fullName")
+                nodeInstrument = createNode(fullName, Instrument)
+                if (nodeInstrument == null) {
+                    logger.error("ERROR - processDeviceLinksOutput - parsing device: $fullName")
+                }
             } else if (fullName.startsWith("  |-> ")) {
                 nodeInstrument?.let {
-                    parseOutputCmd(fullName.removePrefix("  |-> "))?.let { data ->
-                        val nodeSpeaker = JiminyDeviceNode(
-                            data.fullName,
-                            data.deviceName,
-                            data.portName,
-                            Speaker,
-                        )
-
+                    val speakerName = fullName.removePrefix("  |-> ")
+                    createNode(speakerName, Speaker)?.let { nodeSpeaker ->
                         add(NodeConnection(it, nodeSpeaker))
                     } ?: logger.error("ERROR - processDeviceLinksOutput - parsing: $fullName")
                 } ?: logger.error("ERROR - processDeviceLinksOutput - NO DEV FOR: $fullName")
             } else {
                 logger.error("ERROR - processDeviceLinksOutput - $fullName")
+            }
+        }
+    }
+
+    private fun createNode(fullName: String, type: music.jiminy.JiminyDeviceNodeType): JiminyDeviceNode? {
+        return if (fullName.startsWith(MIDI_BRIDGE_PREFIX)) {
+            parseMidiOutputCmd(fullName)?.let { data ->
+                JiminyDeviceNode(data.fullName, data.deviceName, data.portName, type)
+            }
+        } else {
+            parseOutputCmd(fullName)?.let { data ->
+                JiminyDeviceNode(data.fullName, data.deviceName, data.portName, type)
             }
         }
     }

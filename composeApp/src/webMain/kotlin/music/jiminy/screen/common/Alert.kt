@@ -39,7 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import music.jiminy.JiminyDeviceI
-import music.jiminy.JiminyDeviceNodeI
+import music.jiminy.JiminyDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
 @Composable
@@ -97,7 +97,7 @@ fun GenericMessageAlert(
 
 @Composable
 fun UnlinkConfirmationAlert(
-    pair: () -> Pair<JiminyDeviceI<*>, JiminyDeviceNodeI?>,
+    pair: () -> Pair<JiminyDeviceI<*>, JiminyDeviceNode?>,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -155,12 +155,12 @@ fun DeleteConfirmationAlert(
 fun <T : JiminyDeviceI<T>> NodeSelectionAlert(
     onDismiss: () -> Unit,
     droppedDevice: () -> T,
-    addNodes: (List<JiminyDeviceNodeI>) -> Unit,
+    addNodes: (List<JiminyDeviceNode>) -> Unit,
     zoneItem: () -> ConnectionScreenZoneItem<T>,
     modifier: Modifier = Modifier,
 ) {
     // Track which items the user has clicked inside the popup
-    val selectedNodes = remember { mutableStateListOf<JiminyDeviceNodeI>() }
+    val selectedNodes = remember { mutableStateListOf<JiminyDeviceNode>() }
     val device = remember { droppedDevice() }
     val (label, availableNodes) = remember {
         if (zoneItem().type == Speaker) {
@@ -375,7 +375,7 @@ fun RecordingFileItem(
 
 @Composable
 fun SelectableNodeItem(
-    node: () -> JiminyDeviceNodeI,
+    node: () -> JiminyDeviceNode,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

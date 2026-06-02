@@ -18,12 +18,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntSize
-import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNode
-import music.jiminy.JiminyDeviceNodeI
-import music.jiminy.JiminyMidiDevice
-import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
@@ -42,24 +38,22 @@ data class ConnectionScreenZoneItem<T : JiminyDeviceI<T>>(
     val devices: SnapshotStateList<T> = mutableStateListOf(),
 )
 
-fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.removeNode(node: JiminyDeviceNodeI) =
+fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.removeNode(node: JiminyDeviceNode) =
     devices.find { it.name == node.deviceName }?.also {
-        (it as? JiminyAudioDevice)?.removeNode(node as JiminyDeviceNode)
-        (it as? JiminyMidiDevice)?.removeNode(node as JiminyMidiDeviceNode)
+        it.removeNode(node)
         if (it.nodes().isEmpty()) devices.remove(it)
     }
 
 fun <T : JiminyDeviceI<T>> ConnectionScreenZoneItem<T>.addNodes(
-    nodes: List<JiminyDeviceNodeI>,
+    nodes: List<JiminyDeviceNode>,
     factory: (String) -> T,
 ) = nodes.forEach { node ->
     (devices.find { it.name == node.deviceName }?.also { devices.remove(it) }
         ?: factory(node.deviceName))
         .also { devices.add(it) }
         .takeIf { it.nodes().any { n -> n.fullName == node.fullName }.not() }
-        ?.let {
-            (it as? JiminyAudioDevice)?.addNode(node as JiminyDeviceNode)
-            (it as? JiminyMidiDevice)?.addNode(node as JiminyMidiDeviceNode)
+        ?.also {
+            it.addNode(node)
         }
 }
 

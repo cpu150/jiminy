@@ -23,7 +23,7 @@ data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAu
     override val instruments: List<JiminyDeviceNode>
         get() = _instruments
 
-    fun removeNode(node: JiminyDeviceNode) {
+    override fun removeNode(node: JiminyDeviceNode) {
         when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers.remove(node)
             JiminyDeviceNodeType.Instrument -> _instruments.remove(node)
@@ -31,7 +31,7 @@ data class JiminyAudioDevice(override val name: String) : JiminyDeviceI<JiminyAu
         }
     }
 
-    fun addNode(node: JiminyDeviceNode) {
+    override fun addNode(node: JiminyDeviceNode) {
         val nodeList = when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers
             JiminyDeviceNodeType.Instrument -> _instruments
@@ -131,15 +131,15 @@ data class JiminyMidiDevice(override val name: String) : JiminyDeviceI<JiminyMid
     val alias = deviceNameToAlias[name]
     override val displayName = alias ?: name
 
-    private val _speakers = mutableListOf<JiminyMidiDeviceNode>()
-    override val speakers: List<JiminyMidiDeviceNode>
+    private val _speakers = mutableListOf<JiminyDeviceNode>()
+    override val speakers: List<JiminyDeviceNode>
         get() = _speakers
 
-    private val _instruments = mutableListOf<JiminyMidiDeviceNode>()
-    override val instruments: List<JiminyMidiDeviceNode>
+    private val _instruments = mutableListOf<JiminyDeviceNode>()
+    override val instruments: List<JiminyDeviceNode>
         get() = _instruments
 
-    fun removeNode(node: JiminyMidiDeviceNode) {
+    override fun removeNode(node: JiminyDeviceNode) {
         when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers.remove(node)
             JiminyDeviceNodeType.Instrument -> _instruments.remove(node)
@@ -147,7 +147,7 @@ data class JiminyMidiDevice(override val name: String) : JiminyDeviceI<JiminyMid
         }
     }
 
-    fun addNode(node: JiminyMidiDeviceNode) {
+    override fun addNode(node: JiminyDeviceNode) {
         val nodeList = when (node.type) {
             JiminyDeviceNodeType.Speaker -> _speakers
             JiminyDeviceNodeType.Instrument -> _instruments
@@ -158,11 +158,11 @@ data class JiminyMidiDevice(override val name: String) : JiminyDeviceI<JiminyMid
         nodeList?.sortBy { it.fullName }
     }
 
-    fun addNodes(nodes: List<JiminyMidiDeviceNode>) {
+    fun addNodes(nodes: List<JiminyDeviceNode>) {
         nodes.forEach { addNode(it) }
     }
 
-    override fun nodes(): List<JiminyMidiDeviceNode> = _speakers + _instruments
+    override fun nodes(): List<JiminyDeviceNode> = _speakers + _instruments
 
     override operator fun plus(other: JiminyMidiDevice) = JiminyMidiDevice(
         name = name
@@ -191,26 +191,6 @@ data class JiminyMidiDevice(override val name: String) : JiminyDeviceI<JiminyMid
         result = 31 * result + _speakers.hashCode()
         result = 31 * result + _instruments.hashCode()
         return result
-    }
-}
-
-@Serializable
-data class JiminyMidiDeviceNode(
-    override val fullName: String,
-    override val deviceName: String,
-    val portName: String,
-    override val type: JiminyDeviceNodeType,
-) : JiminyDeviceNodeI {
-    val aliasName = deviceNameToAlias[deviceName]
-    override val displayName = aliasName ?: deviceName
-    val aliasPortName = deviceNameToAlias["$deviceName:$portName"]
-    override val displayPortName = aliasPortName ?: portName
-
-    override fun toString() = "$type name: $displayName port: $displayPortName fullName: $fullName"
-    override fun hashCode() = fullName.hashCode()
-    override fun equals(other: Any?) = when (other) {
-        is JiminyMidiDeviceNode -> fullName == other.fullName
-        else -> super.equals(other)
     }
 }
 

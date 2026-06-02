@@ -20,11 +20,9 @@ import music.jiminy.JiminyAudioDevice
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDeviceI
 import music.jiminy.JiminyDeviceNode
-import music.jiminy.JiminyDeviceNodeI
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyMidiDevice
-import music.jiminy.JiminyMidiDeviceNode
 import music.jiminy.NodeConnection
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
@@ -217,18 +215,18 @@ class ConnectionViewModel(
 fun List<NodeConnection>.toJiminyLinks(): List<JiminyLink<JiminyAudioDevice>> =
     toGenericJiminyLinks(
         deviceFactory = { JiminyAudioDevice(it) },
-        nodeAdder = { dev, node -> dev.addNode(node as JiminyDeviceNode) },
+        nodeAdder = { dev, node -> dev.addNode(node) },
     )
 
 fun List<NodeConnection>.toJiminyMidiLinks(): List<JiminyLink<JiminyMidiDevice>> =
     toGenericJiminyLinks(
         deviceFactory = { JiminyMidiDevice(it) },
-        nodeAdder = { dev, node -> dev.addNode(node as JiminyMidiDeviceNode) },
+        nodeAdder = { dev, node -> dev.addNode(node) },
     )
 
 fun <T : JiminyDeviceI<T>> List<NodeConnection>.toGenericJiminyLinks(
     deviceFactory: (String) -> T,
-    nodeAdder: (T, JiminyDeviceNodeI) -> Unit,
+    nodeAdder: (T, JiminyDeviceNode) -> Unit,
 ): List<JiminyLink<T>> =
     sortedBy { it.speaker.fullName }.takeIf { isNotEmpty() }?.run {
         val list = mutableListOf<JiminyLink<T>>()

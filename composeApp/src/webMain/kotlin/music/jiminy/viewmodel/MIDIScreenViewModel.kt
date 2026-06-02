@@ -80,8 +80,8 @@ class MIDIScreenViewModel(
             )
             mainService.getDeviceLinks(
                 onSuccess = { response ->
-                    val filteredLinks =
-                        response.value.filter { it.instrument.fullName.startsWith(MIDI_BRIDGE_PREFIX) }
+                    val filteredLinks = response.value
+                        .filter { it.instrument.fullName.startsWith(MIDI_BRIDGE_PREFIX) }
                     _internalState.update { it.copy(links = filteredLinks.toJiminyMidiLinks()) }
                 },
                 onError = ::handleError,
