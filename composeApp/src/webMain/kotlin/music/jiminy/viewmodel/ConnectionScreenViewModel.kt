@@ -188,11 +188,25 @@ class ConnectionScreenViewModel(
                     }
                 }
             }?.also { zone ->
-                _internalState.update {
-                    it.copy(
-                        lastDropItem = zone to draggingDevice,
-                        showAddDevicePopup = true,
+                val availableNodes = if (zone.type == Speaker) {
+                    draggingDevice.speakers
+                } else {
+                    draggingDevice.instruments
+                }
+
+                if (availableNodes.size == 1) {
+                    zone.addNodes(
+                        nodes = availableNodes,
+                        factory = { JiminyAudioDevice(it) },
                     )
+                    _internalState.update { it.copy() }
+                } else {
+                    _internalState.update {
+                        it.copy(
+                            lastDropItem = zone to draggingDevice,
+                            showAddDevicePopup = true,
+                        )
+                    }
                 }
             }
             _internalState.update { it.copy(activeDraggingDevice = null) }
