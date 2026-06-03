@@ -8,21 +8,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import music.jiminy.JiminyCommand
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceType
-import music.jiminy.JiminyCommand
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
 import music.jiminy.NodeConnection
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.disconnectionNodesList
 import music.jiminy.screen.ConnectionScreenAction
-import music.jiminy.screen.ConnectionScreenAction.OnAddRowClick
 import music.jiminy.screen.ConnectionScreenAction.OnConfirmUnlinkAll
 import music.jiminy.screen.ConnectionScreenAction.OnConnectClick
 import music.jiminy.screen.ConnectionScreenAction.OnDeleteDeviceFromRow
 import music.jiminy.screen.ConnectionScreenAction.OnDeleteNodeFromRow
-import music.jiminy.screen.ConnectionScreenAction.OnDeleteRowClick
 import music.jiminy.screen.ConnectionScreenAction.OnDeviceDrag
 import music.jiminy.screen.ConnectionScreenAction.OnDeviceDragEnd
 import music.jiminy.screen.ConnectionScreenAction.OnDeviceDragStart
@@ -39,6 +37,7 @@ import music.jiminy.screen.ConnectionScreenState
 import music.jiminy.screen.common.ConnectionScreenZoneItem
 import music.jiminy.screen.common.addNodes
 import music.jiminy.screen.common.isCompleted
+import music.jiminy.screen.common.isEmpty
 import music.jiminy.screen.common.nodes
 import music.jiminy.screen.common.removeNode
 import music.jiminy.screen.instruments
@@ -68,6 +67,7 @@ class ConnectionScreenViewModel(
                 }
             }
         }
+        ensureOneEmptyRow()
     }
 
     fun resetError() {
@@ -108,22 +108,9 @@ class ConnectionScreenViewModel(
             }
 
             is OnDeviceDrag -> _internalState.update { it.copy(dragOffset = action.newOffset) }
-            is OnDeviceDragEnd -> handleDragEnd(action.finalOffset)
-
-            is OnAddRowClick -> {
-                if (_internalState.value.connectionRows.lastOrNull()?.isCompleted() != false) {
-                    _internalState.update {
-                        val new = ConnectionScreenZoneItem(Instrument) to
-                                ConnectionScreenZoneItem(Speaker)
-                        it.copy(connectionRows = it.connectionRows + new)
-                    }
-                } else {
-                    _internalState.update { it.copy(showIncompletePopup = true) }
-                }
-            }
-
-            is OnDeleteRowClick -> if (_internalState.value.connectionRows.size > 1) {
-                _internalState.update { it.copy(connectionRows = it.connectionRows - action.row) }
+            is OnDeviceDragEnd -> {
+                handleDragEnd(action.finalOffset)
+                ensureOneEmptyRow()
             }
 
             is OnConnectClick -> handleConnect()
@@ -148,16 +135,19 @@ class ConnectionScreenViewModel(
                     factory = { JiminyDevice(it, JiminyDeviceType.Audio) },
                 )
                 _internalState.update { it.copy(showAddDevicePopup = false) }
+                ensureOneEmptyRow()
             }
 
             is OnDeleteNodeFromRow -> {
                 action.zone.removeNode(action.node)
                 _internalState.update { it.copy() }
+                ensureOneEmptyRow()
             }
 
             is OnDeleteDeviceFromRow -> {
                 action.zone.devices.remove(action.device)
                 _internalState.update { it.copy() }
+                ensureOneEmptyRow()
             }
         }
     }
@@ -218,7 +208,7 @@ class ConnectionScreenViewModel(
 
     private fun handleConnect() {
         val rows = _internalState.value.connectionRows
-        val incompletedRow = rows.find { !it.isCompleted() }
+        val incompletedRow = (rows - rows.lastOrNull()).find { it?.isCompleted() == false }
 
         resetError()
 
@@ -241,9 +231,23 @@ class ConnectionScreenViewModel(
                         )
                     )
                 }
+                ensureOneEmptyRow()
             }
         } else {
             _internalState.update { it.copy(showIncompletePopup = true) }
+        }
+    }
+
+    private fun ensureOneEmptyRow() {
+        val rows = _internalState.value.connectionRows
+        if (rows.count { it.isEmpty() } != 1 || !rows.last().isEmpty()) {
+            _internalState.update { state ->
+                val rows = state.connectionRows
+                val filteredRows = rows.filter { !it.isEmpty() }
+                val newRows = filteredRows + (ConnectionScreenZoneItem(Instrument) to
+                        ConnectionScreenZoneItem(Speaker))
+                state.copy(connectionRows = newRows)
+            }
         }
     }
 

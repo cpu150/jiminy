@@ -48,13 +48,13 @@ fun ConnectionScreenZoneItem.addNodes(
     nodes: List<JiminyDeviceNode>,
     factory: (String) -> JiminyDevice,
 ) = nodes.forEach { node ->
-    (devices.find { it.name == node.deviceName }?.also { devices.remove(it) }
-        ?: factory(node.deviceName))
+    (devices.find { it.name == node.deviceName }
+        ?.also { devices.remove(it) }
+        ?: factory(node.deviceName)
+            )
         .also { devices.add(it) }
-        .takeIf { it.nodes().any { n -> n.fullName == node.fullName }.not() }
-        ?.also {
-            it.addNode(node)
-        }
+        .takeIf { !it.nodes().any { n -> n.fullName == node.fullName } }
+        ?.also { it.addNode(node) }
 }
 
 fun ConnectionScreenZoneItem.nodes() = devices.flatMap { device ->
@@ -75,6 +75,11 @@ fun ConnectionScreenZoneItem.isCompleted() = devices.find {
 
 fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.isCompleted() =
     first.isCompleted() && second.isCompleted()
+
+fun ConnectionScreenZoneItem.isEmpty() = devices.isEmpty()
+
+fun Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>.isEmpty() =
+    first.isEmpty() && second.isEmpty()
 
 @Composable
 fun DraggableDeviceCard(

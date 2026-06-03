@@ -16,10 +16,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,12 +44,10 @@ import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
 import music.jiminy.NodeConnection
 import music.jiminy.disconnectionNodesList
-import music.jiminy.screen.ConnectionScreenAction.OnAddRowClick
 import music.jiminy.screen.ConnectionScreenAction.OnConfirmUnlinkAll
 import music.jiminy.screen.ConnectionScreenAction.OnConnectClick
 import music.jiminy.screen.ConnectionScreenAction.OnDeleteDeviceFromRow
 import music.jiminy.screen.ConnectionScreenAction.OnDeleteNodeFromRow
-import music.jiminy.screen.ConnectionScreenAction.OnDeleteRowClick
 import music.jiminy.screen.ConnectionScreenAction.OnDeviceDrag
 import music.jiminy.screen.ConnectionScreenAction.OnDeviceDragEnd
 import music.jiminy.screen.ConnectionScreenAction.OnDeviceDragStart
@@ -106,19 +100,15 @@ data class ConnectionScreenState(
 )
 
 sealed interface ConnectionScreenAction {
-    data class OnDeviceDragStart(val device: JiminyDevice, val initialOffset: Offset) :
-        ConnectionScreenAction
+    data class OnDeviceDragStart(
+        val device: JiminyDevice,
+        val initialOffset: Offset,
+    ) : ConnectionScreenAction
 
     data class OnDeviceDrag(val newOffset: Offset) : ConnectionScreenAction
     data class OnDeviceDragEnd(val finalOffset: Offset) : ConnectionScreenAction
-
-    class OnAddRowClick : ConnectionScreenAction
-    data class OnDeleteRowClick(val row: Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>) :
-        ConnectionScreenAction
-
     class OnConnectClick : ConnectionScreenAction
     data class OnDisconnectClick(val nodes: List<NodeConnection>) : ConnectionScreenAction
-
     class OnUnlinkAllClick : ConnectionScreenAction
     class OnConfirmUnlinkAll : ConnectionScreenAction
     class OnDismissError : ConnectionScreenAction
@@ -248,11 +238,9 @@ fun MainConnectionScreen(
             }
         }
 
-        state.connectionRows.forEachIndexed { index, row ->
+        state.connectionRows.forEach { row ->
             ConnectionRow(
-                index = index,
                 row = { row },
-                deleteRow = { onAction(OnDeleteRowClick(row)) },
                 onDeleteNode = { zone, node -> onAction(OnDeleteNodeFromRow(zone, node)) },
                 onDeleteDevice = { zone, device -> onAction(OnDeleteDeviceFromRow(zone, device)) },
             )
@@ -260,9 +248,6 @@ fun MainConnectionScreen(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JiminyButton(onClick = { onAction(OnAddRowClick()) }) {
-                TextButton("Add Row")
-            }
             JiminyButton(onClick = { onAction(OnConnectClick()) }) {
                 TextButton("Link")
             }
@@ -315,9 +300,7 @@ fun MainConnectionScreen(
 
 @Composable
 fun ConnectionRow(
-    index: Int,
     row: () -> Pair<ConnectionScreenZoneItem, ConnectionScreenZoneItem>,
-    deleteRow: () -> Unit,
     onDeleteNode: (ConnectionScreenZoneItem, JiminyDeviceNode) -> Unit,
     onDeleteDevice: (ConnectionScreenZoneItem, JiminyDevice) -> Unit,
     modifier: Modifier = Modifier,
@@ -325,7 +308,6 @@ fun ConnectionRow(
     val instruments = row().instruments()
     val speakers = row().speakers()
     var nodeToDelete by remember { mutableStateOf<JiminyDeviceNode?>(null) }
-    var showDeleteRowAlert by remember { mutableStateOf(false) }
     var deviceToDelete by remember {
         mutableStateOf<Pair<ConnectionScreenZoneItem, JiminyDevice>?>(null)
     }
@@ -356,13 +338,9 @@ fun ConnectionRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             instruments.devices.forEach { instrument ->
-                val nodes = remember(instruments.nodes()) {
-                    instrument.nodes().toMutableList() // Simplified for now
-                }
-
                 DeviceCardNodeDetails(
                     device = { instrument },
-                    deviceNodes = { nodes },
+                    deviceNodes = { instrument.nodes() },
                     onDeviceClick = { device -> deviceToDelete = instruments to device },
                     onNodeClick = { node -> nodeToDelete = node },
                 )
@@ -375,35 +353,13 @@ fun ConnectionRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             speakers.devices.forEach { speaker ->
-                val nodes = remember(speakers.nodes()) {
-                    speaker.nodes().toMutableList()
-                }
-
                 DeviceCardNodeDetails(
                     device = { speaker },
-                    deviceNodes = { nodes },
+                    deviceNodes = { speaker.nodes() },
                     onDeviceClick = { device -> deviceToDelete = speakers to device },
                     onNodeClick = { node -> nodeToDelete = node },
                 )
             }
-        }
-    }
-
-    if (index > 0) {
-        IconButton({ showDeleteRowAlert = true }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.onBackground)
-        }
-    }
-
-    if (showDeleteRowAlert) {
-        if (instruments.nodes().isEmpty() && speakers.nodes().isEmpty()) {
-            deleteRow()
-        } else {
-            DeleteConfirmationAlert(
-                "the row",
-                onDismiss = { showDeleteRowAlert = false },
-                onConfirm = deleteRow,
-            )
         }
     }
 
