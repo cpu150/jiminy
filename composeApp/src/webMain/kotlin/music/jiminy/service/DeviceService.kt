@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import music.jiminy.FLUIDSYNTH
-import music.jiminy.FLUID_SYNTH_NAME
+import music.jiminy.FLUIDSYNTH_AUDIO_NAME
+import music.jiminy.FLUIDSYNTH_MIDI_NAME
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyCommand
@@ -149,7 +149,7 @@ class DeviceService(
                 nodeInstrument = null
             } else if (fullName.startsWith("alsa_input") ||
                 fullName.startsWith("alsa_playback") ||
-                fullName.startsWith(FLUIDSYNTH, true) ||
+                fullName.startsWith(FLUIDSYNTH_AUDIO_NAME, true) ||
                 fullName.startsWith(PW_RECORDER_NAME, true) ||
                 fullName.contains(":monitor_") ||
                 fullName.startsWith(MIDI_BRIDGE_PREFIX)
@@ -206,8 +206,8 @@ class DeviceService(
                 portName = nameWithoutType.substring(MIDI_THROUGH.length).trim()
             }
 
-            nameWithoutType.startsWith(FLUID_SYNTH_NAME, ignoreCase = true) -> {
-                deviceName = FLUID_SYNTH_NAME
+            nameWithoutType.startsWith(FLUIDSYNTH_MIDI_NAME, ignoreCase = true) -> {
+                deviceName = FLUIDSYNTH_MIDI_NAME
                 portName = Regex("""port \(([^)]+)\)""", RegexOption.IGNORE_CASE)
                     .findAll(nameWithoutType)
                     .lastOrNull()
@@ -238,7 +238,7 @@ class DeviceService(
 
     private fun parseOutputCmd(
         fullName: String,
-    ) = if (fullName.startsWith(FLUIDSYNTH, true) ||
+    ) = if (fullName.startsWith(FLUIDSYNTH_AUDIO_NAME, true) ||
         fullName.startsWith(PW_RECORDER_NAME, true) ||
         fullName.startsWith(MIDI_BRIDGE_PREFIX)
     ) {

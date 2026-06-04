@@ -19,6 +19,8 @@ import jiminy.composeapp.generated.resources.Res
 import jiminy.composeapp.generated.resources.bass2
 import jiminy.composeapp.generated.resources.drums3
 import jiminy.composeapp.generated.resources.guitar2
+import jiminy.composeapp.generated.resources.looper
+import jiminy.composeapp.generated.resources.metronome
 import jiminy.composeapp.generated.resources.mic2
 import jiminy.composeapp.generated.resources.raspberry_pi2
 import jiminy.composeapp.generated.resources.snd_interface2
@@ -28,6 +30,9 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 fun AvatarIconsEnum.toResource() = when (this) {
+    AvatarIconsEnum.METRONOME -> Res.drawable.metronome
+    AvatarIconsEnum.RASPBERRY_PI -> Res.drawable.raspberry_pi2
+    AvatarIconsEnum.RC_500 -> Res.drawable.looper
     AvatarIconsEnum.GT_1000 -> Res.drawable.guitar2
     AvatarIconsEnum.QUAD_CORTEX -> Res.drawable.bass2
     AvatarIconsEnum.ROLAND_TD_07 -> Res.drawable.drums3

@@ -98,6 +98,8 @@ val dummyInstrumentsCmd = listOf(
     "Midi-Bridge:Midi Through Port-0 (capture)",
     "Midi-Bridge:Jiminy_Metronome MIDI Click Out (capture)",
     "Midi-Bridge:BOSS_RC-500 MIDI 1 (capture)",
+    "Midi-Bridge:Quad Cortex MIDI 1 (capture)",
+    "Midi-Bridge:TD-07 MIDI 1 (capture)",
     "Midi-Bridge:GT-1000 MIDI 1 (capture)",
     "Midi-Bridge:GT-1000 MIDI 2 (capture)",
     "alsa_output.usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00.analog-stereo:monitor_FL",
@@ -169,6 +171,8 @@ val dummySpeakersCmd = listOf(
     "Midi-Bridge:GT-1000 MIDI 1 (playback)",
     "Midi-Bridge:GT-1000 MIDI 2 (playback)",
     "Midi-Bridge:BOSS_RC-500 MIDI 1 (playback)",
+    "Midi-Bridge:Quad Cortex MIDI 1 (playback)",
+    "Midi-Bridge:TD-07 MIDI 1 (playback)",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FL",
     "alsa_output.usb-Synaptics_Hi-Res_Audio_000000000000000000000000-00.analog-stereo:playback_FR",
 )

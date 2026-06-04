@@ -45,11 +45,16 @@ const val PW_RECORDER_FORMAT = "s16"
 const val PW_RECORDER_STORAGE_DIRECTORY = "/mnt/data"
 
 const val GT_1000 = "usb-BOSS_GT-1000-01"
+const val GT_1000_MIDI = "GT-1000"
+const val RC_500_MIDI = "BOSS_RC-500"
 const val QUAD_CORTEX = "usb-Neural_DSP_Quad_Cortex-00"
+const val QUAD_CORTEX_MIDI = "Quad Cortex"
 const val ROLAND_TD_07 = "usb-Roland_TD-07-01"
-const val FLUIDSYNTH = "FluidSynth"
+const val ROLAND_TD_07_MIDI = "TD-07"
+const val FLUIDSYNTH_AUDIO_NAME = "FluidSynth"
+const val FLUIDSYNTH_MIDI_NAME = "FLUID Synth"
+const val METRONOME_MIDI = "Jiminy_Metronome"
 const val MIDI_THROUGH = "Midi Through"
-const val FLUID_SYNTH_NAME = "FLUID Synth"
 const val MIDI_BRIDGE_PREFIX = "Midi-Bridge:"
 const val SND_CARD_U_GREEN = "usb-Realtek_UGREEN_CM720_USB_Audio_202312130006-00"
 const val SND_CARD_RED = "usb-GHW-136D-20231007_USB_Audio_20210726905926-00"
@@ -113,7 +118,9 @@ const val RECORDER_MONITOR_9 = "${RECORDER_MONITOR_ROOT}8"
 const val RECORDER_MONITOR_10 = "${RECORDER_MONITOR_ROOT}9"
 
 enum class AvatarIconsEnum {
+    METRONOME,
     GT_1000,
+    RC_500,
     QUAD_CORTEX,
     ROLAND_TD_07,
     FLUIDSYNTH,
@@ -121,6 +128,7 @@ enum class AvatarIconsEnum {
     SND_CARD_RED,
     SND_CARD_24,
     MIC_SHURE_MV88,
+    RASPBERRY_PI,
     Unknown,
 }
 
@@ -128,30 +136,43 @@ val deviceNameToAvatar = mapOf(
     GT_1000 to AvatarIconsEnum.GT_1000,
     QUAD_CORTEX to AvatarIconsEnum.QUAD_CORTEX,
     ROLAND_TD_07 to AvatarIconsEnum.ROLAND_TD_07,
-    FLUIDSYNTH to AvatarIconsEnum.FLUIDSYNTH,
+    FLUIDSYNTH_AUDIO_NAME to AvatarIconsEnum.FLUIDSYNTH,
     SND_CARD_U_GREEN to AvatarIconsEnum.SND_CARD_U_GREEN,
     SND_CARD_RED to AvatarIconsEnum.SND_CARD_RED,
     SND_CARD_24 to AvatarIconsEnum.SND_CARD_24,
     MIC_SHURE_MV88 to AvatarIconsEnum.MIC_SHURE_MV88,
+
+    MIDI_THROUGH to AvatarIconsEnum.RASPBERRY_PI,
+    METRONOME_MIDI to AvatarIconsEnum.METRONOME,
+    GT_1000_MIDI to AvatarIconsEnum.GT_1000,
+    RC_500_MIDI to AvatarIconsEnum.RC_500,
+    QUAD_CORTEX_MIDI to AvatarIconsEnum.QUAD_CORTEX,
+    ROLAND_TD_07_MIDI to AvatarIconsEnum.ROLAND_TD_07,
+    FLUIDSYNTH_MIDI_NAME to AvatarIconsEnum.FLUIDSYNTH,
 )
 
 val deviceNameToAlias = mapOf(
-    FLUIDSYNTH to "Synth",
-    "$FLUIDSYNTH:$INPUT_CAPTURE_1" to "Left",
-    "$FLUIDSYNTH:$INPUT_CAPTURE_2" to "Right",
-    "$FLUIDSYNTH:$OUTPUT_1" to "Left",
-    "$FLUIDSYNTH:$OUTPUT_2" to "Right",
-    "$FLUIDSYNTH:$OUTPUT_3" to "3",
-    "$FLUIDSYNTH:$OUTPUT_4" to "4",
-    "$FLUIDSYNTH:$OUTPUT_5" to "5",
-    "$FLUIDSYNTH:$OUTPUT_6" to "6",
-    "$FLUIDSYNTH:$OUTPUT_7" to "7",
-    "$FLUIDSYNTH:$OUTPUT_8" to "8",
-    "$FLUIDSYNTH:$OUTPUT_PLAYBACK_1" to "Playback Left",
-    "$FLUIDSYNTH:$OUTPUT_PLAYBACK_2" to "Playback Right",
-    "$FLUIDSYNTH:$OUTPUT_MONITOR_1" to "Monitor Left",
-    "$FLUIDSYNTH:$OUTPUT_MONITOR_2" to "Monitor Right",
+    METRONOME_MIDI to "Metronome",
+    MIDI_THROUGH to "Pi",
 
+    FLUIDSYNTH_MIDI_NAME to "Synth",
+    FLUIDSYNTH_AUDIO_NAME to "Synth",
+    "$FLUIDSYNTH_AUDIO_NAME:$INPUT_CAPTURE_1" to "Left",
+    "$FLUIDSYNTH_AUDIO_NAME:$INPUT_CAPTURE_2" to "Right",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_1" to "Left",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_2" to "Right",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_3" to "3",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_4" to "4",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_5" to "5",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_6" to "6",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_7" to "7",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_8" to "8",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_PLAYBACK_1" to "Playback Left",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_PLAYBACK_2" to "Playback Right",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_MONITOR_1" to "Monitor Left",
+    "$FLUIDSYNTH_AUDIO_NAME:$OUTPUT_MONITOR_2" to "Monitor Right",
+
+    QUAD_CORTEX_MIDI to "Umberto",
     QUAD_CORTEX to "Umberto",
     "$QUAD_CORTEX:$INPUT_CAPTURE_1" to "Left",
     "$QUAD_CORTEX:$INPUT_CAPTURE_2" to "Right / Mono",
@@ -178,6 +199,7 @@ val deviceNameToAlias = mapOf(
     "$QUAD_CORTEX:$OUTPUT_MONITOR_7" to "Monitor 7",
     "$QUAD_CORTEX:$OUTPUT_MONITOR_8" to "Monitor 8",
 
+    ROLAND_TD_07_MIDI to "Iris",
     ROLAND_TD_07 to "Iris",
     "$ROLAND_TD_07:$INPUT_CAPTURE_1" to "Left",
     "$ROLAND_TD_07:$INPUT_CAPTURE_2" to "Right",
@@ -186,6 +208,8 @@ val deviceNameToAlias = mapOf(
     "$ROLAND_TD_07:$OUTPUT_MONITOR_1" to "Monitor Left",
     "$ROLAND_TD_07:$OUTPUT_MONITOR_2" to "Monitor Right",
 
+    RC_500_MIDI to "Looper",
+    GT_1000_MIDI to "Nic",
     GT_1000 to "Nic",
     "$GT_1000:$INPUT_CAPTURE_1" to "Left",
     "$GT_1000:$INPUT_CAPTURE_2" to "Right / Mono",
