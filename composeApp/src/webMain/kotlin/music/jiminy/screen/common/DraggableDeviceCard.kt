@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntSize
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyDeviceType
 import music.jiminy.screen.ConnectionScreenNodeType
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 
@@ -46,11 +47,11 @@ fun ConnectionScreenZoneItem.removeNode(node: JiminyDeviceNode) =
 
 fun ConnectionScreenZoneItem.addNodes(
     nodes: List<JiminyDeviceNode>,
-    factory: (String) -> JiminyDevice,
+    deviceType: JiminyDeviceType
 ) = nodes.forEach { node ->
     (devices.find { it.name == node.deviceName }
         ?.also { devices.remove(it) }
-        ?: factory(node.deviceName)
+        ?: JiminyDevice(node.deviceName, deviceType)
             )
         .also { devices.add(it) }
         .takeIf { !it.nodes().any { n -> n.fullName == node.fullName } }
