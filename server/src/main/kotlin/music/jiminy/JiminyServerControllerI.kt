@@ -15,6 +15,12 @@ interface JiminyServerControllerI {
     fun getRecordingFile(filename: String): File?
     suspend fun startRecording(commands: JiminyCommand.StartRecording): Boolean
     suspend fun stopRecording(): Boolean
+
+    suspend fun getConfigurations(): List<String>
+    suspend fun saveConfiguration(config: JiminyConfiguration): Boolean
+    suspend fun getConfiguration(name: String): JiminyConfiguration?
+    suspend fun deleteConfiguration(name: String): Boolean
+
     suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,

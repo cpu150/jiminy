@@ -20,6 +20,7 @@ const val WS_DELETE_RECORDINGS = "/delete-recordings"
 const val WS_DOWNLOAD_RECORDINGS = "/download-recordings"
 const val WS_SERVER_LOGS = "/server-logs"
 const val WS_FLUSH_SERVER_LOGS = "/flush-server-logs"
+const val WS_CONFIGURATIONS = "/configurations"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
 
@@ -35,6 +36,10 @@ const val DEVICE_CARD_INSTRUMENTS_COLOR = 0xFF4CAF50
 const val MIXER_SLIDER_HEIGHT = 300
 const val MIXER_SLIDER_WIDTH = 26
 
+const val PW_BASE_STORAGE_DIRECTORY = "/mnt/data"
+const val PW_RECORDER_STORAGE_DIRECTORY = "$PW_BASE_STORAGE_DIRECTORY/recordings"
+const val PW_CONFIGURATION_STORAGE_DIRECTORY = "$PW_BASE_STORAGE_DIRECTORY/configurations"
+
 const val PW_RECORDER_NAME = "pw-record"
 const val PW_RECORDER_LATENCY_MILLIS = 10000
 const val PW_RECORDER_LATENCY_STR = "${PW_RECORDER_LATENCY_MILLIS}ms"
@@ -42,7 +47,6 @@ const val PW_RECORDER_CHANNEL_PREFIX = "AUX"
 const val PW_RECORDER_CHANNEL_COUNT = 8
 const val PW_RECORDER_RATE = "48000"
 const val PW_RECORDER_FORMAT = "s16"
-const val PW_RECORDER_STORAGE_DIRECTORY = "/mnt/data"
 
 const val GT_1000 = "usb-BOSS_GT-1000-01"
 const val GT_1000_MIDI = "GT-1000"

@@ -16,11 +16,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.DEBOUNCING_COMMAND_MILLIS
+import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
+import music.jiminy.LinkType
 import music.jiminy.NodeConnection
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
@@ -199,6 +201,114 @@ class ConnectionViewModel(
         _isStoppingRecording.update { true }
         mainService.stopRecording(onError = ::handleError)
         _isStoppingRecording.update { false }
+    }
+
+    //// Configuration Management
+
+    sealed interface LoadConfigState {
+        object Idle : LoadConfigState
+        object Loading : LoadConfigState
+        data class Success(val configurations: List<String>) : LoadConfigState
+        data class Error(val message: String) : LoadConfigState
+    }
+
+    private val _configurationsState = MutableStateFlow<LoadConfigState>(LoadConfigState.Idle)
+    val configurationsState: StateFlow<LoadConfigState> = _configurationsState.asStateFlow()
+
+    private val _showSaveConfigPopup = MutableStateFlow(false)
+    val showSaveConfigPopup: StateFlow<Boolean> = _showSaveConfigPopup.asStateFlow()
+
+    private val _showLoadConfigPopup = MutableStateFlow(false)
+    val showLoadConfigPopup: StateFlow<Boolean> = _showLoadConfigPopup.asStateFlow()
+
+    fun onSaveConfigClick() {
+        _showSaveConfigPopup.update { true }
+    }
+
+    fun onLoadConfigClick() {
+        _configurationsState.update { LoadConfigState.Loading }
+        _showLoadConfigPopup.update { true }
+
+        viewModelScope.launch {
+            mainService.getConfigurations(
+                onSuccess = { response ->
+                    _configurationsState.update { LoadConfigState.Success(response.value) }
+                },
+                onError = { error ->
+                    val msg = when (error) {
+                        is JiminyResponse.Error -> error.message
+                        else -> error.toString()
+                    }
+                    _configurationsState.update { LoadConfigState.Error(msg) }
+                },
+            )
+        }
+    }
+
+    fun dismissSaveConfigPopup() {
+        _showSaveConfigPopup.update { false }
+    }
+
+    fun dismissLoadConfigPopup() {
+        _showLoadConfigPopup.update { false }
+        _configurationsState.update { LoadConfigState.Idle }
+    }
+
+    fun saveConfiguration(name: String, currentLinks: List<JiminyLink>) {
+        val links = currentLinks.flatMap { link ->
+            link.instrumentDevices.flatMap { instrument ->
+                instrument.instruments.flatMap { instNode ->
+                    link.speakerDevice.speakers.map { spkNode ->
+                        JiminyCommand.Link(instNode.fullName, spkNode.fullName, LinkType.Connect)
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            mainService.saveConfiguration(
+                config = JiminyConfiguration(name, links),
+                onSuccess = {
+                    _showSaveConfigPopup.update { false }
+                },
+                onError = ::handleError,
+            )
+        }
+    }
+
+    fun loadConfiguration(name: String) {
+        viewModelScope.launch {
+            mainService.getConfiguration(
+                name = name,
+                onSuccess = { response ->
+                    val config = response.value
+                    viewModelScope.launch {
+                        mainService.deviceLinks(
+                            links = config.links,
+                            onSuccess = { _showLoadConfigPopup.update { false } },
+                            onError = ::handleError,
+                            finally = {
+                                // We might need to refresh UI here, but deviceLinks usually triggers refresh
+                            },
+                        )
+                    }
+                },
+                onError = ::handleError,
+            )
+        }
+    }
+
+    fun deleteConfiguration(name: String) {
+        viewModelScope.launch {
+            mainService.deleteConfiguration(
+                name = name,
+                onSuccess = {
+                    // Refresh the list
+                    onLoadConfigClick()
+                },
+                onError = ::handleError,
+            )
+        }
     }
 }
 

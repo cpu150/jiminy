@@ -1,5 +1,6 @@
 package music.jiminy
 
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -8,7 +9,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,7 +35,7 @@ class ApplicationTest {
 
         val response = client.get(WS_DEVICES)
         assertEquals(HttpStatusCode.OK, response.status)
-        
+
         val body = response.bodyAsText()
         val devices = json.decodeFromString<JiminyDeviceList>(body)
         assertEquals(
@@ -58,7 +58,7 @@ class ApplicationTest {
 
         val response = client.get(WS_LINK_DEVICES)
         assertEquals(HttpStatusCode.OK, response.status)
-        
+
         val body = response.bodyAsText()
         val links = json.decodeFromString<List<String>>(body)
         assertEquals(
@@ -81,7 +81,7 @@ class ApplicationTest {
 
         val response = client.get(WS_RECORDINGS)
         assertEquals(HttpStatusCode.OK, response.status)
-        
+
         val body = response.bodyAsText()
         val recordings = json.decodeFromString<List<String>>(body)
         assertEquals(
@@ -229,7 +229,7 @@ class ApplicationTest {
         // Try to access get devices endpoint, should be locked
         val lockedResponse = client.get(WS_DEVICES)
         assertEquals(HttpStatusCode.Locked, lockedResponse.status)
-        
+
         // Stop recording
         val stopResponse = client.post(WS_STOP_RECORDING)
         assertEquals(HttpStatusCode.OK, stopResponse.status)
@@ -239,5 +239,54 @@ class ApplicationTest {
         // Now devices should be accessible
         val unlockedResponse = client.get(WS_DEVICES)
         assertEquals(HttpStatusCode.OK, unlockedResponse.status)
+    }
+
+    @Test
+    fun testConfigurations() = testApplication {
+        val mockController = MockController()
+        val debugLogger = DebugLogger()
+        application {
+            module(
+                json = json,
+                controller = mockController,
+                logger = debugLogger,
+            )
+        }
+
+        // List initial configurations
+        val listResponse = client.get(WS_CONFIGURATIONS)
+        assertEquals(HttpStatusCode.OK, listResponse.status)
+        val configs = json.decodeFromString<List<String>>(listResponse.bodyAsText())
+        assertEquals(2, configs.size)
+
+        // Save new configuration
+        val newConfig = JiminyConfiguration("New Config", emptyList())
+        val saveResponse = client.post(WS_CONFIGURATIONS) {
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(newConfig))
+        }
+        assertEquals(HttpStatusCode.OK, saveResponse.status)
+        assertEquals("Configuration saved", saveResponse.bodyAsText())
+
+        // Verify it was added
+        val listResponse2 = client.get(WS_CONFIGURATIONS)
+        val configs2 = json.decodeFromString<List<String>>(listResponse2.bodyAsText())
+        assertTrue(configs2.contains("New Config"))
+
+        // Get specific configuration
+        val getResponse = client.get("$WS_CONFIGURATIONS/New%20Config")
+        assertEquals(HttpStatusCode.OK, getResponse.status)
+        val fetchedConfig = json.decodeFromString<JiminyConfiguration>(getResponse.bodyAsText())
+        assertEquals("New Config", fetchedConfig.name)
+
+        // Delete configuration
+        val deleteResponse = client.delete("$WS_CONFIGURATIONS/New%20Config")
+        assertEquals(HttpStatusCode.OK, deleteResponse.status)
+        assertEquals("Configuration deleted", deleteResponse.bodyAsText())
+
+        // Verify it was removed
+        val listResponse3 = client.get(WS_CONFIGURATIONS)
+        val configs3 = json.decodeFromString<List<String>>(listResponse3.bodyAsText())
+        assertTrue(!configs3.contains("New Config"))
     }
 }

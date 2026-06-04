@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material.icons.filled.Sync
@@ -54,7 +55,9 @@ import music.jiminy.screen.MIDIScreen
 import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
+import music.jiminy.screen.common.LoadConfigAlert
 import music.jiminy.screen.common.MarqueeText
+import music.jiminy.screen.common.SaveConfigAlert
 import music.jiminy.screen.common.TextError
 import music.jiminy.screen.common.TextTitle
 import music.jiminy.service.JiminyConnectionStatus
@@ -142,6 +145,30 @@ fun MainScreen(
     val connectionStatus by connectionViewModel.connectionStatus.collectAsStateWithLifecycle()
     val isRefreshing by connectionViewModel.isRefreshing.collectAsStateWithLifecycle()
 
+    val audioState by connectionScreenViewModel.state.collectAsStateWithLifecycle()
+    val midiState by midiScreenViewModel.state.collectAsStateWithLifecycle()
+    val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
+    val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
+    val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
+
+    if (showSaveConfigPopup) {
+        SaveConfigAlert(
+            onDismiss = connectionViewModel::dismissSaveConfigPopup,
+            onConfirm = { name ->
+                connectionViewModel.saveConfiguration(name, audioState.links + midiState.links)
+            },
+        )
+    }
+
+    if (showLoadConfigPopup) {
+        LoadConfigAlert(
+            state = configurationsState,
+            onDismiss = connectionViewModel::dismissLoadConfigPopup,
+            onSelect = connectionViewModel::loadConfiguration,
+            onDelete = connectionViewModel::deleteConfiguration,
+        )
+    }
+
     val errorFlow = combine(
         connectionViewModel.errorMessage,
         connectionScreenViewModel.errorMessage,
@@ -179,7 +206,8 @@ fun MainScreen(
             StatusBar(
                 status = connectionStatus,
                 error = errorMsg,
-                onSaveClick = { /* TODO */ },
+                onSaveClick = connectionViewModel::onSaveConfigClick,
+                onLoadClick = connectionViewModel::onLoadConfigClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
 
@@ -234,6 +262,7 @@ fun StatusBar(
     status: JiminyConnectionStatus,
     error: String?,
     onSaveClick: () -> Unit,
+    onLoadClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -262,12 +291,22 @@ fun StatusBar(
             }
         }
 
-        IconButton(onClick = onSaveClick) {
-            Icon(
-                imageVector = Icons.Default.Save,
-                contentDescription = "Save Config",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row {
+            IconButton(onClick = onLoadClick) {
+                Icon(
+                    imageVector = Icons.Default.FileUpload,
+                    contentDescription = "Load Config",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            IconButton(onClick = onSaveClick) {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = "Save Config",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

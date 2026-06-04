@@ -17,6 +17,7 @@ import music.jiminy.DEBUG
 import music.jiminy.DEBUG_SERVER_PORT
 import music.jiminy.LockedForRecordingException
 import music.jiminy.SERVER_PORT
+import music.jiminy.service.ConfigurationService
 import music.jiminy.service.DeviceService
 import music.jiminy.service.JiminyLogger
 import music.jiminy.service.LoggingService
@@ -86,6 +87,7 @@ val appModule = module {
     single { DeviceService(get(), get<Triple<String, Int, String>>().third, get()) }
     single { RecordingService(get(), get<Triple<String, Int, String>>().third, get()) }
     single { LoggingService(get(), get<Triple<String, Int, String>>().third, get()) }
+    single { ConfigurationService(get(), get<Triple<String, Int, String>>().third) }
 
     singleOf(::MainServiceImpl) { bind<MainService>() }
 

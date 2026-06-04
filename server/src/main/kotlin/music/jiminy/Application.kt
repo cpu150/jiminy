@@ -24,6 +24,7 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondOutputStream
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -176,6 +177,37 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
         get(WS_RECORDINGS) { call.respond(controller.getRecordings()) }
 
         get(WS_SERVER_LOGS) { call.respond(logger.logEntries) }
+
+        get(WS_CONFIGURATIONS) { call.respond(controller.getConfigurations()) }
+
+        get("$WS_CONFIGURATIONS/{name}") {
+            val name = call.parameters["name"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            controller.getConfiguration(name)?.let {
+                call.respond(it)
+            } ?: call.respond(HttpStatusCode.NotFound)
+        }
+
+        post(WS_CONFIGURATIONS) {
+            try {
+                val config = call.receive<JiminyConfiguration>()
+                if (controller.saveConfiguration(config)) {
+                    call.respond(HttpStatusCode.OK, "Configuration saved")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "$WS_CONFIGURATIONS - Error saving configuration")
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "$WS_CONFIGURATIONS - Error: ${e.message}")
+            }
+        }
+
+        delete("$WS_CONFIGURATIONS/{name}") {
+            val name = call.parameters["name"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+            if (controller.deleteConfiguration(name)) {
+                call.respond(HttpStatusCode.OK, "Configuration deleted")
+            } else {
+                call.respond(HttpStatusCode.NotFound, "Configuration not found")
+            }
+        }
 
         post(WS_FLUSH_SERVER_LOGS) {
             try {

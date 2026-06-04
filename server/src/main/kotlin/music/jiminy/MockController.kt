@@ -36,6 +36,25 @@ class MockController : JiminyServerControllerI {
     override suspend fun stopRecording() = true
         .also { _isRecording = false }
 
+    private val mockConfigurations = mutableListOf(
+        JiminyConfiguration("Standard Setup", emptyList()),
+        JiminyConfiguration("Live Gig", emptyList()),
+    )
+
+    override suspend fun getConfigurations() = mockConfigurations.map { it.name }
+
+    override suspend fun saveConfiguration(config: JiminyConfiguration): Boolean {
+        mockConfigurations.removeAll { it.name == config.name }
+        mockConfigurations.add(config)
+        return true
+    }
+
+    override suspend fun getConfiguration(name: String) =
+        mockConfigurations.find { it.name == name }
+
+    override suspend fun deleteConfiguration(name: String) =
+        mockConfigurations.removeAll { it.name == name }
+
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,

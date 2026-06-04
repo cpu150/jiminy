@@ -2,6 +2,8 @@ package music.jiminy
 
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.sendSerialized
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +26,12 @@ import kotlin.time.Duration.Companion.seconds
 class Controller(
     private val logger: JiminyLoggerI,
 ) : JiminyServerControllerI {
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        prettyPrint = true
+    }
 
     private data class RecordProcessInfo(val filename: String, val process: Process)
 
@@ -285,6 +293,63 @@ class Controller(
             false
         } finally {
             _isRecording.store(false)
+        }
+    }
+
+    override suspend fun getConfigurations() = withContext(Dispatchers.IO) {
+        val directory = File(PW_CONFIGURATION_STORAGE_DIRECTORY)
+        if (directory.exists() && directory.isDirectory) {
+            directory.listFiles { _, name -> name.endsWith(".json", ignoreCase = true) }
+                ?.map { it.name.removeSuffix(".json") }
+                ?.sorted()
+                ?: emptyList()
+        } else {
+            emptyList()
+        }
+    }
+
+    override suspend fun saveConfiguration(config: JiminyConfiguration) = withContext(Dispatchers.IO) {
+        try {
+            val directory = File(PW_CONFIGURATION_STORAGE_DIRECTORY)
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+            val file = File(directory, "${config.name}.json")
+            file.writeText(json.encodeToString(config))
+            logger.info("Jiminy Server - saveConfiguration - Saved: ${config.name}")
+            true
+        } catch (e: Exception) {
+            logger.error("Jiminy Server - saveConfiguration - ERROR - ${config.name} - ${e.message}")
+            false
+        }
+    }
+
+    override suspend fun getConfiguration(name: String): JiminyConfiguration? = withContext(Dispatchers.IO) {
+        try {
+            val file = File(PW_CONFIGURATION_STORAGE_DIRECTORY, "$name.json")
+            if (file.exists() && file.isFile) {
+                json.decodeFromString<JiminyConfiguration>(file.readText())
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Jiminy Server - getConfiguration - ERROR - $name - ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun deleteConfiguration(name: String) = withContext(Dispatchers.IO) {
+        try {
+            val file = File(PW_CONFIGURATION_STORAGE_DIRECTORY, "$name.json")
+            if (file.exists() && file.delete()) {
+                logger.info("Jiminy Server - deleteConfiguration - Deleted: $name")
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            logger.error("Jiminy Server - deleteConfiguration - ERROR - $name - ${e.message}")
+            false
         }
     }
 

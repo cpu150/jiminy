@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
+import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LockedForRecordingException
@@ -104,6 +105,29 @@ interface MainService {
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
     )
+
+    suspend fun getConfigurations(
+        onSuccess: (Success<List<String>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun getConfiguration(
+        name: String,
+        onSuccess: (Success<JiminyConfiguration>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun saveConfiguration(
+        config: JiminyConfiguration,
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun deleteConfiguration(
+        name: String,
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
 }
 
 class MainServiceImpl(
@@ -111,6 +135,7 @@ class MainServiceImpl(
     private val mixerService: MixerService,
     private val deviceService: DeviceService,
     private val recordingService: RecordingService,
+    private val configurationService: ConfigurationService,
     private val loggingService: LoggingService,
     private val logger: JiminyLoggerI,
 ) : MainService {
@@ -347,6 +372,61 @@ class MainServiceImpl(
                 handleHttpResponse("stopRecording", recordingService.stopRecording())
                     ?.let { onError(it) }
                     ?: let { onSuccess?.invoke(EmptySuccess) }
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
+
+    override suspend fun getConfigurations(
+        onSuccess: (Success<List<String>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        handleExceptions(
+            logMsg = "getConfigurations",
+            tryBlock = { onSuccess(Success(configurationService.getConfigurations())) },
+            catchBlock = { error -> onError(error) },
+        )
+    }
+
+    override suspend fun getConfiguration(
+        name: String,
+        onSuccess: (Success<JiminyConfiguration>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        handleExceptions(
+            logMsg = "getConfiguration",
+            tryBlock = { onSuccess(Success(configurationService.getConfiguration(name))) },
+            catchBlock = { error -> onError(error) },
+        )
+    }
+
+    override suspend fun saveConfiguration(
+        config: JiminyConfiguration,
+        onSuccess: ((EmptySuccess) -> Unit)?,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        handleExceptions(
+            logMsg = "saveConfiguration",
+            tryBlock = {
+                handleHttpResponse("saveConfiguration", configurationService.saveConfiguration(config))
+                    ?.let { onError(it) }
+                    ?: onSuccess?.invoke(EmptySuccess)
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
+
+    override suspend fun deleteConfiguration(
+        name: String,
+        onSuccess: ((EmptySuccess) -> Unit)?,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        handleExceptions(
+            logMsg = "deleteConfiguration",
+            tryBlock = {
+                handleHttpResponse("deleteConfiguration", configurationService.deleteConfiguration(name))
+                    ?.let { onError(it) }
+                    ?: onSuccess?.invoke(EmptySuccess)
             },
             catchBlock = { error -> onError(error) },
         )

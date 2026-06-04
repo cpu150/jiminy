@@ -1,12 +1,14 @@
 package music.jiminy.viewmodel
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import music.jiminy.JiminyCommand
+import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LogEntry
@@ -44,7 +46,7 @@ class FakeLogger : JiminyLoggerI {
     }
 }
 
-class FakeMainService(
+open class FakeMainService(
     scope: CoroutineScope? = null,
     logger: JiminyLoggerI = FakeLogger(),
 ) : MainService {
@@ -68,6 +70,7 @@ class FakeMainService(
     val mockDeviceLinks = mutableListOf<NodeConnection>()
     val mockRecordings = mutableListOf<String>()
     val mockServerLogs = mutableListOf<LogEntry>()
+    val mockConfigurations = mutableListOf<JiminyConfiguration>()
 
     fun setAudioDevices(devices: List<JiminyDevice>) {
         _audioDevices.value = devices
@@ -173,5 +176,42 @@ class FakeMainService(
         onError: (JiminyResponse) -> Unit,
     ) {
         // No-op in fake
+    }
+
+    override suspend fun getConfigurations(
+        onSuccess: (JiminyResponse.Success<List<String>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        delay(10)
+        onSuccess(JiminyResponse.Success(mockConfigurations.map { it.name }))
+    }
+
+    override suspend fun getConfiguration(
+        name: String,
+        onSuccess: (JiminyResponse.Success<JiminyConfiguration>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        mockConfigurations.find { it.name == name }?.let {
+            onSuccess(JiminyResponse.Success(it))
+        } ?: onError(JiminyResponse.Error("Not found"))
+    }
+
+    override suspend fun saveConfiguration(
+        config: JiminyConfiguration,
+        onSuccess: ((JiminyResponse.EmptySuccess) -> Unit)?,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        mockConfigurations.removeAll { it.name == config.name }
+        mockConfigurations.add(config)
+        onSuccess?.invoke(JiminyResponse.EmptySuccess)
+    }
+
+    override suspend fun deleteConfiguration(
+        name: String,
+        onSuccess: ((JiminyResponse.EmptySuccess) -> Unit)?,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        mockConfigurations.removeAll { it.name == name }
+        onSuccess?.invoke(JiminyResponse.EmptySuccess)
     }
 }

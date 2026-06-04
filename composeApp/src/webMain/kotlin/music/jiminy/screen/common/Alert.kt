@@ -17,22 +17,28 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +47,11 @@ import androidx.compose.ui.unit.dp
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
+import music.jiminy.viewmodel.ConnectionViewModel
+import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Error
+import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Idle
+import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Loading
+import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Success
 
 @Composable
 fun ErrorAlert(
@@ -369,6 +380,131 @@ fun RecordingFileItem(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+@Composable
+fun SaveConfigAlert(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var name by remember { mutableStateOf("") }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = { TextTitle("Save Configuration") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        errorMsg = null
+                    },
+                    label = { TextBody("Configuration Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                errorMsg?.let { TextError(it) }
+            }
+        },
+        confirmButton = {
+            JiminyButton(onClick = {
+                if (name.isNotBlank()) {
+                    onConfirm(name)
+                } else {
+                    errorMsg = "Name cannot be empty"
+                }
+            }) { TextButton("Save") }
+        },
+        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
+    )
+}
+
+@Composable
+fun LoadConfigAlert(
+    state: ConnectionViewModel.LoadConfigState,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextTitle("Load Configuration")
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                    )
+                }
+            }
+        },
+        text = {
+            Box(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 400.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                when (state) {
+                    Idle -> Unit
+                    Loading -> CircularProgressIndicator()
+                    is Error -> TextError(state.message, modifier = Modifier.padding(16.dp))
+                    is Success -> LoadConfigView(state.configurations, onSelect, onDelete)
+                }
+            }
+        },
+        confirmButton = { },
+    )
+}
+
+@Composable
+fun LoadConfigView(
+    configurations: List<String>,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
+        if (configurations.isEmpty()) {
+            TextBody("No configurations found", modifier = Modifier.padding(16.dp))
+        } else {
+            configurations.forEach { config ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Surface(
+                        onClick = { onSelect(config) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                    ) {
+                        TextBody(
+                            text = config,
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    }
+                    IconButton(onClick = { onDelete(config) }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
         }
     }
 }
