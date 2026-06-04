@@ -55,6 +55,7 @@ import music.jiminy.screen.MIDIScreen
 import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
+import music.jiminy.screen.common.GenericMessageAlert
 import music.jiminy.screen.common.LoadConfigAlert
 import music.jiminy.screen.common.MarqueeText
 import music.jiminy.screen.common.SaveConfigAlert
@@ -149,10 +150,12 @@ fun MainScreen(
     val midiState by midiScreenViewModel.state.collectAsStateWithLifecycle()
     val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
     val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
+    val showOverwriteConfigPopup by connectionViewModel.showOverwriteConfigPopup.collectAsStateWithLifecycle()
     val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
 
     if (showSaveConfigPopup) {
         SaveConfigAlert(
+            state = configurationsState,
             onDismiss = connectionViewModel::dismissSaveConfigPopup,
             onConfirm = { name ->
                 connectionViewModel.saveConfiguration(name, audioState.links + midiState.links)
@@ -166,6 +169,16 @@ fun MainScreen(
             onDismiss = connectionViewModel::dismissLoadConfigPopup,
             onSelect = connectionViewModel::loadConfiguration,
             onDelete = connectionViewModel::deleteConfiguration,
+        )
+    }
+
+    showOverwriteConfigPopup?.let { name ->
+        GenericMessageAlert(
+            title = "Overwrite configuration?",
+            message = "A configuration named \"$name\" already exists. Do you want to overwrite it?",
+            onDismiss = connectionViewModel::dismissOverwriteConfigPopup,
+            onConfirm = connectionViewModel::confirmOverwrite,
+            confirmLabel = "Overwrite",
         )
     }
 

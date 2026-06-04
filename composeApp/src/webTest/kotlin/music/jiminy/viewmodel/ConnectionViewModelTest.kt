@@ -49,6 +49,48 @@ class ConnectionViewModelTest {
     }
 
     @Test
+    fun testSaveConfigurationWithOverwrite() = runTest {
+        // Initial setup with one config
+        mainService.mockConfigurations.add(JiminyConfiguration("Existing", emptyList()))
+        
+        // Fetch configs to populate state
+        viewModel.onSaveConfigClick()
+        viewModel.configurationsState.first { it is ConnectionViewModel.LoadConfigState.Success }
+
+        val instrument = JiminyDevice("Instrument", JiminyDeviceType.Audio)
+        val speaker = JiminyDevice("Speaker", JiminyDeviceType.Audio)
+        val links = listOf(JiminyLink(listOf(instrument), speaker))
+
+        // Try to save with existing name
+        viewModel.saveConfiguration("Existing", links)
+
+        // Verify overwrite popup shown and save popup dismissed
+        assertEquals("Existing", viewModel.showOverwriteConfigPopup.value)
+        assertTrue(!viewModel.showSaveConfigPopup.value)
+
+        // Confirm overwrite
+        viewModel.confirmOverwrite()
+
+        // Verify saved and popup dismissed
+        assertEquals(1, mainService.mockConfigurations.size)
+        assertEquals("Existing", mainService.mockConfigurations.first().name)
+        assertTrue(viewModel.showOverwriteConfigPopup.value == null)
+    }
+
+    @Test
+    fun testOnSaveConfigClickTransitions() = runTest {
+        viewModel.onSaveConfigClick()
+
+        // Verify Loading state and popup shown
+        assertTrue(viewModel.showSaveConfigPopup.value)
+        assertEquals(ConnectionViewModel.LoadConfigState.Loading, viewModel.configurationsState.value)
+
+        // Wait for coroutine to finish (Success state)
+        val state = viewModel.configurationsState.first { it is ConnectionViewModel.LoadConfigState.Success }
+        assertTrue(state is ConnectionViewModel.LoadConfigState.Success)
+    }
+
+    @Test
     fun testOnLoadConfigClickTransitions() = runTest {
         mainService.mockConfigurations.add(JiminyConfiguration("Config1", emptyList()))
 

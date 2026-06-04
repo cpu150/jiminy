@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.DEBOUNCING_COMMAND_MILLIS
+import music.jiminy.JiminyCommand
 import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceType
-import music.jiminy.JiminyCommand
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
@@ -221,8 +221,29 @@ class ConnectionViewModel(
     private val _showLoadConfigPopup = MutableStateFlow(false)
     val showLoadConfigPopup: StateFlow<Boolean> = _showLoadConfigPopup.asStateFlow()
 
+    private val _showOverwriteConfigPopup = MutableStateFlow<String?>(null)
+    val showOverwriteConfigPopup: StateFlow<String?> = _showOverwriteConfigPopup.asStateFlow()
+
+    private var pendingLinks: List<JiminyLink> = emptyList()
+
     fun onSaveConfigClick() {
+        _configurationsState.update { LoadConfigState.Loading }
         _showSaveConfigPopup.update { true }
+
+        viewModelScope.launch {
+            mainService.getConfigurations(
+                onSuccess = { response ->
+                    _configurationsState.update { LoadConfigState.Success(response.value) }
+                },
+                onError = { error ->
+                    val msg = when (error) {
+                        is JiminyResponse.Error -> error.message
+                        else -> error.toString()
+                    }
+                    _configurationsState.update { LoadConfigState.Error(msg) }
+                },
+            )
+        }
     }
 
     fun onLoadConfigClick() {
@@ -247,6 +268,12 @@ class ConnectionViewModel(
 
     fun dismissSaveConfigPopup() {
         _showSaveConfigPopup.update { false }
+        _configurationsState.update { LoadConfigState.Idle }
+    }
+
+    fun dismissOverwriteConfigPopup() {
+        _showOverwriteConfigPopup.update { null }
+        pendingLinks = emptyList()
     }
 
     fun dismissLoadConfigPopup() {
@@ -255,6 +282,25 @@ class ConnectionViewModel(
     }
 
     fun saveConfiguration(name: String, currentLinks: List<JiminyLink>) {
+        val existingConfigs =
+            (configurationsState.value as? LoadConfigState.Success)?.configurations ?: emptyList()
+        if (existingConfigs.contains(name)) {
+            pendingLinks = currentLinks
+            _showOverwriteConfigPopup.update { name }
+            _showSaveConfigPopup.update { false }
+        } else {
+            executeSaveConfiguration(name, currentLinks)
+        }
+    }
+
+    fun confirmOverwrite() {
+        val name = _showOverwriteConfigPopup.value ?: return
+        executeSaveConfiguration(name, pendingLinks)
+        _showOverwriteConfigPopup.update { null }
+        pendingLinks = emptyList()
+    }
+
+    private fun executeSaveConfiguration(name: String, currentLinks: List<JiminyLink>) {
         val links = currentLinks.flatMap { link ->
             link.instrumentDevices.flatMap { instrument ->
                 instrument.instruments.flatMap { instNode ->

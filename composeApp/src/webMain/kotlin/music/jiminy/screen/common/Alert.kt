@@ -386,6 +386,7 @@ fun RecordingFileItem(
 
 @Composable
 fun SaveConfigAlert(
+    state: ConnectionViewModel.LoadConfigState,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -399,27 +400,42 @@ fun SaveConfigAlert(
         title = { TextTitle("Save Configuration") },
         text = {
             Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        errorMsg = null
-                    },
-                    label = { TextBody("Configuration Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 60.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    when (state) {
+                        Loading -> CircularProgressIndicator()
+                        is Error -> TextError(state.message, modifier = Modifier.padding(16.dp))
+                        else -> OutlinedTextField(
+                            value = name,
+                            onValueChange = {
+                                name = it
+                                errorMsg = null
+                            },
+                            label = { TextBody("Configuration Name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
                 errorMsg?.let { TextError(it) }
             }
         },
         confirmButton = {
-            JiminyButton(onClick = {
-                if (name.isNotBlank()) {
-                    onConfirm(name)
-                } else {
-                    errorMsg = "Name cannot be empty"
-                }
-            }) { TextButton("Save") }
+            val isEnabled = state is Success || state is Idle
+            JiminyButton(
+                enabled = isEnabled,
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(name)
+                    } else {
+                        errorMsg = "Name cannot be empty"
+                    }
+                },
+            ) { TextButton("Save") }
         },
         dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
     )
