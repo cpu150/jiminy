@@ -9,10 +9,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
+import music.jiminy.JiminyDevice
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LockedForRecordingException
 import music.jiminy.LogEntry
@@ -42,24 +44,86 @@ sealed interface JiminyConnectionStatus {
     data class Error(val exception: JiminyResponse? = null) : JiminyConnectionStatus
 }
 
-open class MainService(
+interface MainService {
+    val succeededCommands: SharedFlow<JiminyCommand>
+    val audioDevices: StateFlow<List<JiminyDevice>>
+    val midiDevices: StateFlow<List<JiminyDevice>>
+    val connectionStatus: StateFlow<JiminyConnectionStatus>
+    val isRecording: StateFlow<Boolean>
+
+    suspend fun mixerSendCommand(command: JiminyCommand)
+    suspend fun mixerDisconnect()
+    suspend fun mixerConnect(connected: (() -> Unit)? = null)
+    suspend fun refreshDevices(onError: (JiminyResponse) -> Unit)
+    suspend fun getDeviceLinks(
+        onSuccess: (Success<List<NodeConnection>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun deviceLinks(
+        links: List<JiminyCommand.Link>,
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+        finally: () -> Unit,
+    )
+
+    suspend fun startRecording(
+        nodes: JiminyCommand.StartRecording,
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun getServerLogs(
+        onSuccess: (Success<List<LogEntry>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun flushServerLogs(
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun getRecordings(
+        onSuccess: (Success<List<String>>) -> Unit,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun deleteRecordings(
+        filenames: List<String>,
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun downloadRecordings(
+        filenames: List<String>,
+        onSuccess: ((Success<HttpResponse>) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
+
+    suspend fun stopRecording(
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
+}
+
+class MainServiceImpl(
     scope: CoroutineScope,
     private val mixerService: MixerService,
     private val deviceService: DeviceService,
     private val recordingService: RecordingService,
     private val loggingService: LoggingService,
     private val logger: JiminyLoggerI,
-) {
-    open val succeededCommands = mixerService.succeededCommands
-    open val audioDevices = deviceService.audioDevices
-    open val midiDevices = deviceService.midiDevices
+) : MainService {
+    override val succeededCommands = mixerService.succeededCommands
+    override val audioDevices = deviceService.audioDevices
+    override val midiDevices = deviceService.midiDevices
 
     private val _connectionStatus = MutableStateFlow<JiminyConnectionStatus>(Disconnected)
-    open val connectionStatus: StateFlow<JiminyConnectionStatus>
+    override val connectionStatus: StateFlow<JiminyConnectionStatus>
         get() = _connectionStatus
 
     private val _isRecording = MutableStateFlow(value = false)
-    open val isRecording: StateFlow<Boolean>
+    override val isRecording: StateFlow<Boolean>
         get() = _isRecording
 
     private suspend fun <T> handleExceptions(
@@ -108,9 +172,15 @@ open class MainService(
             else -> JiminyResponse.Error("$logMsg - ${response.status} - $response")
         }.also { _isRecording.update { response.status.value == HttpStatusCode.Locked.value } }
 
-    open suspend fun mixerSendCommand(command: JiminyCommand) = mixerService.sendCommand(command)
-    open suspend fun mixerDisconnect() = mixerService.disconnect()
-    open suspend fun mixerConnect(connected: (() -> Unit)? = null) {
+    override suspend fun mixerSendCommand(command: JiminyCommand) {
+        mixerService.sendCommand(command)
+    }
+
+    override suspend fun mixerDisconnect() {
+        mixerService.disconnect()
+    }
+
+    override suspend fun mixerConnect(connected: (() -> Unit)?) {
         _connectionStatus.update { Connecting }
         handleExceptions(
             logMsg = "mixerConnect",
@@ -127,7 +197,7 @@ open class MainService(
                     is CancellationException, is ConnectionClosed -> _connectionStatus.update { Disconnected }
                     else -> _connectionStatus.update { JiminyConnectionStatus.Error(e) }
                 }
-            }
+            },
         )
     }
 
@@ -139,126 +209,146 @@ open class MainService(
         }
     }
 
-    open suspend fun refreshDevices(
+    override suspend fun refreshDevices(
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "refreshDevices",
-        tryBlock = {
-            deviceService.refreshDevices()
-            logger.info("refreshDevices - completed")
-        },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "refreshDevices",
+            tryBlock = {
+                deviceService.refreshDevices()
+                logger.info("refreshDevices - completed")
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun getDeviceLinks(
+    override suspend fun getDeviceLinks(
         onSuccess: (Success<List<NodeConnection>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "getDeviceLinks",
-        tryBlock = { onSuccess(Success(deviceService.getDeviceLinks())) },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "getDeviceLinks",
+            tryBlock = { onSuccess(Success(deviceService.getDeviceLinks())) },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun deviceLinks(
+    override suspend fun deviceLinks(
         links: List<JiminyCommand.Link>,
-        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onSuccess: ((EmptySuccess) -> Unit)?,
         onError: (JiminyResponse) -> Unit,
         finally: () -> Unit,
-    ) = handleExceptions(
-        logMsg = "deviceLinks",
-        tryBlock = {
-            handleHttpResponse("deviceLinks", deviceService.linkDevices(links))
-                ?.let { onError(it) }
-                ?: onSuccess?.invoke(EmptySuccess)
-        },
-        catchBlock = { error -> onError(error) },
-        finallyBlock = finally,
-    )
+    ) {
+        handleExceptions(
+            logMsg = "deviceLinks",
+            tryBlock = {
+                handleHttpResponse("deviceLinks", deviceService.linkDevices(links))
+                    ?.let { onError(it) }
+                    ?: onSuccess?.invoke(EmptySuccess)
+            },
+            catchBlock = { error -> onError(error) },
+            finallyBlock = finally,
+        )
+    }
 
-    open suspend fun startRecording(
+    override suspend fun startRecording(
         nodes: JiminyCommand.StartRecording,
-        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onSuccess: ((EmptySuccess) -> Unit)?,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "startRecording",
-        tryBlock = {
-            handleHttpResponse("startRecording", recordingService.startRecording(nodes))
-                ?.let { onError(it) }
-                ?: let { onSuccess?.invoke(EmptySuccess) }
-        },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "startRecording",
+            tryBlock = {
+                handleHttpResponse("startRecording", recordingService.startRecording(nodes))
+                    ?.let { onError(it) }
+                    ?: let { onSuccess?.invoke(EmptySuccess) }
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun getServerLogs(
+    override suspend fun getServerLogs(
         onSuccess: (Success<List<LogEntry>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "getServerLogs",
-        tryBlock = { onSuccess(Success(loggingService.getServerLogs())) },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "getServerLogs",
+            tryBlock = { onSuccess(Success(loggingService.getServerLogs())) },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun flushServerLogs(
-        onSuccess: ((EmptySuccess) -> Unit)? = null,
+    override suspend fun flushServerLogs(
+        onSuccess: ((EmptySuccess) -> Unit)?,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "flushServerLogs",
-        tryBlock = {
-            handleHttpResponse("flushServerLogs", loggingService.flushServerLogs())
-                ?.let { onError(it) }
-                ?: let { onSuccess?.invoke(EmptySuccess) }
-        },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "flushServerLogs",
+            tryBlock = {
+                handleHttpResponse("flushServerLogs", loggingService.flushServerLogs())
+                    ?.let { onError(it) }
+                    ?: let { onSuccess?.invoke(EmptySuccess) }
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun getRecordings(
+    override suspend fun getRecordings(
         onSuccess: (Success<List<String>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "getRecordings",
-        tryBlock = { onSuccess(Success(recordingService.getRecordings())) },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "getRecordings",
+            tryBlock = { onSuccess(Success(recordingService.getRecordings())) },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun deleteRecordings(
+    override suspend fun deleteRecordings(
         filenames: List<String>,
-        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onSuccess: ((EmptySuccess) -> Unit)?,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "deleteRecordings",
-        tryBlock = {
-            handleHttpResponse("deleteRecordings", recordingService.deleteRecordings(filenames))
-                ?.let { onError(it) }
-                ?: let { onSuccess?.invoke(EmptySuccess) }
-        },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "deleteRecordings",
+            tryBlock = {
+                handleHttpResponse("deleteRecordings", recordingService.deleteRecordings(filenames))
+                    ?.let { onError(it) }
+                    ?: let { onSuccess?.invoke(EmptySuccess) }
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun downloadRecordings(
+    override suspend fun downloadRecordings(
         filenames: List<String>,
-        onSuccess: ((Success<HttpResponse>) -> Unit)? = null,
+        onSuccess: ((Success<HttpResponse>) -> Unit)?,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "downloadRecordings",
-        tryBlock = {
-            val response = recordingService.downloadRecordings(filenames)
-            handleHttpResponse("downloadRecordings", response)
-                ?.let { onError(it) }
-                ?: let { onSuccess?.invoke(Success(response)) }
-        },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "downloadRecordings",
+            tryBlock = {
+                val response = recordingService.downloadRecordings(filenames)
+                handleHttpResponse("downloadRecordings", response)
+                    ?.let { onError(it) }
+                    ?: let { onSuccess?.invoke(Success(response)) }
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 
-    open suspend fun stopRecording(
-        onSuccess: ((EmptySuccess) -> Unit)? = null,
+    override suspend fun stopRecording(
+        onSuccess: ((EmptySuccess) -> Unit)?,
         onError: (JiminyResponse) -> Unit,
-    ) = handleExceptions(
-        logMsg = "stopRecording",
-        tryBlock = {
-            handleHttpResponse("stopRecording", recordingService.stopRecording())
-                ?.let { onError(it) }
-                ?: let { onSuccess?.invoke(EmptySuccess) }
-        },
-        catchBlock = { error -> onError(error) },
-    )
+    ) {
+        handleExceptions(
+            logMsg = "stopRecording",
+            tryBlock = {
+                handleHttpResponse("stopRecording", recordingService.stopRecording())
+                    ?.let { onError(it) }
+                    ?: let { onSuccess?.invoke(EmptySuccess) }
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
 }

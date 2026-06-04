@@ -1,6 +1,5 @@
 package music.jiminy.viewmodel
 
-import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,13 +11,9 @@ import music.jiminy.JiminyDevice
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LogEntry
 import music.jiminy.NodeConnection
-import music.jiminy.service.DeviceService
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
-import music.jiminy.service.LoggingService
 import music.jiminy.service.MainService
-import music.jiminy.service.MixerService
-import music.jiminy.service.RecordingService
 
 class FakeLogger : JiminyLoggerI {
     val loggedInfo = mutableListOf<String>()
@@ -50,33 +45,9 @@ class FakeLogger : JiminyLoggerI {
 }
 
 class FakeMainService(
-    scope: CoroutineScope,
+    scope: CoroutineScope? = null,
     logger: JiminyLoggerI = FakeLogger(),
-) : MainService(
-    scope = scope,
-    mixerService = MixerService(
-        hostname = "localhost",
-        port = 8080,
-        client = HttpClient(),
-        logger = logger,
-    ),
-    deviceService = DeviceService(
-        client = HttpClient(),
-        baseUrl = "http://localhost",
-        logger = logger,
-    ),
-    recordingService = RecordingService(
-        client = HttpClient(),
-        baseUrl = "http://localhost",
-        logger = logger,
-    ),
-    loggingService = LoggingService(
-        client = HttpClient(),
-        baseUrl = "http://localhost",
-        logger = logger,
-    ),
-    logger = logger,
-) {
+) : MainService {
     private val _succeededCommands = MutableSharedFlow<JiminyCommand>(extraBufferCapacity = 64)
     override val succeededCommands = _succeededCommands.asSharedFlow()
 
@@ -86,8 +57,10 @@ class FakeMainService(
     private val _midiDevices = MutableStateFlow<List<JiminyDevice>>(emptyList())
     override val midiDevices: StateFlow<List<JiminyDevice>> = _midiDevices.asStateFlow()
 
-    private val _connectionStatus = MutableStateFlow<JiminyConnectionStatus>(JiminyConnectionStatus.Disconnected)
-    override val connectionStatus: StateFlow<JiminyConnectionStatus> = _connectionStatus.asStateFlow()
+    private val _connectionStatus =
+        MutableStateFlow<JiminyConnectionStatus>(JiminyConnectionStatus.Disconnected)
+    override val connectionStatus: StateFlow<JiminyConnectionStatus> =
+        _connectionStatus.asStateFlow()
 
     private val _isRecording = MutableStateFlow(false)
     override val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
@@ -192,5 +165,13 @@ class FakeMainService(
     ) {
         mockRecordings.removeAll(filenames)
         onSuccess?.invoke(JiminyResponse.EmptySuccess)
+    }
+
+    override suspend fun downloadRecordings(
+        filenames: List<String>,
+        onSuccess: ((JiminyResponse.Success<io.ktor.client.statement.HttpResponse>) -> Unit)?,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        // No-op in fake
     }
 }

@@ -21,6 +21,7 @@ import music.jiminy.service.DeviceService
 import music.jiminy.service.JiminyLogger
 import music.jiminy.service.LoggingService
 import music.jiminy.service.MainService
+import music.jiminy.service.MainServiceImpl
 import music.jiminy.service.MixerService
 import music.jiminy.service.RecordingService
 import music.jiminy.viewmodel.ConnectionScreenViewModel
@@ -86,7 +87,7 @@ val appModule = module {
     single { RecordingService(get(), get<Triple<String, Int, String>>().third, get()) }
     single { LoggingService(get(), get<Triple<String, Int, String>>().third, get()) }
 
-    singleOf(::MainService)
+    singleOf(::MainServiceImpl) { bind<MainService>() }
 
     viewModelOf(::ConnectionViewModel)
     viewModelOf(::ConnectionScreenViewModel)
