@@ -42,7 +42,7 @@ sealed interface JiminyConnectionStatus {
     data class Error(val exception: JiminyResponse? = null) : JiminyConnectionStatus
 }
 
-class MainService(
+open class MainService(
     scope: CoroutineScope,
     private val mixerService: MixerService,
     private val deviceService: DeviceService,
@@ -50,16 +50,16 @@ class MainService(
     private val loggingService: LoggingService,
     private val logger: JiminyLoggerI,
 ) {
-    val succeededCommands = mixerService.succeededCommands
-    val audioDevices = deviceService.audioDevices
-    val midiDevices = deviceService.midiDevices
+    open val succeededCommands = mixerService.succeededCommands
+    open val audioDevices = deviceService.audioDevices
+    open val midiDevices = deviceService.midiDevices
 
     private val _connectionStatus = MutableStateFlow<JiminyConnectionStatus>(Disconnected)
-    val connectionStatus: StateFlow<JiminyConnectionStatus>
+    open val connectionStatus: StateFlow<JiminyConnectionStatus>
         get() = _connectionStatus
 
     private val _isRecording = MutableStateFlow(value = false)
-    val isRecording: StateFlow<Boolean>
+    open val isRecording: StateFlow<Boolean>
         get() = _isRecording
 
     private suspend fun <T> handleExceptions(
@@ -108,9 +108,9 @@ class MainService(
             else -> JiminyResponse.Error("$logMsg - ${response.status} - $response")
         }.also { _isRecording.update { response.status.value == HttpStatusCode.Locked.value } }
 
-    suspend fun mixerSendCommand(command: JiminyCommand) = mixerService.sendCommand(command)
-    suspend fun mixerDisconnect() = mixerService.disconnect()
-    suspend fun mixerConnect(connected: (() -> Unit)? = null) {
+    open suspend fun mixerSendCommand(command: JiminyCommand) = mixerService.sendCommand(command)
+    open suspend fun mixerDisconnect() = mixerService.disconnect()
+    open suspend fun mixerConnect(connected: (() -> Unit)? = null) {
         _connectionStatus.update { Connecting }
         handleExceptions(
             logMsg = "mixerConnect",
@@ -139,7 +139,7 @@ class MainService(
         }
     }
 
-    suspend fun refreshDevices(
+    open suspend fun refreshDevices(
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
         logMsg = "refreshDevices",
@@ -150,7 +150,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun getDeviceLinks(
+    open suspend fun getDeviceLinks(
         onSuccess: (Success<List<NodeConnection>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
@@ -159,7 +159,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun deviceLinks(
+    open suspend fun deviceLinks(
         links: List<JiminyCommand.Link>,
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
@@ -175,7 +175,7 @@ class MainService(
         finallyBlock = finally,
     )
 
-    suspend fun startRecording(
+    open suspend fun startRecording(
         nodes: JiminyCommand.StartRecording,
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
@@ -189,7 +189,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun getServerLogs(
+    open suspend fun getServerLogs(
         onSuccess: (Success<List<LogEntry>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
@@ -198,7 +198,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun flushServerLogs(
+    open suspend fun flushServerLogs(
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
@@ -211,7 +211,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun getRecordings(
+    open suspend fun getRecordings(
         onSuccess: (Success<List<String>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
@@ -220,7 +220,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun deleteRecordings(
+    open suspend fun deleteRecordings(
         filenames: List<String>,
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
@@ -234,7 +234,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun downloadRecordings(
+    open suspend fun downloadRecordings(
         filenames: List<String>,
         onSuccess: ((Success<HttpResponse>) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
@@ -249,7 +249,7 @@ class MainService(
         catchBlock = { error -> onError(error) },
     )
 
-    suspend fun stopRecording(
+    open suspend fun stopRecording(
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
     ) = handleExceptions(
