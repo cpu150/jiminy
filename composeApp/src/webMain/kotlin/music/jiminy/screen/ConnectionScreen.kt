@@ -254,9 +254,6 @@ fun MainConnectionScreen(
             JiminyButton(onClick = { onAction(OnUnlinkAllClick()) }) {
                 TextButton("Unlink All")
             }
-            JiminyButton(onClick = { /* TODO */ }) {
-                TextButton("Save Config")
-            }
         }
         Spacer(Modifier.height(12.dp))
 
