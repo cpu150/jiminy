@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -424,6 +425,13 @@ fun RecordingFileItem(
     }
 }
 
+data class SaveConfigOptions(
+    val saveAudio: Boolean = true,
+    val saveMidi: Boolean = true,
+)
+
+val SaveConfigOptions.isValid get() = saveAudio || saveMidi
+
 @Composable
 fun SaveConfigAlert(
     state: ConnectionViewModel.LoadConfigState,
@@ -431,10 +439,9 @@ fun SaveConfigAlert(
     onConfirm: (String, Boolean, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var name by remember { mutableStateOf("") }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
-    var saveAudio by remember { mutableStateOf(true) }
-    var saveMidi by remember { mutableStateOf(true) }
+    val name = remember { mutableStateOf("") }
+    val errorMsg = remember { mutableStateOf<String?>(null) }
+    val options = remember { mutableStateOf(SaveConfigOptions()) }
 
     AlertDialog(
         modifier = modifier,
@@ -465,76 +472,34 @@ fun SaveConfigAlert(
                     when (state) {
                         Loading -> CircularProgressIndicator()
                         is Error -> TextError(state.message, modifier = Modifier.padding(16.dp))
-                        else -> Column {
-                            OutlinedTextField(
-                                value = name,
-                                onValueChange = {
-                                    name = it
-                                    errorMsg = null
-                                },
-                                label = { TextBody("Configuration Name") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                IconButton(onClick = {
-                                    saveAudio = !saveAudio
-                                    errorMsg = null
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Outlined.AltRoute,
-                                        contentDescription = "Audio Links",
-                                        tint = if (saveAudio) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        },
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    saveMidi = !saveMidi
-                                    errorMsg = null
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.SettingsInputSvideo,
-                                        contentDescription = "MIDI Links",
-                                        tint = if (saveMidi) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                        else -> SaveConfigScreen(
+                            name = name,
+                            errorMsg = errorMsg,
+                            options = options,
+                        )
                     }
                 }
-                errorMsg?.let { TextError(it) }
+                errorMsg.value?.let { TextError(it) }
             }
         },
         confirmButton = {
             val isEnabled = (state is Success) || (state is Idle)
             IconButton(
-                enabled = isEnabled && name.isNotBlank(),
+                enabled = isEnabled && name.value.isNotBlank(),
                 onClick = {
-                    if (name.isBlank()) {
-                        errorMsg = "Name cannot be empty"
-                    } else if (!saveAudio && !saveMidi) {
-                        errorMsg = "At least 1 tab must be selected"
+                    if (name.value.isBlank()) {
+                        errorMsg.value = "Name cannot be empty"
+                    } else if (!options.value.isValid) {
+                        errorMsg.value = "At least 1 tab must be selected"
                     } else {
-                        onConfirm(name, saveAudio, saveMidi)
+                        onConfirm(name.value, options.value.saveAudio, options.value.saveMidi)
                     }
                 },
             ) {
                 Icon(
                     imageVector = Icons.Default.Save,
                     contentDescription = "Save",
-                    tint = if (isEnabled && name.isNotBlank()) {
+                    tint = if (isEnabled && name.value.isNotBlank()) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -543,6 +508,62 @@ fun SaveConfigAlert(
             }
         },
     )
+}
+
+@Composable
+fun SaveConfigScreen(
+    name: MutableState<String>,
+    errorMsg: MutableState<String?>,
+    options: MutableState<SaveConfigOptions>,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
+        OutlinedTextField(
+            value = name.value,
+            onValueChange = {
+                name.value = it
+                errorMsg.value = null
+            },
+            label = { TextBody("Configuration Name") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = {
+                options.value = options.value.copy(saveAudio = !options.value.saveAudio)
+                errorMsg.value = null
+            }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.AltRoute,
+                    contentDescription = "Audio Links",
+                    tint = if (options.value.saveAudio) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+                )
+            }
+            IconButton(onClick = {
+                options.value = options.value.copy(saveMidi = !options.value.saveMidi)
+                errorMsg.value = null
+            }) {
+                Icon(
+                    imageVector = Icons.Default.SettingsInputSvideo,
+                    contentDescription = "MIDI Links",
+                    tint = if (options.value.saveMidi) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable
