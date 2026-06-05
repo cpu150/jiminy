@@ -19,12 +19,14 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -426,11 +428,13 @@ fun RecordingFileItem(
 fun SaveConfigAlert(
     state: ConnectionViewModel.LoadConfigState,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+    onConfirm: (String, Boolean, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+    var saveAudio by remember { mutableStateOf(true) }
+    var saveMidi by remember { mutableStateOf(true) }
 
     AlertDialog(
         modifier = modifier,
@@ -461,16 +465,53 @@ fun SaveConfigAlert(
                     when (state) {
                         Loading -> CircularProgressIndicator()
                         is Error -> TextError(state.message, modifier = Modifier.padding(16.dp))
-                        else -> OutlinedTextField(
-                            value = name,
-                            onValueChange = {
-                                name = it
-                                errorMsg = null
-                            },
-                            label = { TextBody("Configuration Name") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        else -> Column {
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = {
+                                    name = it
+                                    errorMsg = null
+                                },
+                                label = { TextBody("Configuration Name") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                IconButton(onClick = {
+                                    saveAudio = !saveAudio
+                                    errorMsg = null
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.AltRoute,
+                                        contentDescription = "Audio Links",
+                                        tint = if (saveAudio) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                        },
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    saveMidi = !saveMidi
+                                    errorMsg = null
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.SettingsInputSvideo,
+                                        contentDescription = "MIDI Links",
+                                        tint = if (saveMidi) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                        },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 errorMsg?.let { TextError(it) }
@@ -481,10 +522,12 @@ fun SaveConfigAlert(
             IconButton(
                 enabled = isEnabled && name.isNotBlank(),
                 onClick = {
-                    if (name.isNotBlank()) {
-                        onConfirm(name)
-                    } else {
+                    if (name.isBlank()) {
                         errorMsg = "Name cannot be empty"
+                    } else if (!saveAudio && !saveMidi) {
+                        errorMsg = "At least 1 tab must be selected"
+                    } else {
+                        onConfirm(name, saveAudio, saveMidi)
                     }
                 },
             ) {

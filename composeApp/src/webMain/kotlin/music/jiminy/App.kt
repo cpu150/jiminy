@@ -157,8 +157,12 @@ fun MainScreen(
         SaveConfigAlert(
             state = configurationsState,
             onDismiss = connectionViewModel::dismissSaveConfigPopup,
-            onConfirm = { name ->
-                connectionViewModel.saveConfiguration(name, audioState.links + midiState.links)
+            onConfirm = { name, saveAudio, saveMidi ->
+                val links = buildList {
+                    if (saveAudio) addAll(audioState.links)
+                    if (saveMidi) addAll(midiState.links)
+                }
+                connectionViewModel.saveConfiguration(name, links)
             },
         )
     }
