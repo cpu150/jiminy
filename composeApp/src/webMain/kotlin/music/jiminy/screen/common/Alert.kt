@@ -29,6 +29,11 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -476,6 +481,7 @@ fun SaveConfigAlert(
                             name = name,
                             errorMsg = errorMsg,
                             options = options,
+                            configurations = (state as? Success)?.configurations ?: emptyList(),
                         )
                     }
                 }
@@ -510,24 +516,77 @@ fun SaveConfigAlert(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaveConfigScreen(
     name: MutableState<String>,
     errorMsg: MutableState<String?>,
     options: MutableState<SaveConfigOptions>,
+    configurations: List<String>,
     modifier: Modifier = Modifier,
 ) {
+    val createNewText = "Create Config"
+    var expanded by remember { mutableStateOf(false) }
+    var selectedOption by remember {
+        mutableStateOf(if (name.value.isEmpty() || name.value !in configurations) createNewText else name.value)
+    }
+
     Column(modifier) {
-        OutlinedTextField(
-            value = name.value,
-            onValueChange = {
-                name.value = it
-                errorMsg.value = null
-            },
-            label = { TextBody("Configuration Name") },
-            singleLine = true,
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
             modifier = Modifier.fillMaxWidth(),
-        )
+        ) {
+            OutlinedTextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true,
+                label = { TextBody("Select Configuration") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth(),
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                DropdownMenuItem(
+                    text = { TextBody(createNewText) },
+                    onClick = {
+                        selectedOption = createNewText
+                        name.value = ""
+                        errorMsg.value = null
+                        expanded = false
+                    },
+                )
+                configurations.forEach { config ->
+                    DropdownMenuItem(
+                        text = { TextBody(config) },
+                        onClick = {
+                            selectedOption = config
+                            name.value = config
+                            errorMsg.value = null
+                            expanded = false
+                        },
+                    )
+                }
+            }
+        }
+
+        if (selectedOption == createNewText) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = name.value,
+                onValueChange = {
+                    name.value = it
+                    errorMsg.value = null
+                },
+                label = { TextBody("Configuration Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
