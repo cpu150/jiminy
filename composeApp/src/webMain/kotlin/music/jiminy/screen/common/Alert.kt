@@ -17,9 +17,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -220,15 +218,17 @@ fun NodeSelectionAlert(
             }
         },
         confirmButton = {
-            JiminyButton(onClick = {
-                if (selectedNodes.isNotEmpty()) {
-                    selectedNodes.sortBy { it.displayPortName }
-                    addNodes(selectedNodes)
-                    onDismiss()
-                } else {
-                    errorMsg.value = "Select at least one node"
-                }
-            }) { TextButton("Add") }
+            JiminyButton(
+                onClick = {
+                    if (selectedNodes.isNotEmpty()) {
+                        selectedNodes.sortBy { it.displayPortName }
+                        addNodes(selectedNodes)
+                        onDismiss()
+                    } else {
+                        errorMsg.value = "Select at least one node"
+                    }
+                },
+            ) { TextButton("Add") }
         },
         dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
     )
@@ -425,7 +425,7 @@ fun SaveConfigAlert(
             }
         },
         confirmButton = {
-            val isEnabled = state is Success || state is Idle
+            val isEnabled = (state is Success) || (state is Idle)
             JiminyButton(
                 enabled = isEnabled,
                 onClick = {
@@ -449,6 +449,8 @@ fun LoadConfigAlert(
     onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var selectedConfig by remember { mutableStateOf<String?>(null) }
+
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
@@ -476,43 +478,28 @@ fun LoadConfigAlert(
                     Idle -> Unit
                     Loading -> CircularProgressIndicator()
                     is Error -> TextError(state.message, modifier = Modifier.padding(16.dp))
-                    is Success -> LoadConfigView(state.configurations, onSelect, onDelete)
+                    is Success -> LoadConfigView(
+                        configurations = state.configurations,
+                        selectedConfig = selectedConfig,
+                        onToggleSelection = { config ->
+                            selectedConfig = if (selectedConfig == config) null else config
+                        },
+                    )
                 }
             }
         },
-        confirmButton = { },
-    )
-}
-
-@Composable
-fun LoadConfigView(
-    configurations: List<String>,
-    onSelect: (String) -> Unit,
-    onDelete: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
-        if (configurations.isEmpty()) {
-            TextBody("No configurations found", modifier = Modifier.padding(16.dp))
-        } else {
-            configurations.forEach { config ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        onClick = { onSelect(config) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+        confirmButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (selectedConfig != null) {
+                    IconButton(
+                        onClick = {
+                            onDelete(selectedConfig!!)
+                            selectedConfig = null
+                        },
                     ) {
-                        TextBody(
-                            text = config,
-                            modifier = Modifier.padding(12.dp),
-                        )
-                    }
-                    IconButton(onClick = { onDelete(config) }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",
@@ -520,7 +507,73 @@ fun LoadConfigView(
                         )
                     }
                 }
+                JiminyButton(
+                    onClick = {
+                        selectedConfig?.let { onSelect(it) }
+                        onDismiss()
+                    },
+                    enabled = selectedConfig != null,
+                ) {
+                    TextButton("Load Configuration")
+                }
             }
+        },
+    )
+}
+
+@Composable
+fun LoadConfigView(
+    configurations: List<String>,
+    selectedConfig: String?,
+    onToggleSelection: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (configurations.isEmpty()) {
+        TextBody("No configurations found", modifier = Modifier.padding(16.dp))
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            contentPadding = PaddingValues(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = modifier.heightIn(max = 400.dp),
+        ) {
+            items(configurations) { config ->
+                SelectableConfigItem(
+                    name = config,
+                    isSelected = config == selectedConfig,
+                    onClick = { onToggleSelection(config) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectableConfigItem(
+    name: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val color =
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = color,
+        border = border,
+        modifier = modifier.height(60.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(8.dp)) {
+            TextBody(
+                text = name,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
