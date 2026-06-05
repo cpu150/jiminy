@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
 import music.jiminy.NodeConnection
+import music.jiminy.SaveConfigOptions
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
@@ -225,6 +227,7 @@ class ConnectionViewModel(
     val showOverwriteConfigPopup: StateFlow<String?> = _showOverwriteConfigPopup.asStateFlow()
 
     private var pendingLinks: List<JiminyLink> = emptyList()
+    private var pendingOptions: SaveConfigOptions = SaveConfigOptions()
 
     fun onSaveConfigClick() {
         _configurationsState.update { LoadConfigState.Loading }
@@ -281,27 +284,39 @@ class ConnectionViewModel(
         _configurationsState.update { LoadConfigState.Idle }
     }
 
-    fun saveConfiguration(name: String, currentLinks: List<JiminyLink>) {
+    fun saveConfiguration(
+        name: String,
+        currentLinks: List<JiminyLink>,
+        options: SaveConfigOptions,
+    ) {
         val existingConfigs =
             (configurationsState.value as? LoadConfigState.Success)?.configurations ?: emptyList()
         if (existingConfigs.contains(name)) {
             pendingLinks = currentLinks
+            pendingOptions = options
             _showOverwriteConfigPopup.update { name }
             _showSaveConfigPopup.update { false }
         } else {
-            executeSaveConfiguration(name, currentLinks)
+            executeSaveConfiguration(name, currentLinks, options)
         }
     }
 
     fun confirmOverwrite() {
-        val name = _showOverwriteConfigPopup.value ?: return
-        executeSaveConfiguration(name, pendingLinks)
-        _showOverwriteConfigPopup.update { null }
-        pendingLinks = emptyList()
+        val name = _showOverwriteConfigPopup.value
+        if (name != null) {
+            executeSaveConfiguration(name, pendingLinks, pendingOptions)
+            _showOverwriteConfigPopup.update { null }
+            pendingLinks = emptyList()
+            pendingOptions = SaveConfigOptions()
+        }
     }
 
-    private fun executeSaveConfiguration(name: String, currentLinks: List<JiminyLink>) {
-        val links = currentLinks.flatMap { link ->
+    private fun executeSaveConfiguration(
+        name: String,
+        currentLinks: List<JiminyLink>,
+        options: SaveConfigOptions,
+    ) {
+        val newLinks = currentLinks.flatMap { link ->
             link.instrumentDevices.flatMap { instrument ->
                 instrument.instruments.flatMap { instNode ->
                     link.speakerDevice.speakers.map { spkNode ->
@@ -312,8 +327,31 @@ class ConnectionViewModel(
         }
 
         viewModelScope.launch {
+            val audioNodes = mainService.audioDevices.value.nodes().map { it.fullName }.toSet()
+            val midiNodes = mainService.midiDevices.value.nodes().map { it.fullName }.toSet()
+
+            var existingLinks = emptyList<JiminyCommand.Link>()
+            val deferred = CompletableDeferred<List<JiminyCommand.Link>>()
+
+            mainService.getConfiguration(
+                name = name,
+                onSuccess = { response -> deferred.complete(response.value.links) },
+                onError = { deferred.complete(emptyList()) },
+            )
+            existingLinks = deferred.await()
+
+            val filteredExistingLinks = existingLinks.filter { link ->
+                val isAudio = audioNodes.contains(link.instrument)
+                val isMidi = midiNodes.contains(link.instrument)
+
+                val shouldRemove = (options.saveAudio && isAudio) || (options.saveMidi && isMidi)
+                !shouldRemove
+            }
+
+            val finalLinks = filteredExistingLinks + newLinks
+
             mainService.saveConfiguration(
-                config = JiminyConfiguration(name, links),
+                config = JiminyConfiguration(name, finalLinks),
                 onSuccess = {
                     _showSaveConfigPopup.update { false }
                 },

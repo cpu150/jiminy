@@ -54,6 +54,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.SaveConfigOptions
+import music.jiminy.isValid
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
 import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Error
@@ -430,18 +432,11 @@ fun RecordingFileItem(
     }
 }
 
-data class SaveConfigOptions(
-    val saveAudio: Boolean = true,
-    val saveMidi: Boolean = true,
-)
-
-val SaveConfigOptions.isValid get() = saveAudio || saveMidi
-
 @Composable
 fun SaveConfigAlert(
     state: ConnectionViewModel.LoadConfigState,
     onDismiss: () -> Unit,
-    onConfirm: (String, Boolean, Boolean) -> Unit,
+    onConfirm: (String, SaveConfigOptions) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val name = remember { mutableStateOf("") }
@@ -498,7 +493,7 @@ fun SaveConfigAlert(
                     } else if (!options.value.isValid) {
                         errorMsg.value = "At least 1 tab must be selected"
                     } else {
-                        onConfirm(name.value, options.value.saveAudio, options.value.saveMidi)
+                        onConfirm(name.value, options.value)
                     }
                 },
             ) {
