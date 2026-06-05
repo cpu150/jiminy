@@ -65,7 +65,7 @@ interface MainService {
         links: List<JiminyCommand.Link>,
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
-        finally: () -> Unit,
+        finally: () -> Unit = {},
     )
 
     suspend fun startRecording(

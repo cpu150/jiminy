@@ -167,8 +167,8 @@ fun MainScreen(
         LoadConfigAlert(
             state = configurationsState,
             onDismiss = connectionViewModel::dismissLoadConfigPopup,
-            onSelect = connectionViewModel::loadConfiguration,
-            onDelete = connectionViewModel::deleteConfiguration,
+            onSelect = connectionViewModel::loadConfigurations,
+            onDelete = connectionViewModel::deleteConfigurations,
         )
     }
 

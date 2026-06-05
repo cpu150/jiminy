@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -59,7 +61,11 @@ fun ErrorAlert(
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        confirmButton = { JiminyButton(onDismissRequest) { TextButton("OK") } },
+        confirmButton = {
+            JiminyButton(onClick = onDismissRequest) {
+                TextButton("OK")
+            }
+        },
         title = { TextTitle(message) },
         modifier = modifier,
     )
@@ -74,7 +80,11 @@ fun IncompleteRowsAlert(
         title = { TextTitle("Complete all rows") },
         text = { TextBody("All rows must be completed before!") },
         onDismissRequest = onDismissRequest,
-        confirmButton = { JiminyButton(onClick = onDismissRequest) { TextButton("OK") } },
+        confirmButton = {
+            JiminyButton(onClick = onDismissRequest) {
+                TextButton("OK")
+            }
+        },
         modifier = modifier,
     )
 }
@@ -99,8 +109,16 @@ fun GenericMessageAlert(
         onDismissRequest = onDismiss,
         title = { TextTitle(title) },
         text = { message?.let { TextTitle(message) } },
-        confirmButton = { JiminyButton(onClick = confirmAndDismiss) { TextButton(confirmLabel) } },
-        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton(cancelLabel) } },
+        confirmButton = {
+            JiminyButton(onClick = confirmAndDismiss) {
+                TextButton(confirmLabel)
+            }
+        },
+        dismissButton = {
+            JiminyButton(onClick = onDismiss) {
+                TextButton(cancelLabel)
+            }
+        },
     )
 }
 
@@ -133,8 +151,16 @@ fun UnlinkConfirmationAlert(
         onDismissRequest = onDismiss,
         title = { TextTitle("Unlink $str?") },
         text = detailStr,
-        confirmButton = { JiminyButton(onClick = confirmAndDismiss) { TextButton("Unlink") } },
-        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
+        confirmButton = {
+            JiminyButton(onClick = confirmAndDismiss) {
+                TextButton("Unlink")
+            }
+        },
+        dismissButton = {
+            JiminyButton(onClick = onDismiss) {
+                TextButton("Cancel")
+            }
+        },
     )
 }
 
@@ -155,8 +181,16 @@ fun DeleteConfirmationAlert(
         onDismissRequest = onDismiss,
         title = { TextTitle("Delete") },
         text = { TextBody("Do you want to delete \"$name\"?") },
-        confirmButton = { JiminyButton(onClick = confirmAndDismiss) { TextButton("Delete") } },
-        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
+        confirmButton = {
+            JiminyButton(onClick = confirmAndDismiss) {
+                TextButton("Delete")
+            }
+        },
+        dismissButton = {
+            JiminyButton(onClick = onDismiss) {
+                TextButton("Cancel")
+            }
+        },
     )
 }
 
@@ -230,7 +264,11 @@ fun NodeSelectionAlert(
                 },
             ) { TextButton("Add") }
         },
-        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
+        dismissButton = {
+            JiminyButton(onClick = onDismiss) {
+                TextButton("Cancel")
+            }
+        },
     )
 }
 
@@ -397,7 +435,21 @@ fun SaveConfigAlert(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { TextTitle("Save Configuration") },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextTitle("Save Configuration")
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                    )
+                }
+            }
+        },
         text = {
             Column {
                 Box(
@@ -426,8 +478,8 @@ fun SaveConfigAlert(
         },
         confirmButton = {
             val isEnabled = (state is Success) || (state is Idle)
-            JiminyButton(
-                enabled = isEnabled,
+            IconButton(
+                enabled = isEnabled && name.isNotBlank(),
                 onClick = {
                     if (name.isNotBlank()) {
                         onConfirm(name)
@@ -435,9 +487,18 @@ fun SaveConfigAlert(
                         errorMsg = "Name cannot be empty"
                     }
                 },
-            ) { TextButton("Save") }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = "Save",
+                    tint = if (isEnabled && name.isNotBlank()) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+                )
+            }
         },
-        dismissButton = { JiminyButton(onClick = onDismiss) { TextButton("Cancel") } },
     )
 }
 
@@ -445,11 +506,11 @@ fun SaveConfigAlert(
 fun LoadConfigAlert(
     state: ConnectionViewModel.LoadConfigState,
     onDismiss: () -> Unit,
-    onSelect: (String) -> Unit,
-    onDelete: (String) -> Unit,
+    onSelect: (List<String>) -> Unit,
+    onDelete: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selectedConfig by remember { mutableStateOf<String?>(null) }
+    var selectedConfigs by remember { mutableStateOf(setOf<String>()) }
 
     AlertDialog(
         modifier = modifier,
@@ -480,9 +541,13 @@ fun LoadConfigAlert(
                     is Error -> TextError(state.message, modifier = Modifier.padding(16.dp))
                     is Success -> LoadConfigView(
                         configurations = state.configurations,
-                        selectedConfig = selectedConfig,
+                        selectedConfigs = selectedConfigs,
                         onToggleSelection = { config ->
-                            selectedConfig = if (selectedConfig == config) null else config
+                            selectedConfigs = if (selectedConfigs.contains(config)) {
+                                selectedConfigs - config
+                            } else {
+                                selectedConfigs + config
+                            }
                         },
                     )
                 }
@@ -493,28 +558,36 @@ fun LoadConfigAlert(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (selectedConfig != null) {
-                    IconButton(
-                        onClick = {
-                            onDelete(selectedConfig!!)
-                            selectedConfig = null
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-                JiminyButton(
+                IconButton(
+                    enabled = selectedConfigs.isNotEmpty(),
                     onClick = {
-                        selectedConfig?.let { onSelect(it) }
-                        onDismiss()
+                        onDelete(selectedConfigs.toList())
+                        selectedConfigs = emptySet()
                     },
-                    enabled = selectedConfig != null,
                 ) {
-                    TextButton("Load Configuration")
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = if (selectedConfigs.isNotEmpty()) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        },
+                    )
+                }
+                IconButton(
+                    enabled = selectedConfigs.isNotEmpty(),
+                    onClick = { onSelect(selectedConfigs.toList()) },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FileUpload,
+                        contentDescription = "Load",
+                        tint = if (selectedConfigs.isNotEmpty()) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        },
+                    )
                 }
             }
         },
@@ -524,7 +597,7 @@ fun LoadConfigAlert(
 @Composable
 fun LoadConfigView(
     configurations: List<String>,
-    selectedConfig: String?,
+    selectedConfigs: Set<String>,
     onToggleSelection: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -541,7 +614,7 @@ fun LoadConfigView(
             items(configurations) { config ->
                 SelectableConfigItem(
                     name = config,
-                    isSelected = config == selectedConfig,
+                    isSelected = selectedConfigs.contains(config),
                     onClick = { onToggleSelection(config) },
                 )
             }

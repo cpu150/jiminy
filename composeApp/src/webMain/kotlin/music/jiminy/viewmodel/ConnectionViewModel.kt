@@ -322,38 +322,44 @@ class ConnectionViewModel(
         }
     }
 
-    fun loadConfiguration(name: String) {
+    fun loadConfigurations(names: List<String>) {
         viewModelScope.launch {
-            mainService.getConfiguration(
-                name = name,
-                onSuccess = { response ->
-                    val config = response.value
-                    viewModelScope.launch {
-                        mainService.deviceLinks(
-                            links = config.links,
-                            onSuccess = { _showLoadConfigPopup.update { false } },
-                            onError = ::handleError,
-                            finally = {
-                                // We might need to refresh UI here, but deviceLinks usually triggers refresh
-                            },
-                        )
-                    }
-                },
-                onError = ::handleError,
-            )
+            _configurationsState.update { LoadConfigState.Loading }
+
+            val allLinks = mutableListOf<JiminyCommand.Link>()
+            names.forEach { name ->
+                mainService.getConfiguration(
+                    name = name,
+                    onSuccess = { response -> allLinks.addAll(response.value.links) },
+                    onError = ::handleError,
+                )
+            }
+
+            if (allLinks.isNotEmpty()) {
+                mainService.deviceLinks(
+                    links = allLinks,
+                    onSuccess = { dismissLoadConfigPopup() },
+                    onError = ::handleError,
+                )
+            } else {
+                dismissLoadConfigPopup()
+            }
         }
     }
 
-    fun deleteConfiguration(name: String) {
+    fun deleteConfigurations(names: List<String>) {
         viewModelScope.launch {
-            mainService.deleteConfiguration(
-                name = name,
-                onSuccess = {
-                    // Refresh the list
-                    onLoadConfigClick()
-                },
-                onError = ::handleError,
-            )
+            _configurationsState.update { LoadConfigState.Loading }
+
+            names.forEach { name ->
+                mainService.deleteConfiguration(
+                    name = name,
+                    onSuccess = { },
+                    onError = ::handleError,
+                )
+            }
+            // Refresh the list
+            onLoadConfigClick()
         }
     }
 }
