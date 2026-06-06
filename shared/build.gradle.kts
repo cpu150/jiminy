@@ -24,6 +24,7 @@ kotlin {
             // For the @Serializable annotation and Json.decode
             api(libs.kotlinx.serialization.json)
             api(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.kotlinx.collection.immutable)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

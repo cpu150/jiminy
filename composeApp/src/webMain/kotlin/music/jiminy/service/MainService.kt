@@ -113,7 +113,7 @@ interface MainService {
 
     suspend fun getConfiguration(
         name: String,
-        onSuccess: (Success<JiminyConfiguration>) -> Unit,
+        onSuccess: suspend (Success<JiminyConfiguration>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     )
 
@@ -390,7 +390,7 @@ class MainServiceImpl(
 
     override suspend fun getConfiguration(
         name: String,
-        onSuccess: (Success<JiminyConfiguration>) -> Unit,
+        onSuccess: suspend (Success<JiminyConfiguration>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) {
         handleExceptions(
@@ -408,7 +408,10 @@ class MainServiceImpl(
         handleExceptions(
             logMsg = "saveConfiguration",
             tryBlock = {
-                handleHttpResponse("saveConfiguration", configurationService.saveConfiguration(config))
+                handleHttpResponse(
+                    "saveConfiguration",
+                    configurationService.saveConfiguration(config),
+                )
                     ?.let { onError(it) }
                     ?: onSuccess?.invoke(EmptySuccess)
             },
@@ -424,7 +427,10 @@ class MainServiceImpl(
         handleExceptions(
             logMsg = "deleteConfiguration",
             tryBlock = {
-                handleHttpResponse("deleteConfiguration", configurationService.deleteConfiguration(name))
+                handleHttpResponse(
+                    "deleteConfiguration",
+                    configurationService.deleteConfiguration(name),
+                )
                     ?.let { onError(it) }
                     ?: onSuccess?.invoke(EmptySuccess)
             },

@@ -436,10 +436,9 @@ fun RecordingFileItem(
 fun SaveConfigAlert(
     state: ConnectionViewModel.LoadConfigState,
     onDismiss: () -> Unit,
-    onConfirm: (String, SaveConfigOptions) -> Unit,
+    onConfirm: (SaveConfigOptions) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val name = remember { mutableStateOf("") }
     val errorMsg = remember { mutableStateOf<String?>(null) }
     val options = remember { mutableStateOf(SaveConfigOptions()) }
 
@@ -473,7 +472,6 @@ fun SaveConfigAlert(
                         Loading -> CircularProgressIndicator()
                         is Error -> TextError(state.message, modifier = Modifier.padding(16.dp))
                         else -> SaveConfigScreen(
-                            name = name,
                             errorMsg = errorMsg,
                             options = options,
                             configurations = (state as? Success)?.configurations ?: emptyList(),
@@ -485,22 +483,23 @@ fun SaveConfigAlert(
         },
         confirmButton = {
             val isEnabled = (state is Success) || (state is Idle)
+            val name = options.value.name
             IconButton(
-                enabled = isEnabled && name.value.isNotBlank(),
+                enabled = isEnabled && name.isNotBlank(),
                 onClick = {
-                    if (name.value.isBlank()) {
+                    if (name.isBlank()) {
                         errorMsg.value = "Name cannot be empty"
                     } else if (!options.value.isValid) {
                         errorMsg.value = "At least 1 tab must be selected"
                     } else {
-                        onConfirm(name.value, options.value)
+                        onConfirm(options.value)
                     }
                 },
             ) {
                 Icon(
                     imageVector = Icons.Default.Save,
                     contentDescription = "Save",
-                    tint = if (isEnabled && name.value.isNotBlank()) {
+                    tint = if (isEnabled && name.isNotBlank()) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -514,7 +513,6 @@ fun SaveConfigAlert(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaveConfigScreen(
-    name: MutableState<String>,
     errorMsg: MutableState<String?>,
     options: MutableState<SaveConfigOptions>,
     configurations: List<String>,
@@ -523,7 +521,7 @@ fun SaveConfigScreen(
     val createNewText = "Create Config"
     var expanded by remember { mutableStateOf(false) }
     var selectedOption by remember {
-        mutableStateOf(if (name.value.isEmpty() || name.value !in configurations) createNewText else name.value)
+        mutableStateOf(if (options.value.name.isEmpty() || options.value.name !in configurations) createNewText else options.value.name)
     }
 
     Column(modifier) {
@@ -550,7 +548,7 @@ fun SaveConfigScreen(
                     text = { TextBody(createNewText) },
                     onClick = {
                         selectedOption = createNewText
-                        name.value = ""
+                        options.value = options.value.copy(name = "")
                         errorMsg.value = null
                         expanded = false
                     },
@@ -560,7 +558,7 @@ fun SaveConfigScreen(
                         text = { TextBody(config) },
                         onClick = {
                             selectedOption = config
-                            name.value = config
+                            options.value = options.value.copy(name = config)
                             errorMsg.value = null
                             expanded = false
                         },
@@ -572,9 +570,9 @@ fun SaveConfigScreen(
         if (selectedOption == createNewText) {
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
-                value = name.value,
+                value = options.value.name,
                 onValueChange = {
-                    name.value = it
+                    options.value = options.value.copy(name = it)
                     errorMsg.value = null
                 },
                 label = { TextBody("Configuration Name") },

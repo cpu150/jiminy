@@ -1,9 +1,12 @@
 package music.jiminy
 
+import androidx.compose.runtime.Stable
 import kotlinx.serialization.Serializable
 
+@Stable
 @Serializable
 data class JiminyConfiguration(
     val name: String,
-    val links: List<JiminyCommand.Link>,
+    val audioLinks: List<JiminyCommand.Link>,
+    val midiLinks: List<JiminyCommand.Link>,
 )

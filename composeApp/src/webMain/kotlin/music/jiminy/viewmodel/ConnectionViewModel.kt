@@ -4,8 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.browser.window
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +26,9 @@ import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.LinkType
 import music.jiminy.NodeConnection
-import music.jiminy.SaveConfigOptions
 import music.jiminy.SELECTED_TAB_INDEX_KEY
+import music.jiminy.SaveConfigData
+import music.jiminy.SaveConfigOptions
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
@@ -42,7 +44,7 @@ class ConnectionViewModel(
         get() = _errorMessage
 
     private var preferredTabIndex =
-        kotlinx.browser.window.localStorage.getItem(SELECTED_TAB_INDEX_KEY)?.toIntOrNull()
+        window.localStorage.getItem(SELECTED_TAB_INDEX_KEY)?.toIntOrNull()
 
     enum class RecordingStatus {
         Idle,
@@ -114,7 +116,7 @@ class ConnectionViewModel(
     fun selectTab(index: Int) {
         val tab = tabs.value.find { tab -> tab.index == index }
         _selectedTab.update { tab }
-        kotlinx.browser.window.localStorage.setItem(SELECTED_TAB_INDEX_KEY, index.toString())
+        window.localStorage.setItem(SELECTED_TAB_INDEX_KEY, index.toString())
     }
 
     //// Mixer View
@@ -223,11 +225,9 @@ class ConnectionViewModel(
     private val _showLoadConfigPopup = MutableStateFlow(false)
     val showLoadConfigPopup: StateFlow<Boolean> = _showLoadConfigPopup.asStateFlow()
 
-    private val _showOverwriteConfigPopup = MutableStateFlow<String?>(null)
-    val showOverwriteConfigPopup: StateFlow<String?> = _showOverwriteConfigPopup.asStateFlow()
-
-    private var pendingLinks: List<JiminyLink> = emptyList()
-    private var pendingOptions: SaveConfigOptions = SaveConfigOptions()
+    private val _showOverwriteConfigPopup = MutableStateFlow<SaveConfigData?>(null)
+    val showOverwriteConfigPopup: StateFlow<SaveConfigData?> =
+        _showOverwriteConfigPopup.asStateFlow()
 
     fun onSaveConfigClick() {
         _configurationsState.update { LoadConfigState.Loading }
@@ -276,7 +276,6 @@ class ConnectionViewModel(
 
     fun dismissOverwriteConfigPopup() {
         _showOverwriteConfigPopup.update { null }
-        pendingLinks = emptyList()
     }
 
     fun dismissLoadConfigPopup() {
@@ -285,78 +284,72 @@ class ConnectionViewModel(
     }
 
     fun saveConfiguration(
-        name: String,
-        currentLinks: List<JiminyLink>,
+        audioLinks: List<JiminyLink>,
+        midiLinks: List<JiminyLink>,
         options: SaveConfigOptions,
     ) {
-        val existingConfigs =
-            (configurationsState.value as? LoadConfigState.Success)?.configurations ?: emptyList()
-        if (existingConfigs.contains(name)) {
-            pendingLinks = currentLinks
-            pendingOptions = options
-            _showOverwriteConfigPopup.update { name }
+        val data = SaveConfigData(
+            options = options,
+            audioLinks = audioLinks.toImmutableList(),
+            midiLinks = midiLinks.toImmutableList(),
+        )
+        val existingConfigs = when (val configState = configurationsState.value) {
+            is LoadConfigState.Success -> configState.configurations
+            else -> emptyList()
+        }
+
+        if (existingConfigs.contains(options.name)) {
+            _showOverwriteConfigPopup.update { data }
             _showSaveConfigPopup.update { false }
         } else {
-            executeSaveConfiguration(name, currentLinks, options)
+            viewModelScope.launch {
+                executeSaveConfiguration(data)
+            }
         }
     }
 
-    fun confirmOverwrite() {
+    fun confirmOverwrite(data: SaveConfigData) {
         val name = _showOverwriteConfigPopup.value
         if (name != null) {
-            executeSaveConfiguration(name, pendingLinks, pendingOptions)
-            _showOverwriteConfigPopup.update { null }
-            pendingLinks = emptyList()
-            pendingOptions = SaveConfigOptions()
+            viewModelScope.launch {
+                executeSaveConfiguration(data)
+                _showOverwriteConfigPopup.update { null }
+            }
         }
     }
 
-    private fun executeSaveConfiguration(
-        name: String,
-        currentLinks: List<JiminyLink>,
-        options: SaveConfigOptions,
-    ) {
-        val newLinks = currentLinks.flatMap { link ->
-            link.instrumentDevices.flatMap { instrument ->
-                instrument.instruments.flatMap { instNode ->
-                    link.speakerDevice.speakers.map { spkNode ->
-                        JiminyCommand.Link(instNode.fullName, spkNode.fullName, LinkType.Connect)
-                    }
-                }
+    private suspend fun executeSaveConfiguration(data: SaveConfigData) = with(data) {
+        val name = options.name
+
+        val save: suspend (JiminyConfiguration) -> Unit = { remoteConfig ->
+            val audioLinks = when (options.saveAudio) {
+                true -> audioLinks.flatMap { it.toLink() }
+                false -> remoteConfig.audioLinks
             }
-        }
-
-        viewModelScope.launch {
-            val audioNodes = mainService.audioDevices.value.nodes().map { it.fullName }.toSet()
-            val midiNodes = mainService.midiDevices.value.nodes().map { it.fullName }.toSet()
-
-            var existingLinks = emptyList<JiminyCommand.Link>()
-            val deferred = CompletableDeferred<List<JiminyCommand.Link>>()
-
-            mainService.getConfiguration(
-                name = name,
-                onSuccess = { response -> deferred.complete(response.value.links) },
-                onError = { deferred.complete(emptyList()) },
-            )
-            existingLinks = deferred.await()
-
-            val filteredExistingLinks = existingLinks.filter { link ->
-                val isAudio = audioNodes.contains(link.instrument)
-                val isMidi = midiNodes.contains(link.instrument)
-
-                val shouldRemove = (options.saveAudio && isAudio) || (options.saveMidi && isMidi)
-                !shouldRemove
+            val midiLinks = when (options.saveMidi) {
+                true -> midiLinks.flatMap { it.toLink() }
+                false -> remoteConfig.midiLinks
             }
-
-            val finalLinks = filteredExistingLinks + newLinks
 
             mainService.saveConfiguration(
-                config = JiminyConfiguration(name, finalLinks),
-                onSuccess = {
-                    _showSaveConfigPopup.update { false }
-                },
+                config = JiminyConfiguration(name, audioLinks, midiLinks),
+                onSuccess = { _showSaveConfigPopup.update { false } },
                 onError = ::handleError,
             )
+        }
+
+        mainService.getConfiguration(
+            name = name,
+            onSuccess = { response -> save(response.value) },
+            onError = ::handleError,
+        )
+    }
+
+    private fun JiminyLink.toLink() = instrumentDevices.flatMap { instrument ->
+        instrument.instruments.flatMap { instNode ->
+            speakerDevice.speakers.map { spkNode ->
+                JiminyCommand.Link(instNode.fullName, spkNode.fullName, LinkType.Connect)
+            }
         }
     }
 
@@ -364,18 +357,23 @@ class ConnectionViewModel(
         viewModelScope.launch {
             _configurationsState.update { LoadConfigState.Loading }
 
-            val allLinks = mutableListOf<JiminyCommand.Link>()
+            val configurations = mutableListOf<JiminyConfiguration>()
             names.forEach { name ->
                 mainService.getConfiguration(
                     name = name,
-                    onSuccess = { response -> allLinks.addAll(response.value.links) },
+                    onSuccess = { response -> configurations.add(response.value) },
                     onError = ::handleError,
                 )
             }
 
-            if (allLinks.isNotEmpty()) {
+            val links = mutableListOf<JiminyCommand.Link>()
+            configurations.forEach { config ->
+                links += config.audioLinks + config.midiLinks
+            }
+
+            if (links.isNotEmpty()) {
                 mainService.deviceLinks(
-                    links = allLinks,
+                    links = links,
                     onSuccess = { dismissLoadConfigPopup() },
                     onError = ::handleError,
                 )

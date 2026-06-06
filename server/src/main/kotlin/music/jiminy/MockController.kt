@@ -37,8 +37,8 @@ class MockController : JiminyServerControllerI {
         .also { _isRecording = false }
 
     private val mockConfigurations = mutableListOf(
-        JiminyConfiguration("Standard Setup", emptyList()),
-        JiminyConfiguration("Live Gig", emptyList()),
+        JiminyConfiguration("Standard Setup", emptyList(), emptyList()),
+        JiminyConfiguration("Live Gig", emptyList(), emptyList()),
     )
 
     override suspend fun getConfigurations() = mockConfigurations.map { it.name }

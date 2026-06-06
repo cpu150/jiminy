@@ -157,12 +157,12 @@ fun MainScreen(
         SaveConfigAlert(
             state = configurationsState,
             onDismiss = connectionViewModel::dismissSaveConfigPopup,
-            onConfirm = { name, options ->
-                val links = buildList {
-                    if (options.saveAudio) addAll(audioState.links)
-                    if (options.saveMidi) addAll(midiState.links)
-                }
-                connectionViewModel.saveConfiguration(name, links, options)
+            onConfirm = { options ->
+                connectionViewModel.saveConfiguration(
+                    audioLinks = audioState.links,
+                    midiLinks = midiState.links,
+                    options = options,
+                )
             },
         )
     }
@@ -176,13 +176,14 @@ fun MainScreen(
         )
     }
 
-    showOverwriteConfigPopup?.let { name ->
+    showOverwriteConfigPopup?.let { data ->
+        val name = data.options.name
         GenericMessageAlert(
-            title = "Overwrite configuration?",
-            message = "A configuration named \"$name\" already exists. Do you want to overwrite it?",
+            title = "Merge configuration?",
+            message = "A configuration named \"$name\" already exists. Do you want to merge it?",
             onDismiss = connectionViewModel::dismissOverwriteConfigPopup,
-            onConfirm = connectionViewModel::confirmOverwrite,
-            confirmLabel = "Overwrite",
+            onConfirm = { connectionViewModel.confirmOverwrite(data) },
+            confirmLabel = "Merge",
         )
     }
 

@@ -1,6 +1,5 @@
 package music.jiminy.viewmodel
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +15,7 @@ import music.jiminy.NodeConnection
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
+import kotlin.time.Duration.Companion.milliseconds
 
 class FakeLogger : JiminyLoggerI {
     val loggedInfo = mutableListOf<String>()
@@ -47,7 +47,6 @@ class FakeLogger : JiminyLoggerI {
 }
 
 open class FakeMainService(
-    scope: CoroutineScope? = null,
     logger: JiminyLoggerI = FakeLogger(),
 ) : MainService {
     private val _succeededCommands = MutableSharedFlow<JiminyCommand>(extraBufferCapacity = 64)
@@ -182,13 +181,13 @@ open class FakeMainService(
         onSuccess: (JiminyResponse.Success<List<String>>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) {
-        delay(10)
+        delay(10.milliseconds)
         onSuccess(JiminyResponse.Success(mockConfigurations.map { it.name }))
     }
 
     override suspend fun getConfiguration(
         name: String,
-        onSuccess: (JiminyResponse.Success<JiminyConfiguration>) -> Unit,
+        onSuccess: suspend (JiminyResponse.Success<JiminyConfiguration>) -> Unit,
         onError: (JiminyResponse) -> Unit,
     ) {
         mockConfigurations.find { it.name == name }?.let {
