@@ -188,7 +188,7 @@ open class FakeMainService(
     override suspend fun getConfiguration(
         name: String,
         onSuccess: suspend (JiminyResponse.Success<JiminyConfiguration>) -> Unit,
-        onError: (JiminyResponse) -> Unit,
+        onError: suspend (JiminyResponse) -> Unit,
     ) {
         mockConfigurations.find { it.name == name }?.let {
             onSuccess(JiminyResponse.Success(it))

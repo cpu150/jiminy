@@ -29,7 +29,7 @@ class ConnectionViewModelTest {
     fun setUp() {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         logger = FakeLogger()
-        mainService = FakeMainService(scope, logger)
+        mainService = FakeMainService(logger)
         viewModel = ConnectionViewModel(
             mainService = mainService,
             logger = logger,
@@ -42,7 +42,7 @@ class ConnectionViewModelTest {
         val speaker = JiminyDevice("Speaker", JiminyDeviceType.Audio)
         val links = listOf(JiminyLink(listOf(instrument), speaker))
 
-        viewModel.saveConfiguration("MyConfig", links, SaveConfigOptions())
+        viewModel.saveConfiguration(links, emptyList(), SaveConfigOptions(name = "MyConfig"))
 
         assertEquals(1, mainService.mockConfigurations.size)
         assertEquals("MyConfig", mainService.mockConfigurations.first().name)
@@ -52,7 +52,7 @@ class ConnectionViewModelTest {
     @Test
     fun testSaveConfigurationWithOverwrite() = runTest {
         // Initial setup with one config
-        mainService.mockConfigurations.add(JiminyConfiguration("Existing", emptyList()))
+        mainService.mockConfigurations.add(JiminyConfiguration("Existing", emptyList(), emptyList()))
 
         // Fetch configs to populate state
         viewModel.onSaveConfigClick()
@@ -63,14 +63,15 @@ class ConnectionViewModelTest {
         val links = listOf(JiminyLink(listOf(instrument), speaker))
 
         // Try to save with existing name
-        viewModel.saveConfiguration("Existing", links, SaveConfigOptions())
+        viewModel.saveConfiguration(links, emptyList(), SaveConfigOptions(name = "Existing"))
 
         // Verify overwrite popup shown and save popup dismissed
-        assertEquals("Existing", viewModel.showOverwriteConfigPopup.value)
+        val data = viewModel.showOverwriteConfigPopup.value
+        assertEquals("Existing", data?.options?.name)
         assertTrue(!viewModel.showSaveConfigPopup.value)
 
         // Confirm overwrite
-        viewModel.confirmOverwrite()
+        viewModel.confirmOverwrite(data!!)
 
         // Verify saved and popup dismissed
         assertEquals(1, mainService.mockConfigurations.size)
@@ -93,7 +94,7 @@ class ConnectionViewModelTest {
 
     @Test
     fun testOnLoadConfigClickTransitions() = runTest {
-        mainService.mockConfigurations.add(JiminyConfiguration("Config1", emptyList()))
+        mainService.mockConfigurations.add(JiminyConfiguration("Config1", emptyList(), emptyList()))
 
         viewModel.onLoadConfigClick()
 
@@ -112,7 +113,8 @@ class ConnectionViewModelTest {
     fun testLoadConfiguration() = runTest {
         val config = JiminyConfiguration(
             "Config1",
-            listOf(JiminyCommand.Link("inst", "spk", LinkType.Connect))
+            listOf(JiminyCommand.Link("inst", "spk", LinkType.Connect)),
+            emptyList(),
         )
         mainService.mockConfigurations.add(config)
         viewModel.onLoadConfigClick() // To show the popup
@@ -125,7 +127,7 @@ class ConnectionViewModelTest {
 
     @Test
     fun testDeleteConfiguration() = runTest {
-        mainService.mockConfigurations.add(JiminyConfiguration("ToDelete", emptyList()))
+        mainService.mockConfigurations.add(JiminyConfiguration("ToDelete", emptyList(), emptyList()))
         viewModel.onLoadConfigClick()
 
         viewModel.deleteConfigurations(listOf("ToDelete"))
@@ -164,7 +166,7 @@ class ConnectionViewModelTest {
         // 1. Initial configuration with both Audio and MIDI links
         val audioLink = JiminyCommand.Link("audio_inst", "audio_spk", LinkType.Connect)
         val midiLink = JiminyCommand.Link("midi_inst", "midi_spk", LinkType.Connect)
-        mainService.mockConfigurations.add(JiminyConfiguration("Config", listOf(audioLink, midiLink)))
+        mainService.mockConfigurations.add(JiminyConfiguration("Config", listOf(audioLink), listOf(midiLink)))
 
         // 2. Setup audio and midi devices in fake service so we can identify them
         val audioDevice = JiminyDevice("AudioDev", JiminyDeviceType.Audio).apply {
@@ -190,15 +192,17 @@ class ConnectionViewModelTest {
         viewModel.configurationsState.first { it is ConnectionViewModel.LoadConfigState.Success }
 
         // 4. Save ONLY MIDI section
-        viewModel.saveConfiguration("Config", listOf(newMidiLink), SaveConfigOptions(saveAudio = false, saveMidi = true))
-        viewModel.confirmOverwrite()
+        viewModel.saveConfiguration(emptyList(), listOf(newMidiLink), SaveConfigOptions(name = "Config", saveAudio = false, saveMidi = true))
+        val data = viewModel.showOverwriteConfigPopup.value
+        viewModel.confirmOverwrite(data!!)
 
         // 5. Verify result: Audio link remains, MIDI link is replaced
         val savedConfig = mainService.mockConfigurations.first { it.name == "Config" }
 
-        assertEquals(2, savedConfig.links.size)
-        assertTrue(savedConfig.links.any { it.instrument == "audio_inst" }) // Kept
-        assertTrue(savedConfig.links.any { it.instrument == "new_midi_inst" }) // New one
-        assertTrue(savedConfig.links.none { it.instrument == "midi_inst" }) // Old MIDI removed
+        assertEquals(1, savedConfig.audioLinks.size)
+        assertEquals(1, savedConfig.midiLinks.size)
+        assertTrue(savedConfig.audioLinks.any { it.instrument == "audio_inst" }) // Kept
+        assertTrue(savedConfig.midiLinks.any { it.instrument == "new_midi_inst" }) // New one
+        assertTrue(savedConfig.midiLinks.none { it.instrument == "midi_inst" }) // Old MIDI removed
     }
 }

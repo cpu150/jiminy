@@ -114,7 +114,7 @@ interface MainService {
     suspend fun getConfiguration(
         name: String,
         onSuccess: suspend (Success<JiminyConfiguration>) -> Unit,
-        onError: (JiminyResponse) -> Unit,
+        onError: suspend (JiminyResponse) -> Unit,
     )
 
     suspend fun saveConfiguration(
@@ -153,7 +153,7 @@ class MainServiceImpl(
 
     private suspend fun <T> handleExceptions(
         tryBlock: suspend () -> T?,
-        catchBlock: (JiminyResponse) -> T?,
+        catchBlock: suspend (JiminyResponse) -> T?,
         finallyBlock: (() -> T?)? = null,
         logMsg: String,
     ) = try {
@@ -184,7 +184,7 @@ class MainServiceImpl(
         }
 
         catchBlock(error)
-            .takeIf { error is CancellationException }
+            .takeIf { error is Cancelled }
             ?.let { throw e }
     } finally {
         finallyBlock?.invoke()
@@ -195,7 +195,7 @@ class MainServiceImpl(
             HttpStatusCode.OK -> null
             HttpStatusCode.Locked -> Recording
             else -> JiminyResponse.Error("$logMsg - ${response.status} - $response")
-        }.also { _isRecording.update { response.status.value == HttpStatusCode.Locked.value } }
+        }.also { _isRecording.update { response.status == HttpStatusCode.Locked } }
 
     override suspend fun mixerSendCommand(command: JiminyCommand) {
         mixerService.sendCommand(command)
@@ -391,7 +391,7 @@ class MainServiceImpl(
     override suspend fun getConfiguration(
         name: String,
         onSuccess: suspend (Success<JiminyConfiguration>) -> Unit,
-        onError: (JiminyResponse) -> Unit,
+        onError: suspend (JiminyResponse) -> Unit,
     ) {
         handleExceptions(
             logMsg = "getConfiguration",

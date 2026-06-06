@@ -29,7 +29,7 @@ class ConnectionScreenViewModelTest {
     fun setUp() {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         logger = FakeLogger()
-        mainService = FakeMainService(scope, logger)
+        mainService = FakeMainService(logger)
         viewModel = ConnectionScreenViewModel(
             mainService = mainService,
             logger = logger,

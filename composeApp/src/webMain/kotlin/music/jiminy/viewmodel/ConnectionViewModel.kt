@@ -333,7 +333,11 @@ class ConnectionViewModel(
 
             mainService.saveConfiguration(
                 config = JiminyConfiguration(name, audioLinks, midiLinks),
-                onSuccess = { _showSaveConfigPopup.update { false } },
+                onSuccess = {
+                    _showSaveConfigPopup.update { false }
+                    _showOverwriteConfigPopup.update { null }
+                    logger.info("Configuration \"$name\" successfully saved")
+                },
                 onError = ::handleError,
             )
         }

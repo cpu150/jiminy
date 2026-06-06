@@ -25,7 +25,7 @@ class LogsViewModelTest {
     fun setUp() {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         clientLogger = JiminyLogger()
-        mainService = FakeMainService(scope)
+        mainService = FakeMainService()
         viewModel = LogsViewModel(
             clientLogger = clientLogger,
             mainService = mainService,

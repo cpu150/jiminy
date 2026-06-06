@@ -518,7 +518,7 @@ fun SaveConfigScreen(
     configurations: List<String>,
     modifier: Modifier = Modifier,
 ) {
-    val createNewText = "Create Config"
+    val createNewText = "New"
     var expanded by remember { mutableStateOf(false) }
     var selectedOption by remember {
         mutableStateOf(if (options.value.name.isEmpty() || options.value.name !in configurations) createNewText else options.value.name)
@@ -575,7 +575,7 @@ fun SaveConfigScreen(
                     options.value = options.value.copy(name = it)
                     errorMsg.value = null
                 },
-                label = { TextBody("Configuration Name") },
+                label = { TextBody("Name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

@@ -30,7 +30,7 @@ class RecordingScreenViewModelTest {
     fun setUp() {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         logger = FakeLogger()
-        mainService = FakeMainService(scope, logger)
+        mainService = FakeMainService(logger)
         viewModel = RecordingScreenViewModel(
             mainService = mainService,
             logger = logger,
