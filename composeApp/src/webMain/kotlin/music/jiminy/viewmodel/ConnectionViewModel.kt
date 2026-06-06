@@ -303,7 +303,7 @@ class ConnectionViewModel(
             _showSaveConfigPopup.update { false }
         } else {
             viewModelScope.launch {
-                executeSaveConfiguration(data)
+                executeSaveConfiguration(data, false)
             }
         }
     }
@@ -312,23 +312,26 @@ class ConnectionViewModel(
         val name = _showOverwriteConfigPopup.value
         if (name != null) {
             viewModelScope.launch {
-                executeSaveConfiguration(data)
+                executeSaveConfiguration(data, true)
                 _showOverwriteConfigPopup.update { null }
             }
         }
     }
 
-    private suspend fun executeSaveConfiguration(data: SaveConfigData) = with(data) {
+    private suspend fun executeSaveConfiguration(
+        data: SaveConfigData,
+        remoteConfigExists: Boolean,
+    ) = with(data) {
         val name = options.name
 
-        val save: suspend (JiminyConfiguration) -> Unit = { remoteConfig ->
+        val save: suspend (JiminyConfiguration?) -> Unit = { remoteConfig ->
             val audioLinks = when (options.saveAudio) {
                 true -> audioLinks.flatMap { it.toLink() }
-                false -> remoteConfig.audioLinks
+                false -> remoteConfig?.audioLinks ?: emptyList()
             }
             val midiLinks = when (options.saveMidi) {
                 true -> midiLinks.flatMap { it.toLink() }
-                false -> remoteConfig.midiLinks
+                false -> remoteConfig?.midiLinks ?: emptyList()
             }
 
             mainService.saveConfiguration(
@@ -342,11 +345,15 @@ class ConnectionViewModel(
             )
         }
 
-        mainService.getConfiguration(
-            name = name,
-            onSuccess = { response -> save(response.value) },
-            onError = ::handleError,
-        )
+        if (remoteConfigExists) {
+            mainService.getConfiguration(
+                name = name,
+                onSuccess = { response -> save(response.value) },
+                onError = ::handleError,
+            )
+        } else {
+            save(null)
+        }
     }
 
     private fun JiminyLink.toLink() = instrumentDevices.flatMap { instrument ->

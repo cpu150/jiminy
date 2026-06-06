@@ -156,7 +156,7 @@ val deviceNameToAvatar = mapOf(
 )
 
 val deviceNameToAlias = mapOf(
-    METRONOME_MIDI to "Metronome",
+    METRONOME_MIDI to "Metro.",
     MIDI_THROUGH to "Pi",
 
     FLUIDSYNTH_MIDI_NAME to "Synth",

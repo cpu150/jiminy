@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
+import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.NodeConnection
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.service.MainService
@@ -27,8 +28,9 @@ class ConnectionScreenViewModel(
         }
     }
 
-    override fun filterLinks(links: List<NodeConnection>): List<NodeConnection> =
-        links.filter { it.speaker.deviceName != PW_RECORDER_NAME }
+    override fun filterLinks(links: List<NodeConnection>): List<NodeConnection> = links
+        .filterNot { it.instrument.fullName.startsWith(MIDI_BRIDGE_PREFIX) }
+        .filter { it.speaker.deviceName != PW_RECORDER_NAME }
 
     override fun convertLinks(links: List<NodeConnection>): List<JiminyLink> =
         links.toJiminyLinks()
