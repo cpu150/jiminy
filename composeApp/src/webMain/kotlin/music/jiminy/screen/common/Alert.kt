@@ -627,6 +627,23 @@ fun LoadConfigAlert(
     modifier: Modifier = Modifier,
 ) {
     var selectedConfigs by remember { mutableStateOf(setOf<String>()) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    if (showDeleteConfirmation) {
+        val name = if (selectedConfigs.size == 1) {
+            selectedConfigs.first()
+        } else {
+            "${selectedConfigs.size} configurations"
+        }
+        DeleteConfirmationAlert(
+            name = name,
+            onDismiss = { showDeleteConfirmation = false },
+            onConfirm = {
+                onDelete(selectedConfigs.toList())
+                selectedConfigs = emptySet()
+            },
+        )
+    }
 
     AlertDialog(
         modifier = modifier,
@@ -676,10 +693,7 @@ fun LoadConfigAlert(
             ) {
                 IconButton(
                     enabled = selectedConfigs.isNotEmpty(),
-                    onClick = {
-                        onDelete(selectedConfigs.toList())
-                        selectedConfigs = emptySet()
-                    },
+                    onClick = { showDeleteConfirmation = true },
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
