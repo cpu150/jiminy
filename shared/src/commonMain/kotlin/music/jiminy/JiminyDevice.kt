@@ -58,6 +58,11 @@ data class JiminyDevice(
     fun addVolume(volume: JiminyVolume) = _volumes.add(volume)
         .also { _volumes.sortBy { it.type } }
 
+    fun clone(): JiminyDevice = copy().also {
+        it.addNodes(nodes())
+        _volumes.forEach { v -> it.addVolume(v) }
+    }
+
     operator fun plus(other: JiminyDevice) = JiminyDevice(
         name = name,
         type = type,

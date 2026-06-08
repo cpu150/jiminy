@@ -39,23 +39,34 @@ data class ConnectionScreenZoneItem(
     val devices: SnapshotStateList<JiminyDevice> = mutableStateListOf(),
 )
 
-fun ConnectionScreenZoneItem.removeNode(node: JiminyDeviceNode) =
-    devices.find { it.name == node.deviceName }?.also {
-        it.removeNode(node)
-        if (it.nodes().isEmpty()) devices.remove(it)
+fun ConnectionScreenZoneItem.removeNode(node: JiminyDeviceNode) {
+    devices.find { it.name == node.deviceName }?.let { device ->
+        val index = devices.indexOf(device)
+        val newDevice = device.clone().apply { removeNode(node) }
+        if (newDevice.nodes().isEmpty()) {
+            devices.removeAt(index)
+        } else {
+            devices[index] = newDevice
+        }
     }
+}
 
 fun ConnectionScreenZoneItem.addNodes(
     nodes: List<JiminyDeviceNode>,
-    deviceType: JiminyDeviceType
+    deviceType: JiminyDeviceType,
 ) = nodes.forEach { node ->
-    (devices.find { it.name == node.deviceName }
-        ?.also { devices.remove(it) }
-        ?: JiminyDevice(node.deviceName, deviceType)
-            )
-        .also { devices.add(it) }
-        .takeIf { !it.nodes().any { n -> n.fullName == node.fullName } }
-        ?.also { it.addNode(node) }
+    val existing = devices.find { it.name == node.deviceName }
+    val device = if (existing != null) {
+        devices.remove(existing)
+        existing.clone()
+    } else {
+        JiminyDevice(node.deviceName, deviceType)
+    }
+
+    if (device.nodes().none { it.fullName == node.fullName }) {
+        device.addNode(node)
+    }
+    devices.add(device)
 }
 
 fun ConnectionScreenZoneItem.nodes() = devices.flatMap { device ->
