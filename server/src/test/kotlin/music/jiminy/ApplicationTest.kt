@@ -23,8 +23,8 @@ class ApplicationTest {
 
     @Test
     fun testGetDevices() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -46,8 +46,8 @@ class ApplicationTest {
 
     @Test
     fun testGetDeviceLinks() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -69,8 +69,8 @@ class ApplicationTest {
 
     @Test
     fun testGetRecordings() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -92,8 +92,8 @@ class ApplicationTest {
 
     @Test
     fun testServerLogsAndFlush() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -127,8 +127,8 @@ class ApplicationTest {
 
     @Test
     fun testDeleteRecordings() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -153,8 +153,8 @@ class ApplicationTest {
 
     @Test
     fun testDownloadRecordingsEmpty() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -177,8 +177,8 @@ class ApplicationTest {
 
     @Test
     fun testLinkDevices() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -201,8 +201,8 @@ class ApplicationTest {
 
     @Test
     fun testStartStopRecordingLockedEndpoints() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -243,8 +243,8 @@ class ApplicationTest {
 
     @Test
     fun testConfigurations() = testApplication {
-        val mockController = MockController()
         val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
         application {
             module(
                 json = json,
@@ -260,10 +260,10 @@ class ApplicationTest {
         assertEquals(2, configs.size)
 
         // Save new configuration
-        val newConfig = JiminyConfiguration("New Config", emptyList())
+        val newConfig = JiminyConfiguration("New Config", emptyList(), emptyList())
         val saveResponse = client.post(WS_CONFIGURATIONS) {
             contentType(ContentType.Application.Json)
-            setBody(json.encodeToString(newConfig))
+            setBody(json.encodeToString<JiminyConfiguration>(newConfig))
         }
         assertEquals(HttpStatusCode.OK, saveResponse.status)
         assertEquals("Configuration saved", saveResponse.bodyAsText())

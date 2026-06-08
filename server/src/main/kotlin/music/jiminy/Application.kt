@@ -36,8 +36,6 @@ import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.timeout
 import io.ktor.server.websocket.webSocket
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -54,7 +52,7 @@ fun main() {
     val host = if (DEBUG) DEBUG_SERVER_HOST else SERVER_HOST
     val logger = if (DEBUG) DebugLogger() else Logger()
 
-    val controller = if (DEBUG) MockController() else Controller(logger)
+    val controller = if (DEBUG) MockController(logger) else Controller(logger)
     val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -190,7 +188,10 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
         post(WS_CONFIGURATIONS) {
             try {
                 val config = call.receive<JiminyConfiguration>()
-                if (controller.saveConfiguration(config)) {
+                val command = JiminyCommand.SaveConfiguration(config)
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
                     call.respond(HttpStatusCode.OK, "Configuration saved")
                 } else {
                     call.respond(HttpStatusCode.InternalServerError, "$WS_CONFIGURATIONS - Error saving configuration")
@@ -202,7 +203,10 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         delete("$WS_CONFIGURATIONS/{name}") {
             val name = call.parameters["name"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-            if (controller.deleteConfiguration(name)) {
+            val command = JiminyCommand.DeleteConfiguration(name)
+            val status = controller.executeCommand(command)
+            if (status) {
+                controller.broadcastAll(sessions.toList(), command)
                 call.respond(HttpStatusCode.OK, "Configuration deleted")
             } else {
                 call.respond(HttpStatusCode.NotFound, "Configuration not found")
@@ -211,8 +215,14 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         post(WS_FLUSH_SERVER_LOGS) {
             try {
-                logger.clear()
-                call.respond(HttpStatusCode.OK, "Server logs flushed")
+                val command = JiminyCommand.FlushServerLogs
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
+                    call.respond(HttpStatusCode.OK, "Server logs flushed")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Error flushing logs")
+                }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
             }
@@ -221,7 +231,10 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
         post(WS_DELETE_RECORDINGS) {
             try {
                 val filenames = call.receive<List<String>>()
-                if (controller.deleteRecordings(filenames)) {
+                val command = JiminyCommand.DeleteRecordings(filenames)
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
                     call.respond(HttpStatusCode.OK, "Files deleted")
                 } else {
                     call.respond(HttpStatusCode.MultiStatus, "Some files could not be deleted")
@@ -288,16 +301,14 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
         post(WS_LINK_DEVICES) {
             try {
                 val links = call.receive<List<JiminyCommand.Link>>()
-                // Run all connections in parallel for speed
-                val failed = links
-                    .map { async { controller.linkDevice(it) } }
-                    .awaitAll()
-                    .count { !it }
+                val batch = JiminyCommand.Batch(links)
+                val status = controller.executeCommand(batch)
 
-                if (failed == 0) {
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), batch)
                     call.respond(HttpStatusCode.OK, "All links established")
                 } else {
-                    call.respond(HttpStatusCode.MultiStatus, "Failed to connect $failed links")
+                    call.respond(HttpStatusCode.MultiStatus, "Failed to connect some links")
                 }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
@@ -321,10 +332,14 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         post(WS_START_RECORDING) {
             try {
-                val nodes = call.receive<JiminyCommand.StartRecording>()
-                controller.startRecording(nodes)
-                controller.broadcastAll(sessions.toList(), nodes)
-                call.respond(HttpStatusCode.Locked, "Started recording...")
+                val command = call.receive<JiminyCommand.StartRecording>()
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
+                    call.respond(HttpStatusCode.Locked, "Started recording...")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to start recording")
+                }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
             }
@@ -332,9 +347,14 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         post(WS_STOP_RECORDING) {
             try {
-                controller.stopRecording()
-                controller.broadcastAll(sessions.toList(), JiminyCommand.StopRecording())
-                call.respond(HttpStatusCode.OK, "Stopped recording")
+                val command = JiminyCommand.StopRecording()
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
+                    call.respond(HttpStatusCode.OK, "Stopped recording")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to stop recording")
+                }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
             }

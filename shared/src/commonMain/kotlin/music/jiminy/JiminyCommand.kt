@@ -37,4 +37,16 @@ sealed interface JiminyCommand {
 
     @Serializable
     data class Batch(val commands: List<JiminyCommand>) : JiminyCommand
+
+    @Serializable
+    data class SaveConfiguration(val config: JiminyConfiguration) : JiminyCommand
+
+    @Serializable
+    data class DeleteConfiguration(val name: String) : JiminyCommand
+
+    @Serializable
+    data class DeleteRecordings(val filenames: List<String>) : JiminyCommand
+
+    @Serializable
+    data object FlushServerLogs : JiminyCommand
 }

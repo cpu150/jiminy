@@ -39,6 +39,13 @@ class Controller(
         is JiminyCommand.StartRecording -> startRecording(command)
         is JiminyCommand.StopRecording -> stopRecording()
         is JiminyCommand.Batch -> command.commands.all { executeCommand(it) }
+        is JiminyCommand.SaveConfiguration -> saveConfiguration(command.config)
+        is JiminyCommand.DeleteConfiguration -> deleteConfiguration(command.name)
+        is JiminyCommand.DeleteRecordings -> deleteRecordings(command.filenames)
+        JiminyCommand.FlushServerLogs -> {
+            logger.clear()
+            true
+        }
     }.also { logger.info("Jiminy Server - Received: $command") }
 
     private suspend fun updateVolume(

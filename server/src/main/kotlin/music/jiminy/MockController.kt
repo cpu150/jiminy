@@ -2,13 +2,24 @@ package music.jiminy
 
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 
-class MockController : JiminyServerControllerI {
+class MockController(
+    private val logger: JiminyLoggerI? = null,
+) : JiminyServerControllerI {
     private var _isRecording = false
     override val isRecording: Boolean
         get() = _isRecording
 
     override suspend fun executeCommand(command: JiminyCommand): Boolean = when (command) {
         is JiminyCommand.Batch -> command.commands.all { executeCommand(it) }
+        is JiminyCommand.SaveConfiguration -> saveConfiguration(command.config)
+        is JiminyCommand.DeleteConfiguration -> deleteConfiguration(command.name)
+        is JiminyCommand.DeleteRecordings -> deleteRecordings(command.filenames)
+        JiminyCommand.FlushServerLogs -> {
+            logger?.clear()
+            true
+        }
+        is JiminyCommand.StartRecording -> startRecording(command)
+        is JiminyCommand.StopRecording -> stopRecording()
         else -> true
     }
 
