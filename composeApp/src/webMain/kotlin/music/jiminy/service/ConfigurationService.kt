@@ -8,7 +8,9 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import music.jiminy.JiminyCommand
 import music.jiminy.JiminyConfiguration
+import music.jiminy.WS_BATCH
 import music.jiminy.WS_CONFIGURATIONS
 
 class ConfigurationService(
@@ -31,4 +33,10 @@ class ConfigurationService(
 
     suspend fun deleteConfiguration(name: String) = client
         .delete("$baseUrl$WS_CONFIGURATIONS/$name")
+
+    suspend fun executeBatch(batch: JiminyCommand.Batch) = client
+        .post("$baseUrl$WS_BATCH") {
+            contentType(ContentType.Application.Json)
+            setBody(batch)
+        }
 }

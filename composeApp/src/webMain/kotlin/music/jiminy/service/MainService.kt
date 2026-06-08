@@ -128,6 +128,12 @@ interface MainService {
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
     )
+
+    suspend fun executeBatch(
+        batch: JiminyCommand.Batch,
+        onSuccess: ((EmptySuccess) -> Unit)? = null,
+        onError: (JiminyResponse) -> Unit,
+    )
 }
 
 class MainServiceImpl(
@@ -431,6 +437,22 @@ class MainServiceImpl(
                     "deleteConfiguration",
                     configurationService.deleteConfiguration(name),
                 )
+                    ?.let { onError(it) }
+                    ?: onSuccess?.invoke(EmptySuccess)
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
+
+    override suspend fun executeBatch(
+        batch: JiminyCommand.Batch,
+        onSuccess: ((EmptySuccess) -> Unit)?,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        handleExceptions(
+            logMsg = "executeBatch",
+            tryBlock = {
+                handleHttpResponse("executeBatch", configurationService.executeBatch(batch))
                     ?.let { onError(it) }
                     ?: onSuccess?.invoke(EmptySuccess)
             },

@@ -390,15 +390,18 @@ class ConnectionViewModel(
                 volumes += config.volumes
             }
 
+            val batchCommands = mutableListOf<JiminyCommand>()
             if (volumes.isNotEmpty()) {
-                // TODO - Change that against an endpoint
-                val cmd = volumes.map { it.toVolumeCommand() } + volumes.map { it.toMuteCommand() }
-                mixerSendCommand(JiminyCommand.Batch(cmd))
+                batchCommands += volumes.map { it.toVolumeCommand() }
+                batchCommands += volumes.map { it.toMuteCommand() }
+            }
+            if (links.isNotEmpty()) {
+                batchCommands += links
             }
 
-            if (links.isNotEmpty()) {
-                mainService.deviceLinks(
-                    links = links,
+            if (batchCommands.isNotEmpty()) {
+                mainService.executeBatch(
+                    batch = JiminyCommand.Batch(batchCommands),
                     onSuccess = { dismissLoadConfigPopup() },
                     onError = ::handleError,
                 )

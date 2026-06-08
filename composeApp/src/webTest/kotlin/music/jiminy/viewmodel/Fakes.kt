@@ -70,6 +70,7 @@ open class FakeMainService(
     val mockRecordings = mutableListOf<String>()
     val mockServerLogs = mutableListOf<LogEntry>()
     val mockConfigurations = mutableListOf<JiminyConfiguration>()
+    val executedBatches = mutableListOf<JiminyCommand.Batch>()
 
     fun setAudioDevices(devices: List<JiminyDevice>) {
         _audioDevices.value = devices
@@ -211,6 +212,15 @@ open class FakeMainService(
         onError: (JiminyResponse) -> Unit,
     ) {
         mockConfigurations.removeAll { it.name == name }
+        onSuccess?.invoke(JiminyResponse.EmptySuccess)
+    }
+
+    override suspend fun executeBatch(
+        batch: JiminyCommand.Batch,
+        onSuccess: ((JiminyResponse.EmptySuccess) -> Unit)?,
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        executedBatches.add(batch)
         onSuccess?.invoke(JiminyResponse.EmptySuccess)
     }
 }

@@ -304,6 +304,21 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
             }
         }
 
+        post(WS_BATCH) {
+            try {
+                val batch = call.receive<JiminyCommand.Batch>()
+                val status = controller.executeCommand(batch)
+                controller.broadcastAll(sessions.toList(), batch, status)
+                if (status) {
+                    call.respond(HttpStatusCode.OK, "Batch executed")
+                } else {
+                    call.respond(HttpStatusCode.MultiStatus, "Some commands in batch failed")
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
         post(WS_START_RECORDING) {
             try {
                 val nodes = call.receive<JiminyCommand.StartRecording>()

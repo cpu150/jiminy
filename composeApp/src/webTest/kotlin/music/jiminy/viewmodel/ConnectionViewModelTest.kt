@@ -306,49 +306,56 @@ class ConnectionViewModelTest {
     }
 
     @Test
-    fun testSaveAndLoadVolumes() = runTest {
-        // 1. Setup device with volume
+    fun testLoadConfigurationsSendsBatch() = runTest {
+        // 1. Setup configuration with link and volume
+        val link = JiminyCommand.Link("inst", "spk", LinkType.Connect)
         val volume = music.jiminy.JiminyVolume(
             "vol1",
-            0.7f,
+            0.5f,
             music.jiminy.JiminyDeviceNodeType.Instrument,
             false,
         )
-        val device = JiminyDevice("Dev", JiminyDeviceType.Audio).apply {
-            addVolume(volume)
-        }
-        mainService.setAudioDevices(listOf(device))
+        val config = JiminyConfiguration("Config1", listOf(link), emptyList(), listOf(volume))
+        mainService.mockConfigurations.add(config)
 
-        // 2. Save configuration with volumes
-        viewModel.saveConfiguration(
-            emptyList(),
-            emptyList(),
-            SaveConfigOptions(name = "VolConfig", saveVolumes = true),
-        )
+        // 2. Load configuration
+        viewModel.loadConfigurations(listOf("Config1"))
         advanceUntilIdle()
 
-        // 3. Verify volumes are saved
-        val savedConfig = mainService.mockConfigurations.first { it.name == "VolConfig" }
-        assertEquals(1, savedConfig.volumes.size)
-        assertEquals(0.7f, savedConfig.volumes.first().volume)
-        assertEquals("vol1", savedConfig.volumes.first().id)
+        // 3. Verify batch was executed via the new endpoint (tracked in fake)
+        assertEquals(1, mainService.executedBatches.size)
+        val batch = mainService.executedBatches.first()
 
-        // 4. Start collecting before loading to avoid missing emission
-        val deferredCommand = kotlinx.coroutines.CompletableDeferred<JiminyCommand>()
-        val job = backgroundScope.launch {
-            deferredCommand.complete(mainService.succeededCommands.first())
-        }
+        // Should contain: 1 VolumeUpdate, 1 MuteUpdate, 1 Link
+        assertEquals(3, batch.commands.size)
+        assertTrue(batch.commands.any { it is JiminyCommand.VolumeUpdate && it.volume == 0.5f })
+        assertTrue(batch.commands.any { it is JiminyCommand.MuteUpdate && !it.muteState })
+        assertTrue(batch.commands.any { it is JiminyCommand.Link && it.instrument == "inst" })
 
-        // 5. Load configuration
-        viewModel.loadConfigurations(listOf("VolConfig"))
+        // Verify popup dismissed
+        assertTrue(!viewModel.showLoadConfigPopup.value)
+    }
+
+    @Test
+    fun testLoadMultipleConfigurationsSendsMergedBatch() = runTest {
+        // 1. Setup two configurations
+        val link1 = JiminyCommand.Link("inst1", "spk1", LinkType.Connect)
+        val config1 = JiminyConfiguration("Config1", listOf(link1), emptyList(), emptyList())
+
+        val link2 = JiminyCommand.Link("inst2", "spk2", LinkType.Connect)
+        val config2 = JiminyConfiguration("Config2", listOf(link2), emptyList(), emptyList())
+
+        mainService.mockConfigurations.addAll(listOf(config1, config2))
+
+        // 2. Load both configurations
+        viewModel.loadConfigurations(listOf("Config1", "Config2"))
         advanceUntilIdle()
 
-        // 6. Verify batch command sent with volume update
-        val command = deferredCommand.await()
-        assertTrue(command is JiminyCommand.Batch)
-        assertEquals(2, command.commands.size) // 1 VolumeUpdate + 1 MuteUpdate
-        assertTrue(command.commands.any { it is JiminyCommand.VolumeUpdate && it.volume == 0.7f })
-        assertTrue(command.commands.any { it is JiminyCommand.MuteUpdate && !it.muteState })
-        job.cancel()
+        // 3. Verify single batch with merged commands
+        assertEquals(1, mainService.executedBatches.size)
+        val batch = mainService.executedBatches.first()
+        assertEquals(2, batch.commands.size)
+        assertTrue(batch.commands.any { it is JiminyCommand.Link && it.instrument == "inst1" })
+        assertTrue(batch.commands.any { it is JiminyCommand.Link && it.instrument == "inst2" })
     }
 }
