@@ -237,7 +237,7 @@ class ConnectionViewModel(
         viewModelScope.launch {
             mainService.getConfigurations(
                 onSuccess = { response ->
-                    _configurationsState.update { LoadConfigState.Success(response.value) }
+                    _configurationsState.update { LoadConfigState.Success(response.value.sortedBy { it.lowercase() }) }
                 },
                 onError = { error ->
                     val msg = when (error) {
@@ -257,7 +257,7 @@ class ConnectionViewModel(
         viewModelScope.launch {
             mainService.getConfigurations(
                 onSuccess = { response ->
-                    _configurationsState.update { LoadConfigState.Success(response.value) }
+                    _configurationsState.update { LoadConfigState.Success(response.value.sortedBy { it.lowercase() }) }
                 },
                 onError = { error ->
                     val msg = when (error) {
