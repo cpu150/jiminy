@@ -24,6 +24,7 @@ import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
+import music.jiminy.JiminyVolume
 import music.jiminy.LinkType
 import music.jiminy.NodeConnection
 import music.jiminy.SELECTED_TAB_INDEX_KEY
@@ -333,9 +334,13 @@ class ConnectionViewModel(
                 true -> midiLinks.flatMap { it.toLink() }
                 false -> remoteConfig?.midiLinks ?: emptyList()
             }
+            val volumes = when (options.saveVolumes) {
+                false -> remoteConfig?.volumes ?: emptyList()
+                true -> devices.value.flatMap { device -> device.volumes }
+            }
 
             mainService.saveConfiguration(
-                config = JiminyConfiguration(name, audioLinks, midiLinks),
+                config = JiminyConfiguration(name, audioLinks, midiLinks, volumes),
                 onSuccess = {
                     _showSaveConfigPopup.update { false }
                     _showOverwriteConfigPopup.update { null }
@@ -378,8 +383,17 @@ class ConnectionViewModel(
             }
 
             val links = mutableListOf<JiminyCommand.Link>()
+            val volumes = mutableListOf<JiminyVolume>()
+
             configurations.forEach { config ->
                 links += config.audioLinks + config.midiLinks
+                volumes += config.volumes
+            }
+
+            if (volumes.isNotEmpty()) {
+                // TODO - Change that against an endpoint
+                val cmd = volumes.map { it.toVolumeCommand() } + volumes.map { it.toMuteCommand() }
+                mixerSendCommand(JiminyCommand.Batch(cmd))
             }
 
             if (links.isNotEmpty()) {
@@ -393,6 +407,9 @@ class ConnectionViewModel(
             }
         }
     }
+
+    private fun JiminyVolume.toVolumeCommand() = JiminyCommand.VolumeUpdate(this, volume)
+    private fun JiminyVolume.toMuteCommand() = JiminyCommand.MuteUpdate(this, mute)
 
     fun deleteConfigurations(names: List<String>) {
         viewModelScope.launch {

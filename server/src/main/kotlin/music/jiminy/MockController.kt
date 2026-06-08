@@ -7,7 +7,10 @@ class MockController : JiminyServerControllerI {
     override val isRecording: Boolean
         get() = _isRecording
 
-    override suspend fun executeCommand(command: JiminyCommand) = true
+    override suspend fun executeCommand(command: JiminyCommand): Boolean = when (command) {
+        is JiminyCommand.Batch -> command.commands.all { executeCommand(it) }
+        else -> true
+    }
 
     override suspend fun getDevicesList() = JiminyDeviceList(
         instruments = dummyInstrumentsCmd,

@@ -34,4 +34,7 @@ sealed interface JiminyCommand {
 
     @Serializable
     data class StopRecording(val isRecording: Boolean = false) : JiminyCommand
+
+    @Serializable
+    data class Batch(val commands: List<JiminyCommand>) : JiminyCommand
 }

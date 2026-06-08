@@ -2,8 +2,6 @@ package music.jiminy
 
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.sendSerialized
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,9 +10,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter.ofPattern
 import java.util.concurrent.TimeUnit
@@ -35,12 +32,13 @@ class Controller(
 
     private data class RecordProcessInfo(val filename: String, val process: Process)
 
-    override suspend fun executeCommand(command: JiminyCommand) = when (command) {
+    override suspend fun executeCommand(command: JiminyCommand): Boolean = when (command) {
         is JiminyCommand.VolumeUpdate -> updateVolume(command.deviceVolume, command.volume)
         is JiminyCommand.MuteUpdate -> updateMuteState(command.deviceVolume, command.muteState)
         is JiminyCommand.Link -> linkDevice(command)
         is JiminyCommand.StartRecording -> startRecording(command)
         is JiminyCommand.StopRecording -> stopRecording()
+        is JiminyCommand.Batch -> command.commands.all { executeCommand(it) }
     }.also { logger.info("Jiminy Server - Received: $command") }
 
     private suspend fun updateVolume(

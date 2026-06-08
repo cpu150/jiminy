@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -537,7 +538,10 @@ fun SaveConfigScreen(
                 label = { TextBody("Select Configuration") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth(),
+                modifier = Modifier.menuAnchor(
+                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                    enabled = true
+                ).fillMaxWidth(),
             )
 
             ExposedDropdownMenu(
@@ -586,10 +590,12 @@ fun SaveConfigScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = {
-                options.value = options.value.copy(saveAudio = !options.value.saveAudio)
+            val onClick: (SaveConfigOptions.() -> SaveConfigOptions) -> Unit = { newOptions ->
+                options.value = options.value.newOptions()
                 errorMsg.value = null
-            }) {
+            }
+
+            IconButton(onClick = { onClick { copy(saveAudio = !options.value.saveAudio) } }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.AltRoute,
                     contentDescription = "Audio Links",
@@ -600,14 +606,22 @@ fun SaveConfigScreen(
                     },
                 )
             }
-            IconButton(onClick = {
-                options.value = options.value.copy(saveMidi = !options.value.saveMidi)
-                errorMsg.value = null
-            }) {
+            IconButton(onClick = { onClick { copy(saveMidi = !options.value.saveMidi) } }) {
                 Icon(
                     imageVector = Icons.Default.SettingsInputSvideo,
                     contentDescription = "MIDI Links",
                     tint = if (options.value.saveMidi) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+                )
+            }
+            IconButton(onClick = { onClick { copy(saveVolumes = !options.value.saveVolumes) } }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                    contentDescription = "Volumes",
+                    tint = if (options.value.saveVolumes) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
