@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceNodeType
@@ -147,5 +148,41 @@ class RecordingScreenViewModelTest {
         assertEquals(0, state.selectedRecordings.size)
         assertEquals(1, state.recordings.size)
         assertEquals("rec2.wav", state.recordings.first())
+    }
+
+    @Test
+    fun testOnApplyConfiguration() = runTest {
+        val node1 = JiminyDeviceNode("node1", "dev1", "port1", JiminyDeviceNodeType.Instrument)
+        val node2 = JiminyDeviceNode("node2", "dev2", "port2", JiminyDeviceNodeType.Instrument)
+        val config = JiminyConfiguration(
+            name = "TestConfig",
+            audioLinks = emptyList(),
+            midiLinks = emptyList(),
+            recordingNodes = listOf(node1, node2)
+        )
+
+        viewModel.onAction(RecordingScreenAction.OnApplyConfiguration(config))
+        val state = viewModel.state.first()
+
+        assertEquals(2, state.selectedNodes.size)
+        assertTrue(state.selectedNodes.containsAll(listOf(node1, node2)))
+    }
+
+    @Test
+    fun testOnApplyConfigurationRespectsLimit() = runTest {
+        val extraNodes = (1..PW_RECORDER_CHANNEL_COUNT + 5).map { index ->
+            JiminyDeviceNode("node_$index", "dev", "port", JiminyDeviceNodeType.Instrument)
+        }
+        val config = JiminyConfiguration(
+            name = "OverLimitConfig",
+            audioLinks = emptyList(),
+            midiLinks = emptyList(),
+            recordingNodes = extraNodes
+        )
+
+        viewModel.onAction(RecordingScreenAction.OnApplyConfiguration(config))
+        val state = viewModel.state.first()
+
+        assertEquals(PW_RECORDER_CHANNEL_COUNT, state.selectedNodes.size)
     }
 }

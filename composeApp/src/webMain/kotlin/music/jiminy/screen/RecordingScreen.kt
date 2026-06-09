@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.DEVICE_LIST_CARD_WIDTH
+import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.PW_RECORDER_CHANNEL_COUNT
@@ -88,6 +89,7 @@ sealed interface RecordingScreenAction {
     data class OnRecordingsSelect(val filenames: List<String>) : RecordingScreenAction
     data object OnDownloadRecordings : RecordingScreenAction
     data object OnDeleteRecordings : RecordingScreenAction
+    data class OnApplyConfiguration(val config: JiminyConfiguration) : RecordingScreenAction
 }
 
 @Composable

@@ -57,7 +57,7 @@ class ConnectionViewModelTest {
         val speaker = JiminyDevice("Speaker", JiminyDeviceType.Audio)
         val links = listOf(JiminyLink(listOf(instrument), speaker))
 
-        viewModel.saveConfiguration(links, emptyList(), SaveConfigOptions(name = "MyConfig"))
+        viewModel.saveConfiguration(links, emptyList(), emptyList(), SaveConfigOptions(name = "MyConfig"))
         advanceUntilIdle()
 
         assertEquals(1, mainService.mockConfigurations.size)
@@ -85,7 +85,7 @@ class ConnectionViewModelTest {
         val links = listOf(JiminyLink(listOf(instrument), speaker))
 
         // Try to save with existing name
-        viewModel.saveConfiguration(links, emptyList(), SaveConfigOptions(name = "Existing"))
+        viewModel.saveConfiguration(links, emptyList(), emptyList(), SaveConfigOptions(name = "Existing"))
         advanceUntilIdle()
 
         // Verify overwrite popup shown and save popup dismissed
@@ -288,6 +288,7 @@ class ConnectionViewModelTest {
         viewModel.saveConfiguration(
             emptyList(),
             listOf(newMidiLink),
+            emptyList(),
             SaveConfigOptions(name = "Config", saveAudio = false, saveMidi = true),
         )
         advanceUntilIdle()

@@ -8,12 +8,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.JiminyCommand
+import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyLoggerI
 import music.jiminy.PW_RECORDER_CHANNEL_COUNT
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.screen.RecordingScreenAction
 import music.jiminy.screen.RecordingScreenAction.OnDeleteRecordings
+import music.jiminy.screen.RecordingScreenAction.OnApplyConfiguration
 import music.jiminy.screen.RecordingScreenAction.OnDeviceClick
 import music.jiminy.screen.RecordingScreenAction.OnDismissDetails
 import music.jiminy.screen.RecordingScreenAction.OnDownloadRecordings
@@ -80,6 +82,13 @@ class RecordingScreenViewModel(
             is OnRecordingsSelect -> toggleRecordingsSelection(action.filenames)
             OnDownloadRecordings -> downloadRecordings()
             OnDeleteRecordings -> deleteRecordings()
+            is OnApplyConfiguration -> applyConfiguration(action.config)
+        }
+    }
+
+    private fun applyConfiguration(config: JiminyConfiguration) {
+        _state.update { state ->
+            state.copy(selectedNodes = config.recordingNodes.take(PW_RECORDER_CHANNEL_COUNT))
         }
     }
 

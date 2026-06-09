@@ -55,6 +55,7 @@ import music.jiminy.screen.MIDIScreen
 import music.jiminy.screen.MixerScreen
 import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
+import music.jiminy.screen.RecordingScreenAction
 import music.jiminy.screen.common.GenericMessageAlert
 import music.jiminy.screen.common.LoadConfigAlert
 import music.jiminy.screen.common.MarqueeText
@@ -148,10 +149,17 @@ fun MainScreen(
 
     val audioState by connectionScreenViewModel.state.collectAsStateWithLifecycle()
     val midiState by midiScreenViewModel.state.collectAsStateWithLifecycle()
+    val recordingState by recordingScreenViewModel.state.collectAsStateWithLifecycle()
     val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
     val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
     val showOverwriteConfigPopup by connectionViewModel.showOverwriteConfigPopup.collectAsStateWithLifecycle()
     val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        connectionViewModel.loadedConfiguration.collect { config ->
+            recordingScreenViewModel.onAction(RecordingScreenAction.OnApplyConfiguration(config))
+        }
+    }
 
     if (showSaveConfigPopup) {
         SaveConfigAlert(
@@ -161,6 +169,7 @@ fun MainScreen(
                 connectionViewModel.saveConfiguration(
                     audioLinks = audioState.links,
                     midiLinks = midiState.links,
+                    recordingNodes = recordingState.selectedNodes,
                     options = options,
                 )
             },

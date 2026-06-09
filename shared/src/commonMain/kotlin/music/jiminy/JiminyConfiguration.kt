@@ -10,4 +10,5 @@ data class JiminyConfiguration(
     val audioLinks: List<JiminyCommand.Link>,
     val midiLinks: List<JiminyCommand.Link>,
     val volumes: List<JiminyVolume> = emptyList(),
+    val recordingNodes: List<JiminyDeviceNode> = emptyList(),
 )

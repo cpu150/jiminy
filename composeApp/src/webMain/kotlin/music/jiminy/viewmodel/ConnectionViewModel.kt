@@ -9,9 +9,12 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -21,6 +24,7 @@ import music.jiminy.DEBOUNCING_COMMAND_MILLIS
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
+import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyDeviceType
 import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
@@ -220,6 +224,9 @@ class ConnectionViewModel(
     private val _configurationsState = MutableStateFlow<LoadConfigState>(LoadConfigState.Idle)
     val configurationsState: StateFlow<LoadConfigState> = _configurationsState.asStateFlow()
 
+    private val _loadedConfiguration = MutableSharedFlow<JiminyConfiguration>()
+    val loadedConfiguration: SharedFlow<JiminyConfiguration> = _loadedConfiguration.asSharedFlow()
+
     private val _showSaveConfigPopup = MutableStateFlow(false)
     val showSaveConfigPopup: StateFlow<Boolean> = _showSaveConfigPopup.asStateFlow()
 
@@ -287,12 +294,14 @@ class ConnectionViewModel(
     fun saveConfiguration(
         audioLinks: List<JiminyLink>,
         midiLinks: List<JiminyLink>,
+        recordingNodes: List<JiminyDeviceNode>,
         options: SaveConfigOptions,
     ) {
         val data = SaveConfigData(
             options = options,
             audioLinks = audioLinks.toImmutableList(),
             midiLinks = midiLinks.toImmutableList(),
+            recordingNodes = recordingNodes.toImmutableList(),
         )
         val existingConfigs = when (val configState = configurationsState.value) {
             is LoadConfigState.Success -> configState.configurations
@@ -338,9 +347,13 @@ class ConnectionViewModel(
                 false -> remoteConfig?.volumes ?: emptyList()
                 true -> devices.value.flatMap { device -> device.volumes }
             }
+            val recordingNodes = when (options.saveRecordingNodes) {
+                true -> recordingNodes
+                false -> remoteConfig?.recordingNodes ?: emptyList()
+            }
 
             mainService.saveConfiguration(
-                config = JiminyConfiguration(name, audioLinks, midiLinks, volumes),
+                config = JiminyConfiguration(name, audioLinks, midiLinks, volumes, recordingNodes),
                 onSuccess = {
                     _showSaveConfigPopup.update { false }
                     _showOverwriteConfigPopup.update { null }
@@ -377,7 +390,10 @@ class ConnectionViewModel(
             names.forEach { name ->
                 mainService.getConfiguration(
                     name = name,
-                    onSuccess = { response -> configurations.add(response.value) },
+                    onSuccess = { response ->
+                        configurations.add(response.value)
+                        _loadedConfiguration.emit(response.value)
+                    },
                     onError = ::handleError,
                 )
             }

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SettingsInputSvideo
+import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -622,6 +623,17 @@ fun SaveConfigScreen(
                     imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                     contentDescription = "Volumes",
                     tint = if (options.value.saveVolumes) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+                )
+            }
+            IconButton(onClick = { onClick { copy(saveRecordingNodes = !options.value.saveRecordingNodes) } }) {
+                Icon(
+                    imageVector = Icons.Default.Voicemail,
+                    contentDescription = "Recording Slots",
+                    tint = if (options.value.saveRecordingNodes) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)

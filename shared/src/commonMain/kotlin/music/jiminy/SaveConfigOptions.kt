@@ -10,6 +10,7 @@ data class SaveConfigOptions(
     val saveAudio: Boolean = true,
     val saveMidi: Boolean = true,
     val saveVolumes: Boolean = true,
+    val saveRecordingNodes: Boolean = true,
 )
 
 val SaveConfigOptions.isValid get() = !name.isBlank() && (saveAudio || saveMidi || saveVolumes)

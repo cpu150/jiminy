@@ -8,4 +8,5 @@ data class SaveConfigData(
     val options: SaveConfigOptions,
     val audioLinks: ImmutableList<JiminyLink>,
     val midiLinks: ImmutableList<JiminyLink>,
+    val recordingNodes: ImmutableList<JiminyDeviceNode>,
 )
