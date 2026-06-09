@@ -1,15 +1,15 @@
 ---
-name: android-di-koin
+name: di-koin
 description: |
-  Koin dependency injection setup for Android/KMP - module definitions per layer, ViewModel injection, assembling modules in :app, and koinViewModel() in composables. Use this skill whenever setting up Koin, defining a DI module, providing a repository or ViewModel, injecting a dependency, or wiring modules in the Application class. Trigger on phrases like "set up Koin", "add a Koin module", "inject a dependency", "DI module", "koinViewModel", "provide a ViewModel", "startKoin", or "single/viewModel/factory".
+  Koin dependency injection setup for Universal/Universal - module definitions per layer, ViewModel injection, assembling modules in app module or :app, and koinViewModel() in composables. Use this skill whenever setting up Koin, defining a DI module, providing a repository or ViewModel, injecting a dependency, or wiring modules in the Application class or main function. Trigger on phrases like "set up Koin", "add a Koin module", "inject a dependency", "DI module", "koinViewModel", "provide a ViewModel", "startKoin", or "single/viewModel/factory".
 ---
  
-# Android / KMP Dependency Injection (Koin)
+# Universal Dependency Injection (Koin)
  
 ## Principles
  
 - One Koin module per feature layer — create it only if there are dependencies to provide.
-- Modules are assembled in `:app`, never in feature modules themselves.
+- Modules are assembled in the app entry point (`app module` for Universal, or `:app` for Android-only).
 - In Compose root composables, always inject ViewModels via `koinViewModel()`.
  
 ---
@@ -53,9 +53,28 @@ val coreDataModule = module {
  
 ---
  
-## Assembly in `:app`
+## Assembly / Entry Points
+
+### Universal (e.g., Web/Desktop)
  
-Register all modules in the `Application` class:
+Register modules in the `main` function:
+ 
+```kotlin
+// composeApp/src/webMain/kotlin/music/jiminy/main.kt
+fun main() {
+    startKoin {
+        modules(appModule)
+    }
+
+    ComposeViewport {
+        App()
+    }
+}
+```
+
+### Android
+ 
+Register in the `Application` class:
  
 ```kotlin
 class App : Application() {
@@ -63,16 +82,7 @@ class App : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@App)
-            modules(
-                // core
-                coreDataModule,
-                // features
-                notesDataModule,
-                notesPresentationModule,
-                authDataModule,
-                authPresentationModule,
-                // ...
-            )
+            modules(appModule)
         }
     }
 }
@@ -88,7 +98,7 @@ Always use `koinViewModel()` in Root composables:
 @Composable
 fun NoteListRoot(
     onNavigateToDetail: (String) -> Unit,
-    viewModel: NoteListViewModel = koinViewModel()
+    viewModel: NoteListViewModel = koinViewModel(),
 ) { ... }
 ```
  
@@ -118,8 +128,7 @@ Use the `*Of` constructor-reference form by default. Only use the lambda form wh
  
 ## Checklist: Adding DI for a New Feature
  
-- [ ] Define `val <feature>DataModule = module { ... }` in `feature:data`
-- [ ] Define `val <feature>PresentationModule = module { ... }` in `feature:presentation`
-- [ ] Register both modules in `:app`'s `startKoin { modules(...) }`
+- [ ] Define `val <feature>DataModule = module { ... }` in data layer
+- [ ] Define `val <feature>PresentationModule = module { ... }` in presentation layer
+- [ ] Register both modules in entry point's `startKoin { modules(...) }`
 - [ ] Use `koinViewModel()` in all Root composables
- 

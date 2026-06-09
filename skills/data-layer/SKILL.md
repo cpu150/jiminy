@@ -1,14 +1,14 @@
 ---
-name: android-data-layer
+name: data-layer
 description: |
-  Data layer patterns for Android/KMP - data sources, repositories, DTOs, mappers, Room entities, Ktor HttpClient, safe call helpers, token storage, and offline-first. Use this skill whenever writing or reviewing a data source or repository, creating DTOs or Room entities, writing mappers, setting up the Ktor HttpClient, handling network errors, or implementing token refresh. Trigger on phrases like "create a repository", "create a data source", "add a DAO", "Ktor client", "write a mapper", "DTO", "Room entity", "network call", "token storage", or "offline-first".
+  Data layer patterns for Universal - data sources, repositories, DTOs, mappers, Ktor HttpClient, safe call helpers, token storage, and offline-first. Use this skill whenever writing or reviewing a data source or repository, creating DTOs or writing mappers, setting up the Ktor HttpClient, handling network errors, or implementing token refresh. Trigger on phrases like "create a repository", "create a data source", "add a DAO", "Ktor client", "write a mapper", "DTO", "Local entity", "network call", "token storage", or "offline-first".
 ---
  
-# Android / KMP Data Layer
+# Universal Data Layer
  
 ## Error Handling
 
-This skill uses `Result<T, E>`, `DataError`, and the extension helpers defined in the **android-error-handling** skill. Refer to that skill for the full `Result` wrapper, `DataError` sealed interface, and `map`/`onSuccess`/`onFailure`/`asEmptyResult` extensions.
+This skill uses `Result<T, E>`, `DataError`, and the extension helpers defined in the **kmp-error-handling** skill. Refer to that skill for the full `Result` wrapper, `DataError` sealed interface, and `map`/`onSuccess`/`onFailure`/`asEmptyResult` extensions.
 
 ---
 
@@ -37,7 +37,7 @@ interface NoteRepository {
 
 ## Domain Layer Contracts
 
-- Pure Kotlin — no Android/framework imports.
+- Pure Kotlin — no platform-specific/framework imports.
 - Contains: domain models, data source/repository **interfaces**, error types.
 - **Every data source or repository used by a ViewModel must have an interface in `domain`** — enforces that `presentation` never depends on `data`, and enables testing.
  
@@ -46,7 +46,7 @@ interface NoteRepository {
 ## DTOs and Domain Models
  
 - Always separate: DTOs (data layer) ↔ Domain Models (domain layer).
-- Domain models never go directly into Room entities or Ktor request/response bodies.
+- Domain models never go directly into Local entities or Ktor request/response bodies.
 - Mappers are simple extension functions living in the data layer alongside the DTO:
  
 ```kotlin
@@ -65,7 +65,7 @@ Name implementations for what makes them unique — never suffix with `Impl`.
 ### Data source (single source)
 
 ```kotlin
-class RoomNoteDataSource(private val dao: NoteDao) : NoteLocalDataSource {
+class LocalNoteDataSource(private val dao: NoteDao) : NoteLocalDataSource {
     override suspend fun getNotes(): Result<List<Note>, DataError.Local> {
         return try {
             Result.Success(dao.getAllNotes().map { it.toNote() })
@@ -91,7 +91,7 @@ class OfflineFirstNoteRepository(
 }
 ```
 
-Use names like `RoomNoteDataSource`, `KtorNoteDataSource`, `OfflineFirstNoteRepository`. The name should tell you what the class wraps or how it behaves.
+Use names like `LocalNoteDataSource`, `KtorNoteDataSource`, `OfflineFirstNoteRepository`. The name should tell you what the class wraps or how it behaves.
  
 ---
  
@@ -115,13 +115,13 @@ object HttpClientFactory {
 }
 ```
  
-Inject `HttpClient` via Koin. For KMP, use the platform default engine.
+Inject `HttpClient` via Koin. For Universal, use the platform default engine.
  
 ---
  
 ## Ktor — Safe Call Helpers (`core:data`)
 
-Use `safeCall` / `responseToResult` helpers and typed extension functions (`HttpClient.get`, `HttpClient.post`, `HttpClient.delete`) to keep data source call sites clean and uniform. See the **android-error-handling** skill for the full implementation of these helpers.
+Use `safeCall` / `responseToResult` helpers and typed extension functions (`HttpClient.get`, `HttpClient.post`, `HttpClient.delete`) to keep data source call sites clean and uniform. See the **kmp-error-handling** skill for the full implementation of these helpers.
 
 ```kotlin
 suspend fun getNotes(): Result<List<NoteDto>, DataError.Network> {
@@ -137,7 +137,7 @@ Store tokens in DataStore (in `core:data` or a dedicated `:core:auth` / `:featur
  
 ---
  
-## Room Migrations
+## Local Storage (Optional)
  
 Prefer `@Database(autoMigrations = [AutoMigration(from = 1, to = 2)])`. Use manual `Migration` objects when the schema change is too complex for auto-migration.
  
@@ -145,7 +145,7 @@ Prefer `@Database(autoMigrations = [AutoMigration(from = 1, to = 2)])`. Use manu
  
 ## Offline-First (when applicable)
  
-Follow **Room as single source of truth**: fetch from network → persist to Room → expose DB `Flow` to the ViewModel. The ViewModel never observes network responses directly.
+If using local storage, follow single source of truth: fetch from network → persist to Local → expose DB `Flow` to the ViewModel. The ViewModel never observes network responses directly.
  
 This pattern is optional — apply it when the project requires offline support.
  
@@ -156,11 +156,11 @@ This pattern is optional — apply it when the project requires offline support.
 | Thing | Convention | Example |
 |---|---|---|
 | Data source interface | `<Entity><Local/Remote>DataSource` | `NoteLocalDataSource`, `NoteRemoteDataSource` |
-| Data source impl | describe what makes it unique | `RoomNoteDataSource`, `KtorNoteDataSource` |
+| Data source impl | describe what makes it unique | `LocalNoteDataSource`, `KtorNoteDataSource` |
 | Repository interface | `<Entity>Repository` (multi-source only) | `NoteRepository` |
 | Repository impl | describe what makes it unique | `OfflineFirstNoteRepository` |
 | DTO | `<Model>Dto` | `NoteDto` |
-| Room entity | `<Model>Entity` | `NoteEntity` |
+| Local entity | `<Model>Entity` | `NoteEntity` |
 | Mapper | extension fun on source type | `fun NoteDto.toNote()` |
  
 ---
@@ -169,8 +169,8 @@ This pattern is optional — apply it when the project requires offline support.
 
 - [ ] Define domain model(s) in `feature:domain`
 - [ ] Define data source or repository interface in `feature:domain`
-- [ ] Define feature-specific error type(s) in `feature:domain` (implement `Error`) — see **android-error-handling** skill
-- [ ] Define DTOs and Room entities in `feature:data`
-- [ ] Write mappers as extension functions in `feature:data`
-- [ ] Implement data source (single source) or repository (multi-source) in `feature:data`, named for what makes it unique
+- [ ] Define feature-specific error type(s) in `feature:domain` (implement `Error`) — see **kmp-error-handling** skill
+- [ ] Define DTOs and Local entities in `data layer`
+- [ ] Write mappers as extension functions in `data layer`
+- [ ] Implement data source (single source) or repository (multi-source) in `data layer`, named for what makes it unique
  

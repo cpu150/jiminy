@@ -1,15 +1,15 @@
 ---
-name: android-code-style
+name: code-style
 description: |
-  Kotlin and Android code styling rules following official JetBrains/Google guidelines and Android Studio defaults. Use this skill whenever writing, refactoring, or reviewing code to ensure consistency in formatting, naming, and structure. Trigger on phrases like "format the code", "styling", "naming conventions", "indentation", or "refactor for style".
+  Kotlin and Universal code styling rules following official JetBrains/Google guidelines and IDE defaults. Use this skill whenever writing, refactoring, or reviewing code to ensure consistency in formatting, naming, and structure. Trigger on phrases like "format the code", "styling", "naming conventions", "indentation", or "refactor for style".
 ---
 
-# Android / Kotlin Code Style
+# Universal Kotlin Code Style
 
 ## Indentation & Formatting
 - **Indentation**: Use **4 spaces**.
 - **Line Length**: Limit to **120 characters**.
-- **Trailing Commas**: Always use trailing commas in parameter lists, collection literals, and property declarations to improve diff readability.
+- **Trailing Commas**: **Mandatory.** Always use trailing commas in parameter lists, collection literals, and property declarations to improve diff readability and reduce git conflicts.
 - **Braces**: Opening braces `{` should be on the same line as the preceding code.
 
 ```kotlin
@@ -19,7 +19,7 @@ fun exampleFunction(
 ) { // Brace on same line
     val list = listOf(
         "one",
-        "two",
+        "two", // Trailing comma
     )
 }
 ```
@@ -47,8 +47,8 @@ fun exampleFunction(
 
 ## Imports
 - **No Wildcards**: Never use wildcard imports (`import kotlinx.coroutines.*`).
-- **Order**: Follow the standard Android Studio/Kotlin order:
-    1. Android/Google imports
+- **Order**: Follow the standard IDE (Android Studio / Fleet)/Kotlin order:
+    1. Platform-specific (Android/Universal) / Google imports
     2. Third-party library imports
     3. Project-specific imports
     4. Java/Kotlin standard library imports

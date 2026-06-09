@@ -1,16 +1,30 @@
 ---
-name: android-navigation
+name: navigation
 description: |
-  Type-safe Compose Navigation for Android/KMP - route objects, feature nav graphs, cross-feature callbacks, and wiring in :app. Use this skill whenever setting up navigation, defining routes, adding a new screen to a nav graph, navigating between features, or wiring nav graphs in the app module. Trigger on phrases like "set up navigation", "add a route", "navigate between screens", "nav graph", "NavController", "type-safe nav", "cross-feature navigation", or "NavGraphBuilder".
+  Type-safe Compose Navigation for Universal - route objects, feature nav graphs, cross-feature callbacks, and wiring in app module. Use this skill whenever setting up navigation, defining routes, adding a new screen to a nav graph, navigating between features, or wiring nav graphs in the app module. Trigger on phrases like "set up navigation", "add a route", "navigate between screens", "nav graph", "NavController", "type-safe nav", "cross-feature navigation", or "NavGraphBuilder".
 ---
  
-# Android / KMP Navigation
+# Universal Navigation
  
+## Project Navigation
+ 
+Jiminy currently uses a tab-based navigation system managed in `ConnectionViewModel`. Tabs are added dynamically and their content is rendered in `App.kt`.
+ 
+```kotlin
+viewModel.addTab(
+    title = { TabTitle(Icons.AutoMirrored.Outlined.AltRoute, "Audio Links") },
+    content = ::AudioLinksMainScreen,
+)
+```
+ 
+---
+ 
+## Future / Standard Universal Navigation
 ## Principles
  
 - **Type-safe navigation** with `@Serializable` route objects (KotlinX Serialization).
 - **One nav graph per feature**, defined in the feature's `presentation` module.
-- Feature nav graphs are assembled in `:app`.
+- Feature nav graphs are assembled in `app module`.
 - Navigation **within** a feature uses a `NavController` passed into the feature nav graph.
 - Feature-to-feature navigation uses **callbacks**, keeping features decoupled.
  
@@ -59,12 +73,12 @@ fun NavGraphBuilder.notesGraph(
  
 ---
  
-## Wiring in `:app`
+## Wiring in `app module`
  
 All feature nav graphs are assembled in one place:
  
 ```kotlin
-// :app
+// app module
 NavHost(navController, startDestination = NoteListRoute) {
     notesGraph(
         navController = navController,
@@ -110,9 +124,9 @@ Avoid passing complex objects via navigation — pass IDs and load data in the d
  
 ## Checklist: Adding Navigation to a New Feature
  
-- [ ] Define `@Serializable` route objects for each screen in `feature:presentation`
+- [ ] Define `@Serializable` route objects for each screen in `presentation layer`
 - [ ] Add feature nav graph function (`NavGraphBuilder.<feature>Graph(...)`)
 - [ ] Pass `NavController` for intra-feature navigation
 - [ ] Expose cross-feature destinations as lambda callbacks (not direct route imports)
-- [ ] Wire nav graph and cross-feature callbacks in `:app`'s `NavHost`
+- [ ] Wire nav graph and cross-feature callbacks in `app module`'s `NavHost`
  

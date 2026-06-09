@@ -8,13 +8,16 @@ Project-specific coding standards, architecture patterns, and conventions are do
 
 Before suggesting or implementing changes, please refer to the following skills:
 
-- **Android Code Style**: Located in `skills/android-code-style/SKILL.md`. Includes rules like 4-space indentation, 120-char line limit, and mandatory trailing commas.
-- **Android Presentation MVI**: Located in `skills/android-presentation-mvi/SKILL.md`. Defines the project's reactive UI pattern.
-- **Android DI Koin**: Located in `skills/android-di-koin/SKILL.md`. Defines how dependency injection is managed.
+- **Universal Code Style**: Located in `skills/code-style/SKILL.md`. Includes rules like 4-space indentation, 120-char line limit, and mandatory trailing commas.
+- **Presentation MVI**: Located in `skills/presentation-mvi/SKILL.md`. Defines the project's reactive UI pattern.
+- **Dependency Injection (Koin)**: Located in `skills/di-koin/SKILL.md`. Defines how dependency injection is managed.
 - **Git Conventions**: Located in `skills/git-conventions/SKILL.md`. Defines the conventional commit format for this project.
-- **Android Data Layer**: Located in `skills/android-data-layer/SKILL.md`. Defines repository and data source patterns.
-- **Android Error Handling**: Located in `skills/android-error-handling/SKILL.md`. Defines the `Result` type and error management.
-- **Android Module Structure**: Located in `skills/android-module-structure/SKILL.md`. Defines the project's module hierarchy.
+- **Data Layer**: Located in `skills/data-layer/SKILL.md`. Defines repository and data source patterns.
+- **Error Handling**: Located in `skills/error-handling/SKILL.md`. Defines the `Result` type and error management.
+- **Module Structure**: Located in `skills/module-structure/SKILL.md`. Defines the project's module hierarchy.
+- **Navigation**: Located in `skills/navigation/SKILL.md`. Defines the type-safe navigation and current tab-based system.
+- **Testing**: Located in `skills/testing/SKILL.md`. Defines testing patterns and libraries.
+- **Compose UI**: Located in `skills/compose-ui/SKILL.md`. Defines best practices for Jetpack Compose UI.
 
 ## Core Rules
 
