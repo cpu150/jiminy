@@ -7,19 +7,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import music.jiminy.JiminyThemeType
 
-private val OceanColorScheme = darkColorScheme(
-    primary = Color(0xFF00ACC1),
+private val IrisColorScheme = darkColorScheme(
+    primary = Color(0xFFEC407A), // Pink 400
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF006064),
-    onPrimaryContainer = Color(0xFFB2EBF2),
-    secondary = Color(0xFF26C6DA),
+    primaryContainer = Color(0xFF880E4F), // Pink 900
+    onPrimaryContainer = Color(0xFFF8BBD0), // Pink 100
+    secondary = Color(0xFFF06292), // Pink 300
     onSecondary = Color.Black,
-    background = Color(0xFF001F24),
-    surface = Color(0xFF001F24),
-    onBackground = Color(0xFFE0F7FA),
-    onSurface = Color(0xFFE0F7FA),
-    surfaceVariant = Color(0xFF00363D),
-    onSurfaceVariant = Color(0xFFB2EBF2),
+    background = Color(0xFF1A0A10), // Very dark pink/black
+    surface = Color(0xFF1A0A10),
+    onBackground = Color(0xFFFCE4EC), // Pink 50
+    onSurface = Color(0xFFFCE4EC),
+    surfaceVariant = Color(0xFF3F1626), // Dark pinkish grey
+    onSurfaceVariant = Color(0xFFF8BBD0),
 )
 
 @Composable
@@ -30,7 +30,7 @@ fun JiminyTheme(
     val colorScheme = when (themeType) {
         JiminyThemeType.DARK -> darkColorScheme()
         JiminyThemeType.LIGHT -> lightColorScheme()
-        JiminyThemeType.OCEAN -> OceanColorScheme
+        JiminyThemeType.IRIS -> IrisColorScheme
     }
 
     MaterialTheme(

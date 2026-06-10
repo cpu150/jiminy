@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -62,6 +64,7 @@ import music.jiminy.screen.common.LoadConfigAlert
 import music.jiminy.screen.common.MarqueeText
 import music.jiminy.screen.common.SaveConfigAlert
 import music.jiminy.screen.common.TextError
+import music.jiminy.screen.common.TextLabel
 import music.jiminy.screen.common.TextTitle
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.viewmodel.ConnectionScreenViewModel
@@ -322,7 +325,14 @@ fun StatusBar(
                     modifier = Modifier.weight(1f),
                 )
             } else {
-                TextTitle(text = "Jiminy")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextTitle(text = "Jiminy")
+                    Spacer(Modifier.width(8.dp))
+                    TextLabel(
+                        text = "v${getPlatform().version}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    )
+                }
             }
         }
 

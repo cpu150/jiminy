@@ -36,12 +36,12 @@ class ThemeViewModelTest {
         assertEquals(JiminyThemeType.LIGHT, viewModel.currentTheme.value)
         assertEquals(JiminyThemeType.LIGHT.name, window.localStorage.getItem(THEME_KEY))
 
-        // Light -> Ocean
+        // Light -> Iris
         viewModel.toggleTheme()
-        assertEquals(JiminyThemeType.OCEAN, viewModel.currentTheme.value)
-        assertEquals(JiminyThemeType.OCEAN.name, window.localStorage.getItem(THEME_KEY))
+        assertEquals(JiminyThemeType.IRIS, viewModel.currentTheme.value)
+        assertEquals(JiminyThemeType.IRIS.name, window.localStorage.getItem(THEME_KEY))
 
-        // Ocean -> Dark
+        // Iris -> Dark
         viewModel.toggleTheme()
         assertEquals(JiminyThemeType.DARK, viewModel.currentTheme.value)
         assertEquals(JiminyThemeType.DARK.name, window.localStorage.getItem(THEME_KEY))

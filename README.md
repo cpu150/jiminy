@@ -141,6 +141,14 @@ from real network and hardware dependencies.
 | `testEnsureOneEmptyRowEnforcement` | New empty row appended after fill |
 | `testUnlinkAllAction` | Unlink confirmation dialog show/dismiss |
 
+**`ThemeViewModelTest`** — theme management:
+
+| Test | Validates |
+|------|-----------|
+| `testInitialThemeIsDarkByDefault` | Starts with DARK theme |
+| `testInitialThemeLoadedFromLocalStorage` | Respects saved theme preference |
+| `testToggleThemeCyclesThroughAllThemes` | Cycles through DARK, LIGHT, and IRIS |
+
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),

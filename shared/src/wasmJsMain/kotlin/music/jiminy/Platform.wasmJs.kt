@@ -1,7 +1,8 @@
 package music.jiminy
 
-class WasmPlatform: Platform {
+class WasmPlatform : Platform {
     override val debug: Boolean = false
+    override val version: String = JiminyBuildInfo.GIT_HASH
 }
 
 actual fun getPlatform(): Platform = WasmPlatform()
