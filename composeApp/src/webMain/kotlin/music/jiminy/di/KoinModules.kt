@@ -30,6 +30,7 @@ import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.LogsViewModel
 import music.jiminy.viewmodel.MIDIScreenViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
+import music.jiminy.viewmodel.ThemeViewModel
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
@@ -96,4 +97,5 @@ val appModule = module {
     viewModelOf(::RecordingScreenViewModel)
     viewModelOf(::LogsViewModel)
     viewModelOf(::MIDIScreenViewModel)
+    viewModelOf(::ThemeViewModel)
 }

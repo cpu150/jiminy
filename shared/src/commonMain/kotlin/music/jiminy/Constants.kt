@@ -24,6 +24,7 @@ const val WS_CONFIGURATIONS = "/configurations"
 const val WS_BATCH = "/batch"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
+const val THEME_KEY = "jiminy_theme"
 
 const val DEVICE_CARD_SPEAKERS_LABEL = "SPK"
 const val DEVICE_CARD_INSTRUMENTS_LABEL = "INST"

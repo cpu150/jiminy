@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material.icons.filled.Sync
@@ -36,7 +37,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +57,7 @@ import music.jiminy.screen.RecordingOverlay
 import music.jiminy.screen.RecordingScreen
 import music.jiminy.screen.RecordingScreenAction
 import music.jiminy.screen.common.GenericMessageAlert
+import music.jiminy.screen.common.JiminyTheme
 import music.jiminy.screen.common.LoadConfigAlert
 import music.jiminy.screen.common.MarqueeText
 import music.jiminy.screen.common.SaveConfigAlert
@@ -68,11 +69,15 @@ import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.LogsViewModel
 import music.jiminy.viewmodel.MIDIScreenViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
+import music.jiminy.viewmodel.ThemeViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun App() {
-    MaterialTheme(darkColorScheme()) {
+    val themeViewModel: ThemeViewModel = koinViewModel()
+    val currentTheme by themeViewModel.currentTheme.collectAsStateWithLifecycle()
+
+    JiminyTheme(currentTheme) {
         val viewModel: ConnectionViewModel = koinViewModel()
         var mixerTab: ConnectionViewModel.JiminyTab? = null
 
@@ -139,6 +144,7 @@ fun MainScreen(
     modifier: Modifier = Modifier,
 ) {
     val connectionViewModel: ConnectionViewModel = koinViewModel()
+    val themeViewModel: ThemeViewModel = koinViewModel()
     val connectionScreenViewModel: ConnectionScreenViewModel = koinViewModel()
     val midiScreenViewModel: MIDIScreenViewModel = koinViewModel()
     val recordingScreenViewModel: RecordingScreenViewModel = koinViewModel()
@@ -235,6 +241,7 @@ fun MainScreen(
                 error = errorMsg,
                 onSaveClick = connectionViewModel::onSaveConfigClick,
                 onLoadClick = connectionViewModel::onLoadConfigClick,
+                onThemeToggle = themeViewModel::toggleTheme,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
 
@@ -290,6 +297,7 @@ fun StatusBar(
     error: String?,
     onSaveClick: () -> Unit,
     onLoadClick: () -> Unit,
+    onThemeToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -319,6 +327,14 @@ fun StatusBar(
         }
 
         Row {
+            IconButton(onClick = onThemeToggle) {
+                Icon(
+                    imageVector = Icons.Default.Palette,
+                    contentDescription = "Toggle Theme",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             IconButton(onClick = onLoadClick) {
                 Icon(
                     imageVector = Icons.Default.FileUpload,
