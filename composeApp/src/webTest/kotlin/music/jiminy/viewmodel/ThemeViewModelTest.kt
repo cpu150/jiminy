@@ -28,22 +28,26 @@ class ThemeViewModelTest {
     }
 
     @Test
-    fun testToggleThemeCyclesThroughAllThemes() {
+    fun testThemePopupLogic() {
         val viewModel = ThemeViewModel()
 
-        // Dark -> Light
-        viewModel.toggleTheme()
+        // Initial state
+        assertEquals(false, viewModel.showThemePopup.value)
+
+        // Show popup
+        viewModel.onThemeButtonClick()
+        assertEquals(true, viewModel.showThemePopup.value)
+
+        // Set theme (should close popup)
+        viewModel.setTheme(JiminyThemeType.LIGHT)
         assertEquals(JiminyThemeType.LIGHT, viewModel.currentTheme.value)
+        assertEquals(false, viewModel.showThemePopup.value)
         assertEquals(JiminyThemeType.LIGHT.name, window.localStorage.getItem(THEME_KEY))
 
-        // Light -> Iris
-        viewModel.toggleTheme()
-        assertEquals(JiminyThemeType.IRIS, viewModel.currentTheme.value)
-        assertEquals(JiminyThemeType.IRIS.name, window.localStorage.getItem(THEME_KEY))
-
-        // Iris -> Dark
-        viewModel.toggleTheme()
-        assertEquals(JiminyThemeType.DARK, viewModel.currentTheme.value)
-        assertEquals(JiminyThemeType.DARK.name, window.localStorage.getItem(THEME_KEY))
+        // Re-show and dismiss
+        viewModel.onThemeButtonClick()
+        assertEquals(true, viewModel.showThemePopup.value)
+        viewModel.dismissPopup()
+        assertEquals(false, viewModel.showThemePopup.value)
     }
 }

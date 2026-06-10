@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
+import music.jiminy.JiminyThemeType
 import music.jiminy.SaveConfigOptions
 import music.jiminy.isValid
 import music.jiminy.screen.ConnectionScreenNodeType.Speaker
@@ -832,6 +833,79 @@ fun SelectableNodeItem(
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+fun ThemeSelectionAlert(
+    currentTheme: JiminyThemeType,
+    onThemeSelect: (JiminyThemeType) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextTitle("Select Theme")
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                    )
+                }
+            }
+        },
+        text = {
+            Column {
+                JiminyThemeType.entries.forEach { theme ->
+                    ThemeItem(
+                        theme = theme,
+                        isSelected = theme == currentTheme,
+                        onClick = { onThemeSelect(theme) },
+                    )
+                }
+            }
+        },
+        confirmButton = { },
+    )
+}
+
+@Composable
+fun ThemeItem(
+    theme: JiminyThemeType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val color =
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = color,
+        border = border,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .height(50.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.CenterStart,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) {
+            TextBody(
+                text = theme.name,
+                textAlign = TextAlign.Start,
             )
         }
     }

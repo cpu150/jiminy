@@ -66,6 +66,7 @@ import music.jiminy.screen.common.SaveConfigAlert
 import music.jiminy.screen.common.TextError
 import music.jiminy.screen.common.TextLabel
 import music.jiminy.screen.common.TextTitle
+import music.jiminy.screen.common.ThemeSelectionAlert
 import music.jiminy.service.JiminyConnectionStatus
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
@@ -162,6 +163,8 @@ fun MainScreen(
     val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
     val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
     val showOverwriteConfigPopup by connectionViewModel.showOverwriteConfigPopup.collectAsStateWithLifecycle()
+    val showThemePopup by themeViewModel.showThemePopup.collectAsStateWithLifecycle()
+    val currentTheme by themeViewModel.currentTheme.collectAsStateWithLifecycle()
     val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -191,6 +194,14 @@ fun MainScreen(
             onDismiss = connectionViewModel::dismissLoadConfigPopup,
             onSelect = connectionViewModel::loadConfigurations,
             onDelete = connectionViewModel::deleteConfigurations,
+        )
+    }
+
+    if (showThemePopup) {
+        ThemeSelectionAlert(
+            currentTheme = currentTheme,
+            onThemeSelect = themeViewModel::setTheme,
+            onDismiss = themeViewModel::dismissPopup,
         )
     }
 
@@ -244,7 +255,7 @@ fun MainScreen(
                 error = errorMsg,
                 onSaveClick = connectionViewModel::onSaveConfigClick,
                 onLoadClick = connectionViewModel::onLoadConfigClick,
-                onThemeToggle = themeViewModel::toggleTheme,
+                onThemeToggle = themeViewModel::onThemeButtonClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
 
@@ -329,7 +340,7 @@ fun StatusBar(
                     TextTitle(text = "Jiminy")
                     Spacer(Modifier.width(8.dp))
                     TextLabel(
-                        text = "v${getPlatform().version}",
+                        text = getPlatform().version,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                 }

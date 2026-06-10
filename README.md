@@ -147,7 +147,7 @@ from real network and hardware dependencies.
 |------|-----------|
 | `testInitialThemeIsDarkByDefault` | Starts with DARK theme |
 | `testInitialThemeLoadedFromLocalStorage` | Respects saved theme preference |
-| `testToggleThemeCyclesThroughAllThemes` | Cycles through DARK, LIGHT, and IRIS |
+| `testThemePopupLogic` | Popup show/dismiss and theme selection |
 
 ---
 

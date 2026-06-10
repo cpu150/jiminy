@@ -13,6 +13,9 @@ class ThemeViewModel : ViewModel() {
     private val _currentTheme = MutableStateFlow(loadTheme())
     val currentTheme: StateFlow<JiminyThemeType> = _currentTheme.asStateFlow()
 
+    private val _showThemePopup = MutableStateFlow(false)
+    val showThemePopup: StateFlow<Boolean> = _showThemePopup.asStateFlow()
+
     private fun loadTheme(): JiminyThemeType {
         val savedTheme = window.localStorage.getItem(THEME_KEY)
         return try {
@@ -22,12 +25,17 @@ class ThemeViewModel : ViewModel() {
         }
     }
 
-    fun toggleTheme() {
-        val themes = JiminyThemeType.entries
-        val nextIndex = (currentTheme.value.ordinal + 1) % themes.size
-        val nextTheme = themes[nextIndex]
+    fun onThemeButtonClick() {
+        _showThemePopup.update { true }
+    }
 
-        _currentTheme.update { nextTheme }
-        window.localStorage.setItem(THEME_KEY, nextTheme.name)
+    fun dismissPopup() {
+        _showThemePopup.update { false }
+    }
+
+    fun setTheme(theme: JiminyThemeType) {
+        _currentTheme.update { theme }
+        window.localStorage.setItem(THEME_KEY, theme.name)
+        dismissPopup()
     }
 }
