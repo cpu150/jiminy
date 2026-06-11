@@ -101,13 +101,19 @@ Before publishing, generate a preview of the release notes to ensure they are co
     ```
     *Note: Using `--draft` ensures the release is not visible to the public yet.*
 
-2.  **Review and Edit:**
-    Check the draft on GitHub or via CLI. If changes are needed, edit the draft:
+2.  **Review (AI-Assisted):**
+    Ask Gemini CLI to "Show me the release notes". It will fetch the notes using:
     ```bash
-    gh release edit v1.x --notes "Manual notes here..."
+    gh release view v1.x --json body --template '{{.body}}'
     ```
 
-3.  **Confirm:** Ask the user if the notes are acceptable or if they want to provide a manual description.
+3.  **Edit (AI-Assisted):**
+    If changes are needed, tell Gemini CLI what to change. It will update the draft using:
+    ```bash
+    gh release edit v1.x --notes "Updated release notes content"
+    ```
+
+4.  **Confirm:** Once the notes are correct, proceed to finalize.
 
 ## Step 4: Finalize and Upload Assets
 
