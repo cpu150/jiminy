@@ -52,9 +52,9 @@ Before starting, the current version must be identified from `jiminy/build.gradl
 
 2.  **Decide on New Version:**
     Propose the following options based on the current version (e.g., if current is `1.0`):
-    - **Keep:** `1.0` (Current)
-    - **Minor Bump:** `1.1`
-    - **Major Bump:** `2.0`
+    1. **Keep:** `1.0` (Current)
+    2. **Minor Bump:** `1.1`
+    3. **Major Bump:** `2.0`
 
     **[AI AGENT: STOP AND ASK]** You MUST present these options to the user and wait for their choice. DO NOT proceed to update Gradle until the user has explicitly selected a version.
 
