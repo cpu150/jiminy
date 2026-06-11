@@ -33,6 +33,7 @@ kotlin {
 }
 
 val copyWasmResources = tasks.register<Copy>("copyWasmResources") {
+    description = "copyWasmResources"
     val wasmTask = project(":composeApp").tasks.named("wasmJsBrowserDistribution")
     from(wasmTask.map { it.outputs.files })
     into(layout.buildDirectory.dir("resources/main/static"))
