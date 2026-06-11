@@ -26,6 +26,7 @@ Before starting the release, ensure your local repository is up to date, you are
 
 2.  **Sync Repository:**
     ```bash
+    git push origin
     git fetch --all -Ptpmf --recurse-submodules
     git pull
     git submodule update
