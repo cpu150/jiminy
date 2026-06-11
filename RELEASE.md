@@ -2,6 +2,12 @@
 
 This document outlines the steps to tag and publish a new release for the Jiminy project.
 
+> [!IMPORTANT]
+> **Mandatory AI Guardrails:**
+> - AI agents **MUST NOT** autonomously decide on a version number.
+> - AI agents **MUST** stop and ask the user to confirm the new version number after showing the options in Step 1.
+> - AI agents **MUST** strictly follow each step sequentially and wait for explicit user confirmation before proceeding to any step that modifies the repository or publishes data (e.g., updating `build.gradle.kts`, creating tags, or publishing releases).
+
 ## Prerequisites
 
 - [GitHub CLI (gh)](https://cli.github.com/) installed and authenticated (`gh auth login`).
@@ -49,6 +55,8 @@ Before starting, the current version must be identified from `jiminy/build.gradl
     - **Keep:** `1.0` (Current)
     - **Minor Bump:** `1.1`
     - **Major Bump:** `2.0`
+
+    **[AI AGENT: STOP AND ASK]** You MUST present these options to the user and wait for their choice. DO NOT proceed to update Gradle until the user has explicitly selected a version.
 
 3.  **Update Gradle (if bumping):**
     Edit `jiminy/build.gradle.kts`:
@@ -107,6 +115,8 @@ Before publishing, generate a preview of the release notes to ensure they are co
     gh release view v1.x --json body --template '{{.body}}'
     ```
 
+    **[AI AGENT: STOP AND ASK]** You MUST present the release notes to the user and wait for their approval or edit instructions. DO NOT proceed until the user confirms the notes are satisfactory.
+
 3.  **Edit (AI-Assisted):**
     If changes are needed, tell Gemini CLI what to change. It will update the draft using:
     ```bash
@@ -114,6 +124,8 @@ Before publishing, generate a preview of the release notes to ensure they are co
     ```
 
 4.  **Confirm:** Once the notes are correct, proceed to finalize.
+
+    **[AI AGENT: STOP AND ASK]** Before proceeding to Step 4, you MUST ask the user for final confirmation to publish the release.
 
 ## Step 4: Finalize and Upload Assets
 
@@ -133,5 +145,7 @@ Before publishing, generate a preview of the release notes to ensure they are co
 
 ## Automation (Gemini CLI)
 
-You can ask Gemini CLI to handle this entire process for you:
-> "Tag and publish release v1.0"
+You can ask Gemini CLI to handle this process for you:
+> "Start the release process following RELEASE.md"
+
+**AI Instruction:** Even when automated, you MUST pause at Step 1 to confirm the version with the user.
