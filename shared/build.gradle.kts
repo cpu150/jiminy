@@ -14,11 +14,15 @@ val generateJiminyBuildInfo = tasks.register("generateJiminyBuildInfo") {
         commandLine("git", "rev-parse", "--short", "HEAD")
     }.standardOutput.asText
 
+    val projectVersion = provider { project.version.toString() }
+
     inputs.property("gitHash", gitHash)
+    inputs.property("version", projectVersion)
     outputs.dir(outputDir)
 
     doLast {
         val hash = gitHash.get().trim()
+        val version = projectVersion.get()
         val file = outputFile.get().asFile
         file.parentFile.mkdirs()
         file.writeText(
@@ -27,6 +31,7 @@ val generateJiminyBuildInfo = tasks.register("generateJiminyBuildInfo") {
 
             object JiminyBuildInfo {
                 const val GIT_HASH = "$hash"
+                const val VERSION = "$version"
             }""".trimIndent()
         )
     }

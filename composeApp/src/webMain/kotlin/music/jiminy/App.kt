@@ -340,7 +340,7 @@ fun StatusBar(
                     TextTitle(text = "Jiminy")
                     Spacer(Modifier.width(8.dp))
                     TextLabel(
-                        text = getPlatform().version,
+                        text = "${getPlatform().version} (${getPlatform().gitHash})",
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                 }

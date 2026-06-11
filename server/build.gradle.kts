@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "music.jiminy"
-version = "1.0.0"
+version = "1.0"
 
 application {
     mainClass.set("music.jiminy.ApplicationKt")
