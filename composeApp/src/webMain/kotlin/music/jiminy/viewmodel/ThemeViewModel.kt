@@ -6,36 +6,48 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyThemeType
 import music.jiminy.THEME_KEY
 
-class ThemeViewModel : ViewModel() {
-    private val _currentTheme = MutableStateFlow(loadTheme())
-    val currentTheme: StateFlow<JiminyThemeType> = _currentTheme.asStateFlow()
+data class ThemeState(
+    val currentTheme: JiminyThemeType = JiminyThemeType.DARK,
+    val showThemePopup: Boolean = false,
+)
 
-    private val _showThemePopup = MutableStateFlow(false)
-    val showThemePopup: StateFlow<Boolean> = _showThemePopup.asStateFlow()
+sealed interface ThemeAction {
+    data object OnThemeButtonClick : ThemeAction
+    data object OnDismissPopup : ThemeAction
+    data class OnThemeSelect(val theme: JiminyThemeType) : ThemeAction
+}
 
-    private fun loadTheme(): JiminyThemeType {
-        val savedTheme = window.localStorage.getItem(THEME_KEY)
-        return try {
-            JiminyThemeType.valueOf(savedTheme ?: JiminyThemeType.DARK.name)
-        } catch (_: Exception) {
-            JiminyThemeType.DARK
+class ThemeViewModel(
+    private val logger: JiminyLoggerI,
+) : ViewModel() {
+    private val _state = MutableStateFlow(ThemeState(currentTheme = loadTheme()))
+    val state: StateFlow<ThemeState> = _state.asStateFlow()
+
+    fun onAction(action: ThemeAction) {
+        when (action) {
+            ThemeAction.OnThemeButtonClick -> _state.update { it.copy(showThemePopup = true) }
+            ThemeAction.OnDismissPopup -> _state.update { it.copy(showThemePopup = false) }
+            is ThemeAction.OnThemeSelect -> {
+                _state.update {
+                    it.copy(
+                        currentTheme = action.theme,
+                        showThemePopup = false,
+                    )
+                }
+                window.localStorage.setItem(THEME_KEY, action.theme.name)
+            }
         }
     }
 
-    fun onThemeButtonClick() {
-        _showThemePopup.update { true }
-    }
-
-    fun dismissPopup() {
-        _showThemePopup.update { false }
-    }
-
-    fun setTheme(theme: JiminyThemeType) {
-        _currentTheme.update { theme }
-        window.localStorage.setItem(THEME_KEY, theme.name)
-        dismissPopup()
+    private fun loadTheme(): JiminyThemeType = try {
+        val savedTheme = window.localStorage.getItem(THEME_KEY)
+        JiminyThemeType.valueOf(savedTheme ?: JiminyThemeType.DARK.name)
+    } catch (e: Exception) {
+        logger.error("Failed to load theme: ${e.message}")
+        JiminyThemeType.DARK
     }
 }

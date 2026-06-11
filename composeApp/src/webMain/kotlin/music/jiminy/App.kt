@@ -73,15 +73,16 @@ import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.LogsViewModel
 import music.jiminy.viewmodel.MIDIScreenViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
+import music.jiminy.viewmodel.ThemeAction
 import music.jiminy.viewmodel.ThemeViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun App() {
     val themeViewModel: ThemeViewModel = koinViewModel()
-    val currentTheme by themeViewModel.currentTheme.collectAsStateWithLifecycle()
+    val themeState by themeViewModel.state.collectAsStateWithLifecycle()
 
-    JiminyTheme(currentTheme) {
+    JiminyTheme(themeState.currentTheme) {
         val viewModel: ConnectionViewModel = koinViewModel()
         var mixerTab: ConnectionViewModel.JiminyTab? = null
 
@@ -160,11 +161,10 @@ fun MainScreen(
     val audioState by connectionScreenViewModel.state.collectAsStateWithLifecycle()
     val midiState by midiScreenViewModel.state.collectAsStateWithLifecycle()
     val recordingState by recordingScreenViewModel.state.collectAsStateWithLifecycle()
+    val themeState by themeViewModel.state.collectAsStateWithLifecycle()
     val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
     val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
     val showOverwriteConfigPopup by connectionViewModel.showOverwriteConfigPopup.collectAsStateWithLifecycle()
-    val showThemePopup by themeViewModel.showThemePopup.collectAsStateWithLifecycle()
-    val currentTheme by themeViewModel.currentTheme.collectAsStateWithLifecycle()
     val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -197,11 +197,11 @@ fun MainScreen(
         )
     }
 
-    if (showThemePopup) {
+    if (themeState.showThemePopup) {
         ThemeSelectionAlert(
-            currentTheme = currentTheme,
-            onThemeSelect = themeViewModel::setTheme,
-            onDismiss = themeViewModel::dismissPopup,
+            currentTheme = themeState.currentTheme,
+            onThemeSelect = { themeViewModel.onAction(ThemeAction.OnThemeSelect(it)) },
+            onDismiss = { themeViewModel.onAction(ThemeAction.OnDismissPopup) },
         )
     }
 
@@ -255,7 +255,7 @@ fun MainScreen(
                 error = errorMsg,
                 onSaveClick = connectionViewModel::onSaveConfigClick,
                 onLoadClick = connectionViewModel::onLoadConfigClick,
-                onThemeToggle = themeViewModel::onThemeButtonClick,
+                onThemeToggle = { themeViewModel.onAction(ThemeAction.OnThemeButtonClick) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
 
