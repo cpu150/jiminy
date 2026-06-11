@@ -10,16 +10,22 @@ This document outlines the steps to tag and publish a new release for the Jiminy
 
 ## Step 0: Safety Check
 
-Before starting the release, ensure your local repository is up to date and your working directory is clean. Any uncommitted changes will cause the process to abort.
+Before starting the release, ensure your local repository is up to date, you are on the `main` branch, and your working directory is clean. Any uncommitted changes or incorrect branch will cause the process to abort.
 
-1.  **Sync Repository:**
+1.  **Verify Branch:**
+    ```bash
+    git branch --show-current
+    ```
+    Ensure the output is `main`.
+
+2.  **Sync Repository:**
     ```bash
     git fetch --all -Ptpmf --recurse-submodules
     git pull
     git submodule update
     ```
 
-2.  **Verify clean state:**
+3.  **Verify clean state:**
     ```bash
     git status --porcelain
     ```
