@@ -40,7 +40,6 @@ import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
-import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.JiminyLink
 import music.jiminy.NodeConnection
 import music.jiminy.disconnectionNodesList
@@ -60,7 +59,6 @@ import music.jiminy.screen.ConnectionScreenAction.OnNodesSelected
 import music.jiminy.screen.ConnectionScreenAction.OnUnlinkAllClick
 import music.jiminy.screen.common.ConnectionScreenDragListener
 import music.jiminy.screen.common.ConnectionScreenZoneItem
-import music.jiminy.screen.common.DeleteConfirmationAlert
 import music.jiminy.screen.common.DeviceCard
 import music.jiminy.screen.common.DeviceCardNodeDetails
 import music.jiminy.screen.common.DraggableDeviceCard
@@ -73,7 +71,6 @@ import music.jiminy.screen.common.NodeSelectionAlert
 import music.jiminy.screen.common.TextButton
 import music.jiminy.screen.common.TextHeadline
 import music.jiminy.screen.common.UnlinkConfirmationAlert
-import music.jiminy.screen.common.nodes
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -304,10 +301,6 @@ fun ConnectionRow(
 ) {
     val instruments = row().instruments()
     val speakers = row().speakers()
-    var nodeToDelete by remember { mutableStateOf<JiminyDeviceNode?>(null) }
-    var deviceToDelete by remember {
-        mutableStateOf<Pair<ConnectionScreenZoneItem, JiminyDevice>?>(null)
-    }
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -338,8 +331,8 @@ fun ConnectionRow(
                 DeviceCardNodeDetails(
                     device = { instrument },
                     deviceNodes = { instrument.nodes() },
-                    onDeviceClick = { device -> deviceToDelete = instruments to device },
-                    onNodeClick = { node -> nodeToDelete = node },
+                    onDeviceClick = { device -> onDeleteDevice(instruments, device) },
+                    onNodeClick = { node -> onDeleteNode(instruments, node) },
                 )
             }
         }
@@ -353,23 +346,10 @@ fun ConnectionRow(
                 DeviceCardNodeDetails(
                     device = { speaker },
                     deviceNodes = { speaker.nodes() },
-                    onDeviceClick = { device -> deviceToDelete = speakers to device },
-                    onNodeClick = { node -> nodeToDelete = node },
+                    onDeviceClick = { device -> onDeleteDevice(speakers, device) },
+                    onNodeClick = { node -> onDeleteNode(speakers, node) },
                 )
             }
-        }
-    }
-
-    nodeToDelete?.let { node ->
-        DeleteConfirmationAlert(node.displayPortName, onDismiss = { nodeToDelete = null }) {
-            val zone = if (node.type == JiminyDeviceNodeType.Speaker) speakers else instruments
-            onDeleteNode(zone, node)
-        }
-    }
-
-    deviceToDelete?.let { (zone, device) ->
-        DeleteConfirmationAlert(device.displayName, onDismiss = { deviceToDelete = null }) {
-            onDeleteDevice(zone, device)
         }
     }
 }

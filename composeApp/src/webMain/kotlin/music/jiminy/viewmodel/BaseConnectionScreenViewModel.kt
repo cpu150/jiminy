@@ -115,9 +115,7 @@ abstract class BaseConnectionScreenViewModel(
 
             is OnConnectClick -> handleConnect()
             is OnDisconnectClick -> disconnect(action.nodes)
-
             is OnUnlinkAllClick -> _state.update { it.copy(showDeleteAllAlert = true) }
-
             is OnConfirmUnlinkAll -> {
                 val allDisconnections =
                     _state.value.links.flatMap { it.disconnectionNodesList(it.speakerDevice) }
@@ -129,7 +127,6 @@ abstract class BaseConnectionScreenViewModel(
             is OnDismissIncompletePopup -> _state.update { it.copy(showIncompletePopup = false) }
             is OnDismissAddDevicePopup -> _state.update { it.copy(showAddDevicePopup = false) }
             is OnDismissDeleteAllAlert -> _state.update { it.copy(showDeleteAllAlert = false) }
-
             is OnNodesSelected -> {
                 addNodesInZone(action.zone, action.nodes)
                 _state.update { it.copy(showAddDevicePopup = false) }
