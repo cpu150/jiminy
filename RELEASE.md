@@ -73,13 +73,12 @@ Before starting, the current version must be identified from `jiminy/build.gradl
     ```
 
 5.  **Git Tagging:**
-    The best way to handle the tag is to let `gh release create` (in Step 3) do it for you. It will automatically create the tag on GitHub and associate it with the correct commit.
-
-    However, if you want to create it manually on your local machine first:
+    Create and push the git tag for the new version:
     ```bash
     git tag -a v1.x -m "release v1.x"
     git push origin v1.x
     ```
+    *(Note: Use the version number confirmed in Step 1.2)*
 
 ## Step 2: Build Artifacts
 
