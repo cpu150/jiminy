@@ -14,7 +14,7 @@ val generateJiminyBuildInfo = tasks.register("generateJiminyBuildInfo") {
         commandLine("git", "rev-parse", "--short", "HEAD")
     }.standardOutput.asText
 
-    val projectVersion = provider { project.version.toString() }
+    val projectVersion = provider { rootProject.version.toString() }
 
     inputs.property("gitHash", gitHash)
     inputs.property("version", projectVersion)
