@@ -7,19 +7,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import music.jiminy.JiminyThemeType
 
-private val IrisColorScheme = darkColorScheme(
-    primary = Color(0xFFEC407A), // Pink 400
+private val IrisColorScheme = lightColorScheme(
+    primary = Color(0xFFFF4081), // Flashy Pink (Accent Pink)
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF880E4F), // Pink 900
-    onPrimaryContainer = Color(0xFFF8BBD0), // Pink 100
-    secondary = Color(0xFFF06292), // Pink 300
-    onSecondary = Color.Black,
-    background = Color(0xFF1A0A10), // Very dark pink/black
-    surface = Color(0xFF1A0A10),
-    onBackground = Color(0xFFFCE4EC), // Pink 50
-    onSurface = Color(0xFFFCE4EC),
-    surfaceVariant = Color(0xFF3F1626), // Dark pinkish grey
-    onSurfaceVariant = Color(0xFFF8BBD0),
+    primaryContainer = Color(0xFFFF80AB), // Lighter Flashy Pink
+    onPrimaryContainer = Color(0xFF560027),
+    secondary = Color(0xFFF06292), // Medium Pink
+    onSecondary = Color.White,
+    background = Color(0xFFFFF0F5), // Lavender Blush (Very light pink background)
+    surface = Color(0xFFFFFFFF),
+    onBackground = Color(0xFFD81B60), // Deep Pink for text
+    onSurface = Color(0xFFD81B60),
+    surfaceVariant = Color(0xFFFCE4EC), // Pink 50
+    onSurfaceVariant = Color(0xFFAD1457),
 )
 
 @Composable
