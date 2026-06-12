@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,14 +29,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import music.jiminy.LogType
 import music.jiminy.viewmodel.LogSource
 import music.jiminy.viewmodel.LogsViewModel
 import music.jiminy.viewmodel.UiLogEntry
+import music.jiminy.utils.LogUtils
 import org.koin.compose.viewmodel.koinViewModel
-import kotlin.time.Instant
 
 @Composable
 fun LogsScreen(
@@ -58,6 +57,7 @@ fun LogsRoot(
     LogsContent(
         logs = logs.toImmutableList(),
         onFlushClick = { viewModel.flushLogs() },
+        onDownloadClick = { viewModel.downloadLogs() },
         modifier = modifier,
     )
 }
@@ -66,6 +66,7 @@ fun LogsRoot(
 fun LogsContent(
     logs: ImmutableList<UiLogEntry>,
     onFlushClick: () -> Unit,
+    onDownloadClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -79,12 +80,21 @@ fun LogsContent(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            IconButton(onClick = onFlushClick) {
-                Icon(
-                    imageVector = Icons.Default.DeleteSweep,
-                    contentDescription = "Flush Logs",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+            Row {
+                IconButton(onClick = onDownloadClick) {
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = "Download Logs",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                IconButton(onClick = onFlushClick) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = "Flush Logs",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
 
@@ -118,7 +128,7 @@ fun LogItem(uiEntry: UiLogEntry) {
         LogSource.Server -> Color(0xFF4CAF50) // Green
     }
 
-    val timestamp = formatTimestamp(entry.timestamp)
+    val timestamp = LogUtils.formatTimestamp(entry.timestamp)
 
     Column(
         modifier = Modifier
@@ -158,16 +168,4 @@ fun LogItem(uiEntry: UiLogEntry) {
             modifier = Modifier.padding(top = 2.dp),
         )
     }
-}
-
-private fun formatTimestamp(millis: Long): String {
-    val instant = Instant.fromEpochMilliseconds(millis)
-    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-
-    val hour = dateTime.hour.toString().padStart(2, '0')
-    val minute = dateTime.minute.toString().padStart(2, '0')
-    val second = dateTime.second.toString().padStart(2, '0')
-    val nano = (dateTime.nanosecond / 1_000_000).toString().padStart(3, '0')
-
-    return "$hour:$minute:$second.$nano"
 }

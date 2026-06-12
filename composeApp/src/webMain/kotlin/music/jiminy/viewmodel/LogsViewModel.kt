@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.LogEntry
+import music.jiminy.getPlatform
 import music.jiminy.service.JiminyLogger
 import music.jiminy.service.MainService
+import music.jiminy.utils.BrowserUtils
+import music.jiminy.utils.LogUtils
 
 enum class LogSource {
     Client,
@@ -69,6 +72,28 @@ class LogsViewModel(
                     _serverLogs.update { emptyList() }
                 },
                 onError = { /* Handle error */ },
+            )
+        }
+    }
+
+    fun downloadLogs() {
+        val currentLogs = logs.value
+        if (currentLogs.isNotEmpty()) {
+            val platform = getPlatform()
+            val header = "# Jiminy Logs\n\n" +
+                    "- **Version**: ${platform.version}\n" +
+                    "- **Git Hash**: ${platform.gitHash}\n" +
+                    "- **Exported at**: ${LogUtils.formatTimestamp(kotlin.time.Clock.System.now().toEpochMilliseconds())}\n\n" +
+                    "| Timestamp | Source | Type | Message |\n" +
+                    "| :--- | :--- | :--- | :--- |\n"
+
+            val body = currentLogs.joinToString("\n") { log ->
+                "| ${LogUtils.formatTimestamp(log.entry.timestamp)} | ${log.source.name} | ${log.entry.type} | ${log.entry.message.replace("|", "\\|")} |"
+            }
+
+            BrowserUtils.triggerFileDownload(
+                fileName = "jiminy_logs.md",
+                content = header + body,
             )
         }
     }
