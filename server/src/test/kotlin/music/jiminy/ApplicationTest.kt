@@ -289,4 +289,30 @@ class ApplicationTest {
         val configs3 = json.decodeFromString<List<String>>(listResponse3.bodyAsText())
         assertTrue(!configs3.contains("New Config"))
     }
+
+    @Test
+    fun testBatchWithLink() = testApplication {
+        val debugLogger = DebugLogger()
+        val mockController = MockController(debugLogger)
+        application {
+            module(
+                json = json,
+                controller = mockController,
+                logger = debugLogger,
+            )
+        }
+
+        val batch = JiminyCommand.Batch(
+            listOf(
+                JiminyCommand.Link("inst", "spk", LinkType.Connect),
+            ),
+        )
+
+        val response = client.post(WS_BATCH) {
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(batch))
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("Batch executed", response.bodyAsText())
+    }
 }

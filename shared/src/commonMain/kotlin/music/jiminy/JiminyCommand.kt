@@ -1,5 +1,6 @@
 package music.jiminy
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -26,6 +27,7 @@ sealed interface JiminyCommand {
     data class Link(
         val instrument: String,
         val speaker: String,
+        @SerialName("linkType")
         val type: LinkType = LinkType.Connect,
     ) : JiminyCommand
 
