@@ -389,6 +389,7 @@ class ConnectionViewModel(
             _configurationsState.update { LoadConfigState.Loading }
 
             val configurations = mutableListOf<JiminyConfiguration>()
+            var hasError = false
             names.forEach { name ->
                 mainService.getConfiguration(
                     name = name,
@@ -396,35 +397,52 @@ class ConnectionViewModel(
                         configurations.add(response.value)
                         _loadedConfiguration.emit(response.value)
                     },
-                    onError = ::handleError,
+                    onError = { error ->
+                        hasError = true
+                        handleError(error)
+                        val msg = when (error) {
+                            is JiminyResponse.Error -> error.message
+                            else -> error.toString()
+                        }
+                        _configurationsState.update { LoadConfigState.Error(msg) }
+                    },
                 )
             }
 
-            val links = mutableListOf<JiminyCommand.Link>()
-            val volumes = mutableListOf<JiminyVolume>()
+            if (!hasError) {
+                val links = mutableListOf<JiminyCommand.Link>()
+                val volumes = mutableListOf<JiminyVolume>()
 
-            configurations.forEach { config ->
-                links += config.audioLinks + config.midiLinks.mapMidiDevices()
-                volumes += config.volumes
-            }
+                configurations.forEach { config ->
+                    links += config.audioLinks + config.midiLinks.mapMidiDevices()
+                    volumes += config.volumes
+                }
 
-            val batchCommands = mutableListOf<JiminyCommand>()
-            if (volumes.isNotEmpty()) {
-                batchCommands += volumes.map { it.toVolumeCommand() }
-                batchCommands += volumes.map { it.toMuteCommand() }
-            }
-            if (links.isNotEmpty()) {
-                batchCommands += links
-            }
+                val batchCommands = mutableListOf<JiminyCommand>()
+                if (volumes.isNotEmpty()) {
+                    batchCommands += volumes.map { it.toVolumeCommand() }
+                    batchCommands += volumes.map { it.toMuteCommand() }
+                }
+                if (links.isNotEmpty()) {
+                    batchCommands += links
+                }
 
-            if (batchCommands.isNotEmpty()) {
-                mainService.executeBatch(
-                    batch = JiminyCommand.Batch(batchCommands),
-                    onSuccess = { dismissLoadConfigPopup() },
-                    onError = ::handleError,
-                )
-            } else {
-                dismissLoadConfigPopup()
+                if (batchCommands.isNotEmpty()) {
+                    mainService.executeBatch(
+                        batch = JiminyCommand.Batch(batchCommands),
+                        onSuccess = { dismissLoadConfigPopup() },
+                        onError = { error ->
+                            handleError(error)
+                            val msg = when (error) {
+                                is JiminyResponse.Error -> error.message
+                                else -> error.toString()
+                            }
+                            _configurationsState.update { LoadConfigState.Error(msg) }
+                        },
+                    )
+                } else {
+                    dismissLoadConfigPopup()
+                }
             }
         }
     }
@@ -462,15 +480,26 @@ class ConnectionViewModel(
         viewModelScope.launch {
             _configurationsState.update { LoadConfigState.Loading }
 
+            var hasError = false
             names.forEach { name ->
                 mainService.deleteConfiguration(
                     name = name,
                     onSuccess = { },
-                    onError = ::handleError,
+                    onError = { error ->
+                        hasError = true
+                        handleError(error)
+                        val msg = when (error) {
+                            is JiminyResponse.Error -> error.message
+                            else -> error.toString()
+                        }
+                        _configurationsState.update { LoadConfigState.Error(msg) }
+                    },
                 )
             }
-            // Refresh the list
-            onLoadConfigClick()
+            // Refresh the list if no errors
+            if (!hasError) {
+                onLoadConfigClick()
+            }
         }
     }
 }
