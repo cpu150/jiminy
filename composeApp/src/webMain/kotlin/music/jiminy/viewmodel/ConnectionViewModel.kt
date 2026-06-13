@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import music.jiminy.DEBOUNCING_COMMAND_MILLIS
+import music.jiminy.FLUIDSYNTH_MIDI_NAME
 import music.jiminy.JiminyCommand
 import music.jiminy.JiminyConfiguration
 import music.jiminy.JiminyDevice
@@ -30,6 +31,7 @@ import music.jiminy.JiminyLink
 import music.jiminy.JiminyLoggerI
 import music.jiminy.JiminyVolume
 import music.jiminy.LinkType
+import music.jiminy.MIDI_BRIDGE_PREFIX
 import music.jiminy.NodeConnection
 import music.jiminy.SELECTED_TAB_INDEX_KEY
 import music.jiminy.SaveConfigData
@@ -402,7 +404,7 @@ class ConnectionViewModel(
             val volumes = mutableListOf<JiminyVolume>()
 
             configurations.forEach { config ->
-                links += config.audioLinks + config.midiLinks
+                links += config.audioLinks + config.midiLinks.mapMidiDevices()
                 volumes += config.volumes
             }
 
@@ -426,6 +428,32 @@ class ConnectionViewModel(
             }
         }
     }
+
+    // HACK - FluidSynth device name change at every boot
+    private suspend fun List<JiminyCommand.Link>.mapMidiDevices(): List<JiminyCommand.Link> = let {
+        mainService.refreshDevices { logger.error("mapMidiDevices - error while refreshing - $it") }
+        mainService.midiDevices.value
+    }
+        .firstOrNull { it.name.startsWith(FLUIDSYNTH_MIDI_NAME, true) }
+        ?.let { it.instruments.firstOrNull()?.fullName to it.speakers.firstOrNull()?.fullName }
+        ?.let { (inst, spk) ->
+            val prefix = MIDI_BRIDGE_PREFIX + FLUIDSYNTH_MIDI_NAME
+            map { link ->
+                if (!inst.isNullOrBlank() &&
+                    link.instrument.startsWith(prefix, true)
+                ) {
+                    logger.info("Mapping instrument: ${link.instrument} -> $inst")
+                    JiminyCommand.Link(inst, link.speaker)
+                } else if (!spk.isNullOrBlank() &&
+                    link.speaker.startsWith(prefix, true)
+                ) {
+                    logger.info("Mapping speaker: ${link.speaker} -> $spk")
+                    JiminyCommand.Link(link.instrument, spk)
+                } else {
+                    link
+                }
+            }
+        } ?: this
 
     private fun JiminyVolume.toVolumeCommand() = JiminyCommand.VolumeUpdate(this, volume)
     private fun JiminyVolume.toMuteCommand() = JiminyCommand.MuteUpdate(this, mute)
