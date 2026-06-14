@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+
 package music.jiminy.utils
 
 import kotlinx.browser.document
