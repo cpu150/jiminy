@@ -375,6 +375,21 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
             }
         }
 
+        post(WS_UPDATE) {
+            try {
+                val command = JiminyCommand.UpdateServer
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
+                    call.respond(HttpStatusCode.OK, "Server updating...")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to update server")
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
         staticResources(WS_ROOT, "static") { default(WS_DEFAULT_PATH) }
     }
 }

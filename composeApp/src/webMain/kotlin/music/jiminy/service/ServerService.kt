@@ -8,6 +8,7 @@ import music.jiminy.LogEntry
 import music.jiminy.WS_FLUSH_SERVER_LOGS
 import music.jiminy.WS_SERVER_LOGS
 import music.jiminy.WS_SHUTDOWN
+import music.jiminy.WS_UPDATE
 
 class ServerService(
     private val client: HttpClient,
@@ -18,4 +19,6 @@ class ServerService(
     suspend fun flushServerLogs() = client.post("$baseUrl$WS_FLUSH_SERVER_LOGS")
 
     suspend fun shutdown() = client.post("$baseUrl$WS_SHUTDOWN")
+
+    suspend fun updateServer() = client.post("$baseUrl$WS_UPDATE")
 }

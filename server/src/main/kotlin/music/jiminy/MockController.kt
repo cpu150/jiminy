@@ -74,6 +74,11 @@ class MockController(
         return true
     }
 
+    override suspend fun updateServer(): Boolean {
+        logger?.info("MockController - UPDATE triggered")
+        return true
+    }
+
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,

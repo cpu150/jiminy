@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material.icons.filled.Sync
@@ -166,6 +167,7 @@ fun MainScreen(
     val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
     val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
     val showShutdownPopup by connectionViewModel.showShutdownPopup.collectAsStateWithLifecycle()
+    val showUpdatePopup by connectionViewModel.showUpdatePopup.collectAsStateWithLifecycle()
     val showOverwriteConfigPopup by connectionViewModel.showOverwriteConfigPopup.collectAsStateWithLifecycle()
     val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
 
@@ -206,6 +208,16 @@ fun MainScreen(
             onDismiss = connectionViewModel::dismissShutdownPopup,
             onConfirm = connectionViewModel::onShutdownConfirm,
             confirmLabel = "Shutdown",
+        )
+    }
+
+    if (showUpdatePopup) {
+        GenericMessageAlert(
+            title = "Update Server?",
+            message = "Are you sure you want to update the server? This will download the latest version and overwrite the current one.",
+            onDismiss = connectionViewModel::dismissUpdatePopup,
+            onConfirm = connectionViewModel::onUpdateConfirm,
+            confirmLabel = "Update",
         )
     }
 
@@ -269,6 +281,7 @@ fun MainScreen(
                 onLoadClick = connectionViewModel::onLoadConfigClick,
                 onThemeToggle = { themeViewModel.onAction(ThemeAction.OnThemeButtonClick) },
                 onShutdownClick = connectionViewModel::onShutdownClick,
+                onUpdateClick = connectionViewModel::onUpdateClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
 
@@ -326,6 +339,7 @@ fun StatusBar(
     onLoadClick: () -> Unit,
     onThemeToggle: () -> Unit,
     onShutdownClick: () -> Unit,
+    onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -370,6 +384,14 @@ fun StatusBar(
         }
 
         Row {
+            IconButton(onClick = onUpdateClick) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Update Server",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+
             IconButton(onClick = onThemeToggle) {
                 Icon(
                     imageVector = Icons.Default.Palette,

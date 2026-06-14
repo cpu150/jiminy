@@ -43,6 +43,7 @@ class Controller(
         is JiminyCommand.DeleteConfiguration -> deleteConfiguration(command.name)
         is JiminyCommand.DeleteRecordings -> deleteRecordings(command.filenames)
         JiminyCommand.Shutdown -> shutdown()
+        JiminyCommand.UpdateServer -> updateServer()
         JiminyCommand.FlushServerLogs -> {
             logger.clear()
             true
@@ -369,6 +370,31 @@ class Controller(
             true
         } catch (e: Exception) {
             logger.error("Jiminy Server - SHUTDOWN - ERROR - ${e.message} - $e")
+            false
+        }
+    }
+
+    override suspend fun updateServer() = withContext(Dispatchers.IO) {
+        try {
+            logger.info("Jiminy Server - UPDATE - Updating server-all.jar...")
+            val pb = ProcessBuilder(
+                "curl",
+                "-o",
+                "${System.getProperty("user.home")}/server-all.jar",
+                "-L",
+                "https://github.com/cpu150/jiminy/releases/latest/download/server-all.jar"
+            )
+            val process = pb.start()
+            val exitCode = process.waitFor()
+            if (exitCode == 0) {
+                logger.info("Jiminy Server - UPDATE - Success!")
+                true
+            } else {
+                logger.error("Jiminy Server - UPDATE - FAILED - exitCode: $exitCode")
+                false
+            }
+        } catch (e: Exception) {
+            logger.error("Jiminy Server - UPDATE - ERROR - ${e.message} - $e")
             false
         }
     }
