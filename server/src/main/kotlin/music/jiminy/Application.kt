@@ -90,8 +90,8 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Patch)
-        allowHeader(io.ktor.http.HttpHeaders.ContentType)
-        allowHeader(io.ktor.http.HttpHeaders.Authorization)
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
         anyHost() // BE CAREFUL: Only for local debugging
     }
 
@@ -354,6 +354,21 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
                     call.respond(HttpStatusCode.OK, "Stopped recording")
                 } else {
                     call.respond(HttpStatusCode.InternalServerError, "Failed to stop recording")
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
+        post(WS_SHUTDOWN) {
+            try {
+                val command = JiminyCommand.Shutdown
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
+                    call.respond(HttpStatusCode.OK, "Server shutting down...")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to shut down server")
                 }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")

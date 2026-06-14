@@ -235,6 +235,9 @@ class ConnectionViewModel(
     private val _showLoadConfigPopup = MutableStateFlow(false)
     val showLoadConfigPopup: StateFlow<Boolean> = _showLoadConfigPopup.asStateFlow()
 
+    private val _showShutdownPopup = MutableStateFlow(false)
+    val showShutdownPopup: StateFlow<Boolean> = _showShutdownPopup.asStateFlow()
+
     private val _showOverwriteConfigPopup = MutableStateFlow<SaveConfigData?>(null)
     val showOverwriteConfigPopup: StateFlow<SaveConfigData?> =
         _showOverwriteConfigPopup.asStateFlow()
@@ -291,6 +294,21 @@ class ConnectionViewModel(
     fun dismissLoadConfigPopup() {
         _showLoadConfigPopup.update { false }
         _configurationsState.update { LoadConfigState.Idle }
+    }
+
+    fun onShutdownClick() {
+        _showShutdownPopup.update { true }
+    }
+
+    fun onShutdownConfirm() {
+        _showShutdownPopup.update { false }
+        viewModelScope.launch {
+            mainService.shutdown(::handleError)
+        }
+    }
+
+    fun dismissShutdownPopup() {
+        _showShutdownPopup.update { false }
     }
 
     fun saveConfiguration(

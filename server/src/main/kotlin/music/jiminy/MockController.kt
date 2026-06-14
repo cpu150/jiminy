@@ -69,6 +69,11 @@ class MockController(
     override suspend fun deleteConfiguration(name: String) =
         mockConfigurations.removeAll { it.name == name }
 
+    override suspend fun shutdown(): Boolean {
+        logger?.info("MockController - SHUTDOWN triggered")
+        return true
+    }
+
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,

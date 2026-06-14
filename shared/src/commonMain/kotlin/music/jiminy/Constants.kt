@@ -22,6 +22,7 @@ const val WS_SERVER_LOGS = "/server-logs"
 const val WS_FLUSH_SERVER_LOGS = "/flush-server-logs"
 const val WS_CONFIGURATIONS = "/configurations"
 const val WS_BATCH = "/batch"
+const val WS_SHUTDOWN = "/shutdown"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
 const val THEME_KEY = "jiminy_theme"

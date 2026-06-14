@@ -51,4 +51,7 @@ sealed interface JiminyCommand {
 
     @Serializable
     data object FlushServerLogs : JiminyCommand
+
+    @Serializable
+    data object Shutdown : JiminyCommand
 }

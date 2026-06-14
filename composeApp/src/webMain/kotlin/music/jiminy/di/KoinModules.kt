@@ -20,11 +20,11 @@ import music.jiminy.SERVER_PORT
 import music.jiminy.service.ConfigurationService
 import music.jiminy.service.DeviceService
 import music.jiminy.service.JiminyLogger
-import music.jiminy.service.LoggingService
 import music.jiminy.service.MainService
 import music.jiminy.service.MainServiceImpl
 import music.jiminy.service.MixerService
 import music.jiminy.service.RecordingService
+import music.jiminy.service.ServerService
 import music.jiminy.viewmodel.ConnectionScreenViewModel
 import music.jiminy.viewmodel.ConnectionViewModel
 import music.jiminy.viewmodel.LogsViewModel
@@ -87,7 +87,7 @@ val appModule = module {
     }
     single { DeviceService(get(), get<Triple<String, Int, String>>().third, get()) }
     single { RecordingService(get(), get<Triple<String, Int, String>>().third, get()) }
-    single { LoggingService(get(), get<Triple<String, Int, String>>().third, get()) }
+    single { ServerService(get(), get<Triple<String, Int, String>>().third) }
     single { ConfigurationService(get(), get<Triple<String, Int, String>>().third) }
 
     singleOf(::MainServiceImpl) { bind<MainService>() }

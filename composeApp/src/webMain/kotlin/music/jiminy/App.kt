@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material.icons.filled.Sync
@@ -164,6 +165,7 @@ fun MainScreen(
     val themeState by themeViewModel.state.collectAsStateWithLifecycle()
     val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
     val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
+    val showShutdownPopup by connectionViewModel.showShutdownPopup.collectAsStateWithLifecycle()
     val showOverwriteConfigPopup by connectionViewModel.showOverwriteConfigPopup.collectAsStateWithLifecycle()
     val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
 
@@ -194,6 +196,16 @@ fun MainScreen(
             onDismiss = connectionViewModel::dismissLoadConfigPopup,
             onSelect = connectionViewModel::loadConfigurations,
             onDelete = connectionViewModel::deleteConfigurations,
+        )
+    }
+
+    if (showShutdownPopup) {
+        GenericMessageAlert(
+            title = "Shutdown Server?",
+            message = "Are you sure you want to shut down the server? You will lose connection.",
+            onDismiss = connectionViewModel::dismissShutdownPopup,
+            onConfirm = connectionViewModel::onShutdownConfirm,
+            confirmLabel = "Shutdown",
         )
     }
 
@@ -256,6 +268,7 @@ fun MainScreen(
                 onSaveClick = connectionViewModel::onSaveConfigClick,
                 onLoadClick = connectionViewModel::onLoadConfigClick,
                 onThemeToggle = { themeViewModel.onAction(ThemeAction.OnThemeButtonClick) },
+                onShutdownClick = connectionViewModel::onShutdownClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
 
@@ -312,6 +325,7 @@ fun StatusBar(
     onSaveClick: () -> Unit,
     onLoadClick: () -> Unit,
     onThemeToggle: () -> Unit,
+    onShutdownClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -326,6 +340,14 @@ fun StatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            IconButton(onClick = onShutdownClick) {
+                Icon(
+                    imageVector = Icons.Default.PowerSettingsNew,
+                    contentDescription = "Shutdown Server",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+
             ConnectionStatusIcon(status)
 
             if (error != null) {

@@ -134,6 +134,10 @@ interface MainService {
         onSuccess: ((EmptySuccess) -> Unit)? = null,
         onError: (JiminyResponse) -> Unit,
     )
+
+    suspend fun shutdown(
+        onError: (JiminyResponse) -> Unit,
+    )
 }
 
 class MainServiceImpl(
@@ -142,7 +146,7 @@ class MainServiceImpl(
     private val deviceService: DeviceService,
     private val recordingService: RecordingService,
     private val configurationService: ConfigurationService,
-    private val loggingService: LoggingService,
+    private val serverService: ServerService,
     private val logger: JiminyLoggerI,
 ) : MainService {
     override val succeededCommands = mixerService.succeededCommands
@@ -304,7 +308,7 @@ class MainServiceImpl(
     ) {
         handleExceptions(
             logMsg = "getServerLogs",
-            tryBlock = { onSuccess(Success(loggingService.getServerLogs())) },
+            tryBlock = { onSuccess(Success(serverService.getServerLogs())) },
             catchBlock = { error -> onError(error) },
         )
     }
@@ -316,7 +320,7 @@ class MainServiceImpl(
         handleExceptions(
             logMsg = "flushServerLogs",
             tryBlock = {
-                handleHttpResponse("flushServerLogs", loggingService.flushServerLogs())
+                handleHttpResponse("flushServerLogs", serverService.flushServerLogs())
                     ?.let { onError(it) }
                     ?: let { onSuccess?.invoke(EmptySuccess) }
             },
@@ -455,6 +459,19 @@ class MainServiceImpl(
                 handleHttpResponse("executeBatch", configurationService.executeBatch(batch))
                     ?.let { onError(it) }
                     ?: onSuccess?.invoke(EmptySuccess)
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
+
+    override suspend fun shutdown(
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        handleExceptions(
+            logMsg = "shutdown",
+            tryBlock = {
+                handleHttpResponse("shutdown", serverService.shutdown())
+                    ?.let { onError(it) }
             },
             catchBlock = { error -> onError(error) },
         )

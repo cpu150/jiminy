@@ -42,6 +42,7 @@ class Controller(
         is JiminyCommand.SaveConfiguration -> saveConfiguration(command.config)
         is JiminyCommand.DeleteConfiguration -> deleteConfiguration(command.name)
         is JiminyCommand.DeleteRecordings -> deleteRecordings(command.filenames)
+        JiminyCommand.Shutdown -> shutdown()
         JiminyCommand.FlushServerLogs -> {
             logger.clear()
             true
@@ -253,7 +254,7 @@ class Controller(
         // We must programmatically issue the pw-link commands right after the process surfaces!
         CoroutineScope(Dispatchers.IO).launch {
             // Wait a brief moment for PipeWire to initialize the new raw node ports
-            delay(500)
+            delay(500.milliseconds)
 
             nodes.forEachIndexed { index, node ->
                 val link = JiminyCommand.Link(
@@ -313,23 +314,24 @@ class Controller(
         }
     }
 
-    override suspend fun saveConfiguration(config: JiminyConfiguration) = withContext(Dispatchers.IO) {
-        try {
-            val directory = File(PW_CONFIGURATION_STORAGE_DIRECTORY)
-            if (!directory.exists()) {
-                directory.mkdirs()
+    override suspend fun saveConfiguration(config: JiminyConfiguration) =
+        withContext(Dispatchers.IO) {
+            try {
+                val directory = File(PW_CONFIGURATION_STORAGE_DIRECTORY)
+                if (!directory.exists()) {
+                    directory.mkdirs()
+                }
+                val file = File(directory, "${config.name}.json")
+                file.writeText(json.encodeToString(config))
+                logger.info("Jiminy Server - saveConfiguration - Saved: ${config.name}")
+                true
+            } catch (e: Exception) {
+                logger.error("Jiminy Server - saveConfiguration - ERROR - ${config.name} - ${e.message}")
+                false
             }
-            val file = File(directory, "${config.name}.json")
-            file.writeText(json.encodeToString(config))
-            logger.info("Jiminy Server - saveConfiguration - Saved: ${config.name}")
-            true
-        } catch (e: Exception) {
-            logger.error("Jiminy Server - saveConfiguration - ERROR - ${config.name} - ${e.message}")
-            false
         }
-    }
 
-    override suspend fun getConfiguration(name: String): JiminyConfiguration? = withContext(Dispatchers.IO) {
+    override suspend fun getConfiguration(name: String) = withContext(Dispatchers.IO) {
         try {
             val file = File(PW_CONFIGURATION_STORAGE_DIRECTORY, "$name.json")
             if (file.exists() && file.isFile) {
@@ -354,6 +356,19 @@ class Controller(
             }
         } catch (e: Exception) {
             logger.error("Jiminy Server - deleteConfiguration - ERROR - $name - ${e.message}")
+            false
+        }
+    }
+
+    override suspend fun shutdown() = withContext(Dispatchers.IO) {
+        try {
+            logger.info("Jiminy Server - SHUTDOWN - Triggering 'sudo shutdown now'")
+            ProcessBuilder("sudo", "shutdown", "now")
+                .redirectErrorStream(true)
+                .start()
+            true
+        } catch (e: Exception) {
+            logger.error("Jiminy Server - SHUTDOWN - ERROR - ${e.message} - $e")
             false
         }
     }

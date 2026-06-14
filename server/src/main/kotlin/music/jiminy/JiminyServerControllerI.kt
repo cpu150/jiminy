@@ -21,6 +21,8 @@ interface JiminyServerControllerI {
     suspend fun getConfiguration(name: String): JiminyConfiguration?
     suspend fun deleteConfiguration(name: String): Boolean
 
+    suspend fun shutdown(): Boolean
+
     suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,
