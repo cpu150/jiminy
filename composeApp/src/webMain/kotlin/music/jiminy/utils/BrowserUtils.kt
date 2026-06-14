@@ -5,4 +5,9 @@ expect object BrowserUtils {
         fileName: String,
         content: String,
     )
+
+    fun triggerBinaryDownload(
+        fileName: String,
+        content: ByteArray,
+    )
 }

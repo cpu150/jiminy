@@ -2,6 +2,7 @@ package music.jiminy.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.ktor.client.call.body
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,8 +15,8 @@ import music.jiminy.JiminyLoggerI
 import music.jiminy.PW_RECORDER_CHANNEL_COUNT
 import music.jiminy.PW_RECORDER_NAME
 import music.jiminy.screen.RecordingScreenAction
-import music.jiminy.screen.RecordingScreenAction.OnDeleteRecordings
 import music.jiminy.screen.RecordingScreenAction.OnApplyConfiguration
+import music.jiminy.screen.RecordingScreenAction.OnDeleteRecordings
 import music.jiminy.screen.RecordingScreenAction.OnDeviceClick
 import music.jiminy.screen.RecordingScreenAction.OnDismissDetails
 import music.jiminy.screen.RecordingScreenAction.OnDownloadRecordings
@@ -29,6 +30,7 @@ import music.jiminy.screen.RecordingScreenAction.OnStopRecording
 import music.jiminy.screen.RecordingScreenState
 import music.jiminy.service.JiminyResponse
 import music.jiminy.service.MainService
+import music.jiminy.utils.BrowserUtils
 
 class RecordingScreenViewModel(
     private val mainService: MainService,
@@ -148,16 +150,30 @@ class RecordingScreenViewModel(
     private fun downloadRecordings() {
         viewModelScope.launch {
             val toDownload = _state.value.selectedRecordings
-            mainService.downloadRecordings(
-                filenames = toDownload,
-                onSuccess = { response ->
-                    // Handle download in browser: we can't easily handle a POST response file download
-                    // in pure KMP without some JS hacks.
-                    // For now, logging the intent.
-                    logger.info("Downloading ${toDownload.size} files: $response")
-                },
-                onError = { handleError(it) },
-            )
+            if (toDownload.isNotEmpty()) {
+                mainService.downloadRecordings(
+                    filenames = toDownload,
+                    onSuccess = { response ->
+                        viewModelScope.launch {
+                            try {
+                                val bytes = response.value.body<ByteArray>()
+                                val fileName = if (toDownload.size == 1) {
+                                    toDownload.first().substringAfterLast("/")
+                                } else {
+                                    "recordings.zip"
+                                }
+                                BrowserUtils.triggerBinaryDownload(
+                                    fileName = fileName,
+                                    content = bytes,
+                                )
+                            } catch (e: Exception) {
+                                logger.error("Failed to read download response: ${e.message}")
+                            }
+                        }
+                    },
+                    onError = { handleError(it) },
+                )
+            }
         }
     }
 
