@@ -36,6 +36,11 @@ class Logger : JiminyLoggerI {
             timestamp = Clock.System.now().toEpochMilliseconds(),
             message = message,
         )
-        _logEntries.add(entry)
+        synchronized(_logEntries) {
+            _logEntries.add(entry)
+            while (_logEntries.size > 1000) {
+                _logEntries.removeAt(0)
+            }
+        }
     }
 }

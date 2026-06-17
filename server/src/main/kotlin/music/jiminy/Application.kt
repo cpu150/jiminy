@@ -35,10 +35,13 @@ import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.timeout
 import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.close
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
@@ -50,7 +53,8 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Duration.Companion.seconds
 
 fun main() {
-    val port = if (DEBUG) DEBUG_SERVER_PORT else SERVER_PORT
+    val envPort = System.getenv("JIMINY_SERVER_PORT")?.toIntOrNull()
+    val port = envPort ?: (if (DEBUG) DEBUG_SERVER_PORT else SERVER_PORT)
     val host = if (DEBUG) DEBUG_SERVER_HOST else SERVER_HOST
     val logger = if (DEBUG) DebugLogger() else Logger()
 
@@ -64,12 +68,21 @@ fun main() {
         controller.fetchLatestVersion()
     }
 
-    embeddedServer(
+    val server = embeddedServer(
         factory = Netty,
         port = port,
         host = host,
         module = { module(json, controller, logger) },
-    ).start(wait = true)
+    )
+
+    Runtime.getRuntime().addShutdownHook(Thread {
+        logger.info("Jiminy Server - JVM Shutdown Hook triggered - stopping recording if active")
+        runBlocking {
+            controller.stopRecording()
+        }
+    })
+
+    server.start(wait = true)
 }
 
 @OptIn(ExperimentalAtomicApi::class)
@@ -137,40 +150,52 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
     val jobInProgress = AtomicBoolean(false)
     routing {
         webSocket(WS_MIXER) {
-            logger.info("Jiminy Server - WebSocket - Adding new session $this")
-            try {
-                sessions.add(this)
-
-                if (controller.isRecording) {
-                    sendSerialized(JiminyCommand.StopRecording())
+            val shouldAccept = synchronized(sessions) {
+                val accepted = if (sessions.size < 10) {
+                    sessions.add(this)
+                    true
+                } else {
+                    false
                 }
+                accepted
+            }
+            if (shouldAccept) {
+                logger.info("Jiminy Server - WebSocket - Adding new session $this")
+                try {
+                    if (controller.isRecording) {
+                        sendSerialized(JiminyCommand.StopRecording())
+                    }
 
-                while (true) {
-                    // Waiting for a command to be received
-                    val command = receiveDeserialized<JiminyCommand>()
+                    while (true) {
+                        // Waiting for a command to be received
+                        val command = receiveDeserialized<JiminyCommand>()
 
-                    // Processing command
-                    jobInProgress
-                        // IMPORTANT: If recording then abort before setting 'isRecording = true'
-                        .takeIf { !controller.isRecording }
-                        ?.compareAndSet(expectedValue = false, newValue = true)
-                        ?.takeIf { it }
-                        ?.let {
-                            withContext(Dispatchers.IO) {
-                                val status = controller.executeCommand(command)
+                        // Processing command
+                        jobInProgress
+                            // IMPORTANT: If recording then abort before setting 'isRecording = true'
+                            .takeIf { !controller.isRecording }
+                            ?.compareAndSet(expectedValue = false, newValue = true)
+                            ?.takeIf { it }
+                            ?.let {
+                                withContext(Dispatchers.IO) {
+                                    val status = controller.executeCommand(command)
 
-                                controller.broadcastAll(sessions.toList(), command, status)
+                                    controller.broadcastAll(sessions.toList(), command, status)
 
-                                jobInProgress.store(false)
-                            }
-                        } ?: logger.warning("Jiminy Server - Busy - Command Ignored $command")
+                                    jobInProgress.store(false)
+                                }
+                            } ?: logger.warning("Jiminy Server - Busy - Command Ignored $command")
+                    }
+                } catch (e: ClosedReceiveChannelException) {
+                    logger.info("Jiminy Server - WebSocket closed - ${e.localizedMessage}")
+                } catch (e: Exception) {
+                    logger.error("Jiminy Server - ERROR - WebSocket error: $e - ${e.localizedMessage}")
+                } finally {
+                    sessions.remove(this)
                 }
-            } catch (e: ClosedReceiveChannelException) {
-                logger.info("Jiminy Server - WebSocket closed - ${e.localizedMessage}")
-            } catch (e: Exception) {
-                logger.error("Jiminy Server - ERROR - WebSocket error: $e - ${e.localizedMessage}")
-            } finally {
-                sessions.remove(this)
+            } else {
+                logger.warning("Jiminy Server - WebSocket - Max session limit reached (10), rejecting session.")
+                close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Max sessions reached"))
             }
         }
 
@@ -200,15 +225,22 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
                     controller.broadcastAll(sessions.toList(), command)
                     call.respond(HttpStatusCode.OK, "Configuration saved")
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, "$WS_CONFIGURATIONS - Error saving configuration")
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        "$WS_CONFIGURATIONS - Error saving configuration",
+                    )
                 }
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.InternalServerError, "$WS_CONFIGURATIONS - Error: ${e.message}")
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    "$WS_CONFIGURATIONS - Error: ${e.message}",
+                )
             }
         }
 
         delete("$WS_CONFIGURATIONS/{name}") {
-            val name = call.parameters["name"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+            val name =
+                call.parameters["name"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
             val command = JiminyCommand.DeleteConfiguration(name)
             val status = controller.executeCommand(command)
             if (status) {

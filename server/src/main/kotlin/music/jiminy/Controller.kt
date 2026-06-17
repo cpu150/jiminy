@@ -144,16 +144,26 @@ class Controller(
         }
     }
 
+    private fun isValidFilename(name: String): Boolean = name.isNotBlank() &&
+            !name.contains("..") &&
+            !name.contains("/") &&
+            !name.contains("\\")
+
     override suspend fun deleteRecordings(filenames: List<String>) = withContext(Dispatchers.IO) {
         filenames.map { filename ->
             try {
-                val file = File(PW_RECORDER_STORAGE_DIRECTORY, filename)
-                if (file.exists() && file.delete()) {
-                    logger.info("Jiminy Server - deleteRecordings - Deleted: $filename")
-                    true
-                } else {
-                    logger.error("Jiminy Server - deleteRecordings - ERROR - File not found or could not be deleted: $filename")
+                if (!isValidFilename(filename)) {
+                    logger.error("Jiminy Server - deleteRecordings - ERROR - Invalid filename: $filename")
                     false
+                } else {
+                    val file = File(PW_RECORDER_STORAGE_DIRECTORY, filename)
+                    if (file.exists() && file.delete()) {
+                        logger.info("Jiminy Server - deleteRecordings - Deleted: $filename")
+                        true
+                    } else {
+                        logger.error("Jiminy Server - deleteRecordings - ERROR - File not found or could not be deleted: $filename")
+                        false
+                    }
                 }
             } catch (e: Exception) {
                 logger.error("Jiminy Server - deleteRecordings - ERROR - $filename - ${e.message}")
@@ -164,8 +174,12 @@ class Controller(
 
     override fun getRecordingFile(
         filename: String,
-    ): File? = File(PW_RECORDER_STORAGE_DIRECTORY, filename)
-        .takeIf { file -> file.exists() && file.isFile }
+    ): File? = if (isValidFilename(filename)) {
+        File(PW_RECORDER_STORAGE_DIRECTORY, filename)
+            .takeIf { file -> file.exists() && file.isFile }
+    } else {
+        null
+    }
 
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
@@ -204,7 +218,10 @@ class Controller(
             ?.takeIf { _isRecording.compareAndSet(expectedValue = false, newValue = true) }
             ?.let {
                 try {
-                    currentRecording = startRecording(commands.nodes)
+                    val rec = startRecording(commands.nodes)
+                    synchronized(this@Controller) {
+                        currentRecording = rec
+                    }
                     true
                 } catch (e: CancellationException) {
                     logger.info("Jiminy Server - startRecording - Cancelled - $e")
@@ -279,10 +296,17 @@ class Controller(
         }
 
         try {
-            recording?.let { recording ->
+            recording?.let { rec ->
                 withContext(Dispatchers.IO) {
-                    // Stop the recording
-                    recording.process.takeIf { proc -> proc.isAlive }?.destroy()
+                    val proc = rec.process
+                    if (proc.isAlive) {
+                        proc.destroy()
+                        val exited = proc.waitFor(2, TimeUnit.SECONDS)
+                        if (!exited && proc.isAlive) {
+                            logger.warning("Jiminy Server - stopRecording - Process did not exit gracefully, forcing termination...")
+                            proc.destroyForcibly()
+                        }
+                    }
 
                     // Wait for the recording buffer to get fully written
                     delay(PW_RECORDER_LATENCY_MILLIS.milliseconds)
@@ -316,14 +340,19 @@ class Controller(
     override suspend fun saveConfiguration(config: JiminyConfiguration) =
         withContext(Dispatchers.IO) {
             try {
-                val directory = File(PW_CONFIGURATION_STORAGE_DIRECTORY)
-                if (!directory.exists()) {
-                    directory.mkdirs()
+                if (!isValidFilename(config.name)) {
+                    logger.error("Jiminy Server - saveConfiguration - ERROR - Invalid name: ${config.name}")
+                    false
+                } else {
+                    val directory = File(PW_CONFIGURATION_STORAGE_DIRECTORY)
+                    if (!directory.exists()) {
+                        directory.mkdirs()
+                    }
+                    val file = File(directory, "${config.name}.json")
+                    file.writeText(json.encodeToString(config))
+                    logger.info("Jiminy Server - saveConfiguration - Saved: ${config.name}")
+                    true
                 }
-                val file = File(directory, "${config.name}.json")
-                file.writeText(json.encodeToString(config))
-                logger.info("Jiminy Server - saveConfiguration - Saved: ${config.name}")
-                true
             } catch (e: Exception) {
                 logger.error("Jiminy Server - saveConfiguration - ERROR - ${config.name} - ${e.message}")
                 false
@@ -332,11 +361,16 @@ class Controller(
 
     override suspend fun getConfiguration(name: String) = withContext(Dispatchers.IO) {
         try {
-            val file = File(PW_CONFIGURATION_STORAGE_DIRECTORY, "$name.json")
-            if (file.exists() && file.isFile) {
-                json.decodeFromString<JiminyConfiguration>(file.readText())
-            } else {
+            if (!isValidFilename(name)) {
+                logger.error("Jiminy Server - getConfiguration - ERROR - Invalid name: $name")
                 null
+            } else {
+                val file = File(PW_CONFIGURATION_STORAGE_DIRECTORY, "$name.json")
+                if (file.exists() && file.isFile) {
+                    json.decodeFromString<JiminyConfiguration>(file.readText())
+                } else {
+                    null
+                }
             }
         } catch (e: Exception) {
             logger.error("Jiminy Server - getConfiguration - ERROR - $name - ${e.message}")
@@ -346,12 +380,17 @@ class Controller(
 
     override suspend fun deleteConfiguration(name: String) = withContext(Dispatchers.IO) {
         try {
-            val file = File(PW_CONFIGURATION_STORAGE_DIRECTORY, "$name.json")
-            if (file.exists() && file.delete()) {
-                logger.info("Jiminy Server - deleteConfiguration - Deleted: $name")
-                true
-            } else {
+            if (!isValidFilename(name)) {
+                logger.error("Jiminy Server - deleteConfiguration - ERROR - Invalid name: $name")
                 false
+            } else {
+                val file = File(PW_CONFIGURATION_STORAGE_DIRECTORY, "$name.json")
+                if (file.exists() && file.delete()) {
+                    logger.info("Jiminy Server - deleteConfiguration - Deleted: $name")
+                    true
+                } else {
+                    false
+                }
             }
         } catch (e: Exception) {
             logger.error("Jiminy Server - deleteConfiguration - ERROR - $name - ${e.message}")
