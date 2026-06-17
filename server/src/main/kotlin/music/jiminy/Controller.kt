@@ -32,6 +32,8 @@ class Controller(
 
     private data class RecordProcessInfo(val filename: String, val process: Process)
 
+    private data class CommandResult(val exitCode: Int, val output: List<String>)
+
     override suspend fun executeCommand(command: JiminyCommand): Boolean = when (command) {
         is JiminyCommand.VolumeUpdate -> updateVolume(command.deviceVolume, command.volume)
         is JiminyCommand.MuteUpdate -> updateMuteState(command.deviceVolume, command.muteState)
@@ -55,14 +57,11 @@ class Controller(
         volume: Float,
     ) = withContext(Dispatchers.IO) {
         try {
-            ProcessBuilder("wpctl", "set-volume", deviceVolume.id, "$volume")
-                .redirectErrorStream(true)
-                .start().waitFor().let {
-                    if (it != 0) {
-                        logger.error("Jiminy Server - updateVolume - ERROR - code $it - $deviceVolume")
-                    }
-                    it == 0
-                }
+            val result = runCommand("wpctl", "set-volume", deviceVolume.id, "$volume")
+            if (result.exitCode != 0) {
+                logger.error("Jiminy Server - updateVolume - ERROR - code ${result.exitCode} - $deviceVolume")
+            }
+            result.exitCode == 0
         } catch (e: CancellationException) {
             logger.info("Jiminy Server - updateMuteState - Cancelled - $e")
             throw e
@@ -77,16 +76,11 @@ class Controller(
         mute: Boolean,
     ) = withContext(Dispatchers.IO) {
         try {
-            ProcessBuilder("wpctl", "set-mute", deviceVolume.id, if (mute) "1" else "0")
-                .redirectErrorStream(true)
-                .start()
-                .waitFor()
-                .let {
-                    if (it != 0) {
-                        logger.error("Jiminy Server - updateMuteState - ERROR - code $it - $deviceVolume")
-                    }
-                    it == 0
-                }
+            val result = runCommand("wpctl", "set-mute", deviceVolume.id, if (mute) "1" else "0")
+            if (result.exitCode != 0) {
+                logger.error("Jiminy Server - updateMuteState - ERROR - code ${result.exitCode} - $deviceVolume")
+            }
+            result.exitCode == 0
         } catch (e: CancellationException) {
             logger.info("Jiminy Server - updateMuteState - Cancelled - $e")
             throw e
@@ -98,9 +92,9 @@ class Controller(
 
     override suspend fun getDevicesList() = withContext(Dispatchers.IO) {
         withTimeout(3.seconds) {
-            val instrumentsDevicesDeferred = async(Dispatchers.IO) { runCommand("pw-link", "-o") }
-            val speakersDevicesDeferred = async(Dispatchers.IO) { runCommand("pw-link", "-i") }
-            val devicesDeferred = async(Dispatchers.IO) { runCommand("wpctl", "status", "-n") }
+            val instrumentsDevicesDeferred = async(Dispatchers.IO) { runCommand("pw-link", "-o").output }
+            val speakersDevicesDeferred = async(Dispatchers.IO) { runCommand("pw-link", "-i").output }
+            val devicesDeferred = async(Dispatchers.IO) { runCommand("wpctl", "status", "-n").output }
 
             JiminyDeviceList(
                 instruments = instrumentsDevicesDeferred.await(),
@@ -112,15 +106,14 @@ class Controller(
 
     override suspend fun linkDevice(link: JiminyCommand.Link) = withContext(Dispatchers.IO) {
         try {
-            if (link.type == LinkType.Connect) {
-                ProcessBuilder("pw-link", link.instrument, link.speaker)
+            val result = if (link.type == LinkType.Connect) {
+                runCommand("pw-link", link.instrument, link.speaker)
             } else {
-                ProcessBuilder("pw-link", "-d", link.instrument, link.speaker)
-            }.redirectErrorStream(true).start().waitFor().let {
-                // Code 255: wiring "speaker" into an "instrument" (wrong) + wiring twice
-                if (it != 0) logger.error("Jiminy Server - linkDevice - ERROR - code $it - $link")
-                it == 0
+                runCommand("pw-link", "-d", link.instrument, link.speaker)
             }
+            // Code 255: wiring "speaker" into an "instrument" (wrong) + wiring twice
+            if (result.exitCode != 0) logger.error("Jiminy Server - linkDevice - ERROR - code ${result.exitCode} - $link")
+            result.exitCode == 0
         } catch (e: CancellationException) {
             logger.info("Jiminy Server - linkDevice - Cancelled - $e")
             throw e
@@ -131,7 +124,7 @@ class Controller(
     }
 
     override suspend fun getDeviceLinksList() =
-        withContext(Dispatchers.IO) { runCommand("pw-link", "-l") }
+        withContext(Dispatchers.IO) { runCommand("pw-link", "-l").output }
 
     override suspend fun getRecordings() = withContext(Dispatchers.IO) {
         val directory = File(PW_RECORDER_STORAGE_DIRECTORY)
@@ -364,9 +357,7 @@ class Controller(
     override suspend fun shutdown() = withContext(Dispatchers.IO) {
         try {
             logger.info("Jiminy Server - SHUTDOWN - Triggering 'sudo shutdown now'")
-            ProcessBuilder("sudo", "shutdown", "now")
-                .redirectErrorStream(true)
-                .start()
+            runCommand("sudo", "shutdown", "now")
             true
         } catch (e: Exception) {
             logger.error("Jiminy Server - SHUTDOWN - ERROR - ${e.message} - $e")
@@ -377,20 +368,19 @@ class Controller(
     override suspend fun updateServer() = withContext(Dispatchers.IO) {
         try {
             logger.info("Jiminy Server - UPDATE - Updating server-all.jar...")
-            val pb = ProcessBuilder(
+            val result = runCommand(
                 "curl",
                 "-o",
                 "${System.getProperty("user.home")}/server-all.jar",
                 "-L",
-                "https://github.com/cpu150/jiminy/releases/latest/download/server-all.jar"
+                "https://github.com/cpu150/jiminy/releases/latest/download/server-all.jar",
+                timeout = 90.seconds,
             )
-            val process = pb.start()
-            val exitCode = process.waitFor()
-            if (exitCode == 0) {
+            if (result.exitCode == 0) {
                 logger.info("Jiminy Server - UPDATE - Success!")
                 true
             } else {
-                logger.error("Jiminy Server - UPDATE - FAILED - exitCode: $exitCode")
+                logger.error("Jiminy Server - UPDATE - FAILED - exitCode: ${result.exitCode}")
                 false
             }
         } catch (e: Exception) {
@@ -399,13 +389,17 @@ class Controller(
         }
     }
 
-    private fun runCommand(vararg command: String): List<String> {
-        val process = ProcessBuilder(*command).redirectError(ProcessBuilder.Redirect.PIPE).start()
+    private fun runCommand(
+        vararg command: String,
+        timeout: kotlin.time.Duration = 3.seconds,
+    ): CommandResult {
+        val process = ProcessBuilder(*command).redirectErrorStream(true).start()
         val result = process.inputStream.bufferedReader().readLines()
 
         // Safety timeout
-        process.waitFor(3, TimeUnit.SECONDS)
+        val exited = process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+        val exitCode = if (exited) process.exitValue() else -1
 
-        return result
+        return CommandResult(exitCode, result)
     }
 }
