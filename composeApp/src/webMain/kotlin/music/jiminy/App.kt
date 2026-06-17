@@ -158,6 +158,7 @@ fun MainScreen(
     val logsViewModel: LogsViewModel = koinViewModel()
     val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
     val connectionStatus by connectionViewModel.connectionStatus.collectAsStateWithLifecycle()
+    val isUpdateAvailable by connectionViewModel.isUpdateAvailable.collectAsStateWithLifecycle()
     val isRefreshing by connectionViewModel.isRefreshing.collectAsStateWithLifecycle()
 
     val audioState by connectionScreenViewModel.state.collectAsStateWithLifecycle()
@@ -277,6 +278,7 @@ fun MainScreen(
             StatusBar(
                 status = connectionStatus,
                 error = errorMsg,
+                isUpdateAvailable = isUpdateAvailable,
                 onSaveClick = connectionViewModel::onSaveConfigClick,
                 onLoadClick = connectionViewModel::onLoadConfigClick,
                 onThemeToggle = { themeViewModel.onAction(ThemeAction.OnThemeButtonClick) },
@@ -335,6 +337,7 @@ fun MainScreen(
 fun StatusBar(
     status: JiminyConnectionStatus,
     error: String?,
+    isUpdateAvailable: Boolean,
     onSaveClick: () -> Unit,
     onLoadClick: () -> Unit,
     onThemeToggle: () -> Unit,
@@ -388,7 +391,7 @@ fun StatusBar(
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "Update Server",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isUpdateAvailable) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 )
             }
 

@@ -24,7 +24,6 @@ interface JiminyServerControllerI {
     suspend fun shutdown(): Boolean
     suspend fun updateServer(): Boolean
 
-    val latestVersion: String
     suspend fun fetchLatestVersion()
 
     suspend fun broadcastAll(

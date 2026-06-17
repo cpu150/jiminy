@@ -176,6 +176,13 @@ class ConnectionViewModel(
     //// Connection View
     val devices: StateFlow<List<JiminyDevice>> = mainService.audioDevices
 
+    val isUpdateAvailable: StateFlow<Boolean> = combine(
+        mainService.latestVersion,
+        MutableStateFlow(music.jiminy.getPlatform().version)
+    ) { latest, current ->
+        latest.isNotBlank() && latest != current
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     fun getDevices() {
         resetError()
         viewModelScope.launch {

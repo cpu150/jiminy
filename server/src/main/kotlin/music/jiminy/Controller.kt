@@ -104,6 +104,7 @@ class Controller(
                 instruments = instrumentsDevicesDeferred.await(),
                 speakers = speakersDevicesDeferred.await(),
                 deviceStatus = devicesDeferred.await(),
+                latestVersion = _latestVersion,
             )
         }
     }
@@ -395,8 +396,6 @@ class Controller(
 
     @Volatile
     private var _latestVersion = ""
-    override val latestVersion: String
-        get() = _latestVersion
 
     override suspend fun fetchLatestVersion() {
         withContext(Dispatchers.IO) {

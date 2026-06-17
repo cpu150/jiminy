@@ -182,8 +182,6 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
 
         get(WS_SERVER_LOGS) { call.respond(logger.logEntries) }
 
-        get(WS_LATEST_VERSION) { call.respond(controller.latestVersion) }
-
         get(WS_CONFIGURATIONS) { call.respond(controller.getConfigurations()) }
 
         get("$WS_CONFIGURATIONS/{name}") {

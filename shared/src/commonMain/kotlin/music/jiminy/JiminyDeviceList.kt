@@ -9,4 +9,5 @@ data class JiminyDeviceList(
     val instruments: List<String>,
     val speakers: List<String>,
     val deviceStatus: List<String>,
+    val latestVersion: String = "",
 )

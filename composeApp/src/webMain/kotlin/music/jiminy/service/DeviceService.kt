@@ -41,6 +41,9 @@ class DeviceService(
     private val _midiDevices = MutableStateFlow<List<JiminyDevice>>(emptyList())
     val midiDevices: StateFlow<List<JiminyDevice>> = _midiDevices.asStateFlow()
 
+    private val _latestVersion = MutableStateFlow("")
+    val latestVersion: StateFlow<String> = _latestVersion.asStateFlow()
+
     suspend fun refreshDevices() = client
         .get("$baseUrl$WS_DEVICES")
         .body<JiminyDeviceList>()
@@ -136,7 +139,8 @@ class DeviceService(
 
         _audioDevices.update { audioDevices }
         _midiDevices.update { midiDevices }
-        logger.info("processDevicesOutput - audio: ${audioDevices.size}, midi: ${midiDevices.size}")
+        _latestVersion.update { output.latestVersion }
+        logger.info("processDevicesOutput - audio: ${audioDevices.size}, midi: ${midiDevices.size}, latestVersion: ${output.latestVersion}")
     }
 
     private fun processDeviceLinksOutput(output: List<String>): List<NodeConnection> = buildList {

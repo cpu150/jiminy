@@ -49,6 +49,7 @@ interface MainService {
     val succeededCommands: SharedFlow<JiminyCommand>
     val audioDevices: StateFlow<List<JiminyDevice>>
     val midiDevices: StateFlow<List<JiminyDevice>>
+    val latestVersion: StateFlow<String>
     val connectionStatus: StateFlow<JiminyConnectionStatus>
     val isRecording: StateFlow<Boolean>
 
@@ -156,6 +157,7 @@ class MainServiceImpl(
     override val succeededCommands = mixerService.succeededCommands
     override val audioDevices = deviceService.audioDevices
     override val midiDevices = deviceService.midiDevices
+    override val latestVersion = deviceService.latestVersion
 
     private val _connectionStatus = MutableStateFlow<JiminyConnectionStatus>(Disconnected)
     override val connectionStatus: StateFlow<JiminyConnectionStatus>

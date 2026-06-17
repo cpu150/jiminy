@@ -27,6 +27,7 @@ class MockController(
         instruments = dummyInstrumentsCmd,
         speakers = dummySpeakersCmd,
         deviceStatus = dummyStatusCmd,
+        latestVersion = latestVersion,
     )
 
     override suspend fun linkDevice(link: JiminyCommand.Link) = true
@@ -79,7 +80,7 @@ class MockController(
         return true
     }
 
-    override var latestVersion: String = "1.0.0"
+    var latestVersion: String = "1.0.0"
 
     override suspend fun fetchLatestVersion() {
         logger?.info("MockController - fetchLatestVersion triggered")
