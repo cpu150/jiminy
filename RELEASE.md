@@ -110,12 +110,15 @@ Before publishing, generate a preview of the release notes to ensure they are co
     *Note: Using `--draft` ensures the release is not visible to the public yet.*
 
 2.  **Review (AI-Assisted):**
-    Ask Gemini CLI to "Show me the release notes". It will fetch the notes using:
-    ```bash
-    gh release view v1.x --json body --template '{{.body}}'
-    ```
+    The AI agent MUST present the following three options to the user:
+    1.  **GitHub Proposal:** Fetch and show the auto-generated notes from the draft:
+        ```bash
+        gh release view v1.x --json body --template '{{.body}}'
+        ```
+    2.  **AI Suggestion:** Generate aprecise but not too detailed, human-readable summary by analyzing the git history between the last tag and the new version.
+    3.  **Custom:** Allow the user to provide their own release note content.
 
-    **[AI AGENT: STOP AND ASK]** You MUST present the release notes to the user and wait for their approval or edit instructions. DO NOT proceed until the user confirms the notes are satisfactory.
+    **[AI AGENT: STOP AND ASK]** You MUST present these three options (showing the content for options 1 and 2) and wait for the user's choice or custom input. DO NOT proceed until the user confirms the final notes.
 
 3.  **Edit (AI-Assisted):**
     If changes are needed, tell Gemini CLI what to change. It will update the draft using:
