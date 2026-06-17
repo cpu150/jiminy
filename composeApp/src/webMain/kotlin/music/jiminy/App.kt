@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -30,10 +32,13 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,10 +46,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -167,8 +176,6 @@ fun MainScreen(
     val themeState by themeViewModel.state.collectAsStateWithLifecycle()
     val showSaveConfigPopup by connectionViewModel.showSaveConfigPopup.collectAsStateWithLifecycle()
     val showLoadConfigPopup by connectionViewModel.showLoadConfigPopup.collectAsStateWithLifecycle()
-    val showShutdownPopup by connectionViewModel.showShutdownPopup.collectAsStateWithLifecycle()
-    val showUpdatePopup by connectionViewModel.showUpdatePopup.collectAsStateWithLifecycle()
     val showOverwriteConfigPopup by connectionViewModel.showOverwriteConfigPopup.collectAsStateWithLifecycle()
     val configurationsState by connectionViewModel.configurationsState.collectAsStateWithLifecycle()
 
@@ -199,26 +206,6 @@ fun MainScreen(
             onDismiss = connectionViewModel::dismissLoadConfigPopup,
             onSelect = connectionViewModel::loadConfigurations,
             onDelete = connectionViewModel::deleteConfigurations,
-        )
-    }
-
-    if (showShutdownPopup) {
-        GenericMessageAlert(
-            title = "Shutdown Server?",
-            message = "Are you sure you want to shut down the server? You will lose connection.",
-            onDismiss = connectionViewModel::dismissShutdownPopup,
-            onConfirm = connectionViewModel::onShutdownConfirm,
-            confirmLabel = "Shutdown",
-        )
-    }
-
-    if (showUpdatePopup) {
-        GenericMessageAlert(
-            title = "Update Server?",
-            message = "Are you sure you want to update the server? This will download the latest version and overwrite the current one.",
-            onDismiss = connectionViewModel::dismissUpdatePopup,
-            onConfirm = connectionViewModel::onUpdateConfirm,
-            confirmLabel = "Update",
         )
     }
 
@@ -345,6 +332,8 @@ fun StatusBar(
     onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var expanded by remember { mutableStateOf(value = false) }
+
     Row(
         modifier = modifier
             .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -357,12 +346,64 @@ fun StatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            IconButton(onClick = onShutdownClick) {
-                Icon(
-                    imageVector = Icons.Default.PowerSettingsNew,
-                    contentDescription = "Shutdown Server",
-                    tint = MaterialTheme.colorScheme.error,
-                )
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (isUpdateAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                            .size(10.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape),
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Update") },
+                        onClick = {
+                            expanded = false
+                            onUpdateClick()
+                        },
+                        leadingIcon = {
+                            Box {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                )
+                                if (isUpdateAvailable) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(8.dp)
+                                            .background(MaterialTheme.colorScheme.error, CircleShape),
+                                    )
+                                }
+                            }
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Shutdown") },
+                        onClick = {
+                            expanded = false
+                            onShutdownClick()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.PowerSettingsNew,
+                                contentDescription = null,
+                            )
+                        },
+                    )
+                }
             }
 
             ConnectionStatusIcon(status)
@@ -386,15 +427,7 @@ fun StatusBar(
             }
         }
 
-        Row {
-            IconButton(onClick = onUpdateClick) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Update Server",
-                    tint = if (isUpdateAvailable) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                )
-            }
-
+        Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onThemeToggle) {
                 Icon(
                     imageVector = Icons.Default.Palette,
