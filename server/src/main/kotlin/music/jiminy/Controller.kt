@@ -444,7 +444,7 @@ class Controller(
                     "sh",
                     "-c",
                     "curl -s https://api.github.com/repos/cpu150/jiminy/releases/latest | grep \"\\\"tag_name\\\": \\\"\" | sed -e 's/.*\"tag_name\": \"v\\(.*\\)\",.*/\\1/'",
-                    timeout = 10.seconds,
+                    timeout = 30.seconds,
                 )
                 if (result.exitCode == 0 && result.output.isNotEmpty()) {
                     val version = result.output.first().trim()
