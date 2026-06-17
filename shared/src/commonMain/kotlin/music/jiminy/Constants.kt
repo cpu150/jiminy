@@ -24,6 +24,7 @@ const val WS_CONFIGURATIONS = "/configurations"
 const val WS_BATCH = "/batch"
 const val WS_SHUTDOWN = "/shutdown"
 const val WS_UPDATE = "/update"
+const val WS_LATEST_VERSION = "/latest-version"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
 const val THEME_KEY = "jiminy_theme"

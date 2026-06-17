@@ -35,8 +35,10 @@ import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.timeout
 import io.ktor.server.websocket.webSocket
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
@@ -56,6 +58,10 @@ fun main() {
     val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+    }
+
+    CoroutineScope(Dispatchers.IO).launch {
+        controller.fetchLatestVersion()
     }
 
     embeddedServer(
@@ -175,6 +181,8 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
         get(WS_RECORDINGS) { call.respond(controller.getRecordings()) }
 
         get(WS_SERVER_LOGS) { call.respond(logger.logEntries) }
+
+        get(WS_LATEST_VERSION) { call.respond(controller.latestVersion) }
 
         get(WS_CONFIGURATIONS) { call.respond(controller.getConfigurations()) }
 

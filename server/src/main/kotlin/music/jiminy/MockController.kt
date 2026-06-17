@@ -79,6 +79,12 @@ class MockController(
         return true
     }
 
+    override var latestVersion: String = "1.0.0"
+
+    override suspend fun fetchLatestVersion() {
+        logger?.info("MockController - fetchLatestVersion triggered")
+    }
+
     override suspend fun broadcastAll(
         sessions: List<DefaultWebSocketServerSession>,
         command: JiminyCommand,

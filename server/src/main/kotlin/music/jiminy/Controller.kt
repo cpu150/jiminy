@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatter.ofPattern
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -92,9 +93,12 @@ class Controller(
 
     override suspend fun getDevicesList() = withContext(Dispatchers.IO) {
         withTimeout(3.seconds) {
-            val instrumentsDevicesDeferred = async(Dispatchers.IO) { runCommand("pw-link", "-o").output }
-            val speakersDevicesDeferred = async(Dispatchers.IO) { runCommand("pw-link", "-i").output }
-            val devicesDeferred = async(Dispatchers.IO) { runCommand("wpctl", "status", "-n").output }
+            val instrumentsDevicesDeferred =
+                async(Dispatchers.IO) { runCommand("pw-link", "-o").output }
+            val speakersDevicesDeferred =
+                async(Dispatchers.IO) { runCommand("pw-link", "-i").output }
+            val devicesDeferred =
+                async(Dispatchers.IO) { runCommand("wpctl", "status", "-n").output }
 
             JiminyDeviceList(
                 instruments = instrumentsDevicesDeferred.await(),
@@ -389,9 +393,37 @@ class Controller(
         }
     }
 
+    @Volatile
+    private var _latestVersion = ""
+    override val latestVersion: String
+        get() = _latestVersion
+
+    override suspend fun fetchLatestVersion() {
+        withContext(Dispatchers.IO) {
+            try {
+                logger.info("Jiminy Server - Fetching latest version from GitHub...")
+                val result = runCommand(
+                    "sh",
+                    "-c",
+                    "curl -s https://api.github.com/repos/cpu150/jiminy/releases/latest | grep \"\\\"tag_name\\\": \\\"\" | sed -e 's/.*\"tag_name\": \"v\\(.*\\)\",.*/\\1/'",
+                    timeout = 10.seconds,
+                )
+                if (result.exitCode == 0 && result.output.isNotEmpty()) {
+                    val version = result.output.first().trim()
+                    _latestVersion = version
+                    logger.info("Jiminy Server - Latest version: $version")
+                } else {
+                    logger.error("Jiminy Server - Failed to fetch latest version - exitCode: ${result.exitCode}")
+                }
+            } catch (e: Exception) {
+                logger.error("Jiminy Server - ERROR - fetchLatestVersion: ${e.message}")
+            }
+        }
+    }
+
     private fun runCommand(
         vararg command: String,
-        timeout: kotlin.time.Duration = 3.seconds,
+        timeout: Duration = 3.seconds,
     ): CommandResult {
         val process = ProcessBuilder(*command).redirectErrorStream(true).start()
         val result = process.inputStream.bufferedReader().readLines()
