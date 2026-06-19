@@ -27,13 +27,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jiminy.composeapp.generated.resources.Res
+import jiminy.composeapp.generated.resources.download_logs
+import jiminy.composeapp.generated.resources.flush_logs
+import jiminy.composeapp.generated.resources.session_logs
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import music.jiminy.LogType
+import music.jiminy.utils.LogUtils
 import music.jiminy.viewmodel.LogSource
 import music.jiminy.viewmodel.LogsViewModel
 import music.jiminy.viewmodel.UiLogEntry
-import music.jiminy.utils.LogUtils
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -76,7 +81,7 @@ fun LogsContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Session Logs",
+                text = stringResource(Res.string.session_logs),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -84,14 +89,14 @@ fun LogsContent(
                 IconButton(onClick = onDownloadClick) {
                     Icon(
                         imageVector = Icons.Default.Download,
-                        contentDescription = "Download Logs",
+                        contentDescription = stringResource(Res.string.download_logs),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
                 IconButton(onClick = onFlushClick) {
                     Icon(
                         imageVector = Icons.Default.DeleteSweep,
-                        contentDescription = "Flush Logs",
+                        contentDescription = stringResource(Res.string.flush_logs),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }

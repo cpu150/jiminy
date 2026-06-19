@@ -37,6 +37,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import jiminy.composeapp.generated.resources.Res
+import jiminy.composeapp.generated.resources.mute
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_CARD_WIDTH
@@ -48,6 +50,7 @@ import music.jiminy.MIXER_SLIDER_HEIGHT
 import music.jiminy.MIXER_SLIDER_WIDTH
 import music.jiminy.screen.common.DeviceCard
 import music.jiminy.screen.common.TextLabel
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MixerScreen(
@@ -219,7 +222,7 @@ fun MuteButton(
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.VolumeOff,
-            contentDescription = "Mute",
+            contentDescription = stringResource(Res.string.mute),
             tint = MaterialTheme.colorScheme.onSurface,
         )
     }

@@ -17,8 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import jiminy.composeapp.generated.resources.Res
+import jiminy.composeapp.generated.resources.stop_recording
+import jiminy.composeapp.generated.resources.stopping
 import music.jiminy.screen.common.TextHeadlineLarge
 import music.jiminy.screen.common.TextOnAir
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun RecordingOverlay(
@@ -50,7 +54,11 @@ fun RecordingOverlay(
                 .clip(RoundedCornerShape(50)),
         ) {
             TextHeadlineLarge(
-                text = if (enabled) "STOP RECORDING" else "STOPPING...",
+                text = if (enabled) {
+                    stringResource(Res.string.stop_recording)
+                } else {
+                    stringResource(Res.string.stopping)
+                },
                 textAlign = TextAlign.Center,
             )
         }

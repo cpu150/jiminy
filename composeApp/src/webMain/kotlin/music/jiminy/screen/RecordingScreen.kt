@@ -42,6 +42,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jiminy.composeapp.generated.resources.Res
+import jiminy.composeapp.generated.resources.available_devices
+import jiminy.composeapp.generated.resources.channel_label
+import jiminy.composeapp.generated.resources.empty
+import jiminy.composeapp.generated.resources.recording_files
+import jiminy.composeapp.generated.resources.start_recording
 import music.jiminy.DEVICE_LIST_CARD_HEIGHT
 import music.jiminy.DEVICE_LIST_CARD_WIDTH
 import music.jiminy.JiminyConfiguration
@@ -61,6 +67,7 @@ import music.jiminy.screen.common.TextTitle
 import music.jiminy.screen.common.toResource
 import music.jiminy.viewmodel.RecordingScreenViewModel
 import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.PI
 import kotlin.math.sin
@@ -147,18 +154,18 @@ fun RecordingScreenContent(
                 enabled = isRecordingEnable,
                 onClick = { onAction(RecordingScreenAction.OnStartRecording) },
                 modifier = Modifier.padding(4.dp),
-            ) { TextButton(text = "Start Recording", color = textColor) }
+            ) { TextButton(text = stringResource(Res.string.start_recording), color = textColor) }
 
             JiminyButton(
                 onClick = { onAction(RecordingScreenAction.OnShowRecordingsClick) },
                 modifier = Modifier.padding(4.dp),
-            ) { TextButton(text = "Recording Files") }
+            ) { TextButton(text = stringResource(Res.string.recording_files)) }
         }
 
         Spacer(Modifier.size(8.dp))
 
         TextTitle(
-            text = "Available devices",
+            text = stringResource(Res.string.available_devices),
             modifier = Modifier.padding(4.dp),
         )
 
@@ -255,8 +262,8 @@ fun SelectedNodes(
                 )
             } ?: EmptySelectedNodeItem(
                 linked = false,
-                portName = "EMPTY",
-                deviceName = "CH ${index + 1}",
+                portName = stringResource(Res.string.empty),
+                deviceName = stringResource(Res.string.channel_label, index + 1),
             )
         }
     }

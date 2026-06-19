@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import jiminy.composeapp.generated.resources.Res
 import jiminy.composeapp.generated.resources.bass2
 import jiminy.composeapp.generated.resources.drums3
+import jiminy.composeapp.generated.resources.generic_device
 import jiminy.composeapp.generated.resources.guitar2
 import jiminy.composeapp.generated.resources.looper
 import jiminy.composeapp.generated.resources.metronome
@@ -28,6 +29,7 @@ import jiminy.composeapp.generated.resources.synth1
 import music.jiminy.AvatarIconsEnum
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 fun AvatarIconsEnum.toResource() = when (this) {
     AvatarIconsEnum.METRONOME -> Res.drawable.metronome
@@ -65,7 +67,7 @@ fun DeviceAvatar(
         } else {
             Icon(
                 imageVector = Icons.Default.MusicNote,
-                contentDescription = "Generic Device",
+                contentDescription = stringResource(Res.string.generic_device),
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = modifierImg,
             )
