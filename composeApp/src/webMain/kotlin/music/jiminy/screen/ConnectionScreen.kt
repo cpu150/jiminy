@@ -34,6 +34,13 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jiminy.composeapp.generated.resources.Res
+import jiminy.composeapp.generated.resources.instruments
+import jiminy.composeapp.generated.resources.link
+import jiminy.composeapp.generated.resources.speakers
+import jiminy.composeapp.generated.resources.unlink
+import jiminy.composeapp.generated.resources.unlink_all
+import jiminy.composeapp.generated.resources.unlink_all_confirm_title
 import music.jiminy.DEVICE_CARD_HEIGHT
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
@@ -72,6 +79,7 @@ import music.jiminy.screen.common.TextButton
 import music.jiminy.screen.common.TextHeadline
 import music.jiminy.screen.common.UnlinkConfirmationAlert
 import music.jiminy.viewmodel.ConnectionScreenViewModel
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 enum class ConnectionScreenNodeType {
@@ -222,13 +230,13 @@ fun MainConnectionScreen(
             ) {
                 TextHeadline(
                     modifier = Modifier.weight(1f),
-                    text = "INSTRUMENTS",
+                    text = stringResource(Res.string.instruments),
                     textAlign = TextAlign.Center,
                     color = Color(DEVICE_CARD_INSTRUMENTS_COLOR),
                 )
                 TextHeadline(
                     modifier = Modifier.weight(1f),
-                    text = "SPEAKERS",
+                    text = stringResource(Res.string.speakers),
                     textAlign = TextAlign.Center,
                     color = Color(DEVICE_CARD_SPEAKERS_COLOR),
                 )
@@ -246,10 +254,10 @@ fun MainConnectionScreen(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             JiminyButton(onClick = { onAction(OnConnectClick()) }) {
-                TextButton("Link")
+                TextButton(stringResource(Res.string.link))
             }
             JiminyButton(onClick = { onAction(OnUnlinkAllClick()) }) {
-                TextButton("Unlink All")
+                TextButton(stringResource(Res.string.unlink_all))
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -284,10 +292,10 @@ fun MainConnectionScreen(
 
     if (state.showDeleteAllAlert) {
         GenericMessageAlert(
-            title = "Unlink All Links?",
+            title = stringResource(Res.string.unlink_all_confirm_title),
             onDismiss = { onAction(OnDismissDeleteAllAlert()) },
             onConfirm = { onAction(OnConfirmUnlinkAll()) },
-            confirmLabel = "Unlink",
+            confirmLabel = stringResource(Res.string.unlink),
         )
     }
 }

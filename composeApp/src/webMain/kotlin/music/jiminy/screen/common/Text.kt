@@ -27,6 +27,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
+import jiminy.composeapp.generated.resources.Res
+import jiminy.composeapp.generated.resources.on_air
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TextBody(
@@ -143,7 +146,7 @@ fun TextHeadline(
 
 @Composable
 fun TextOnAir(
-    text: String = "ON AIR",
+    text: String = stringResource(Res.string.on_air),
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
     val alpha by infiniteTransition.animateFloat(

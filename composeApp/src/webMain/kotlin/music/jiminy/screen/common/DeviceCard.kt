@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import jiminy.composeapp.generated.resources.Res
+import jiminy.composeapp.generated.resources.info_count_label
+import jiminy.composeapp.generated.resources.not_available
 import music.jiminy.AvatarIconsEnum
 import music.jiminy.DEVICE_CARD_HEIGHT
 import music.jiminy.DEVICE_CARD_INSTRUMENTS_COLOR
@@ -29,10 +31,8 @@ import music.jiminy.DEVICE_CARD_SPEAKERS_COLOR
 import music.jiminy.DEVICE_CARD_SPEAKERS_LABEL
 import music.jiminy.DEVICE_CARD_WIDTH
 import music.jiminy.JiminyDevice
-import music.jiminy.JiminyDeviceType
-import music.jiminy.JiminyDeviceNode
-import music.jiminy.JiminyDeviceNodeType
 import music.jiminy.deviceNameToAvatar
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DeviceCard(
@@ -100,7 +100,11 @@ fun InfoLabel(
     modifier: Modifier = Modifier,
 ) {
     TextLabel(
-        text = if (count > 0) "$count $label" else "N/A",
+        text = if (count > 0) {
+            stringResource(Res.string.info_count_label, count, label)
+        } else {
+            stringResource(Res.string.not_available)
+        },
         color = if (count > 0) color else Color.Gray,
         textAlign = TextAlign.Center,
         modifier = modifier,

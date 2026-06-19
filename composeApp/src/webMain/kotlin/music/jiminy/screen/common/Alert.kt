@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import jiminy.composeapp.generated.resources.*
 import music.jiminy.JiminyDevice
 import music.jiminy.JiminyDeviceNode
 import music.jiminy.JiminyThemeType
@@ -65,6 +66,7 @@ import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Error
 import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Idle
 import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Loading
 import music.jiminy.viewmodel.ConnectionViewModel.LoadConfigState.Success
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ErrorAlert(
@@ -76,7 +78,7 @@ fun ErrorAlert(
         onDismissRequest = onDismissRequest,
         confirmButton = {
             JiminyButton(onClick = onDismissRequest) {
-                TextButton("OK")
+                TextButton(stringResource(Res.string.ok))
             }
         },
         title = { TextTitle(message) },
@@ -90,12 +92,12 @@ fun IncompleteRowsAlert(
     modifier: Modifier = Modifier,
 ) {
     AlertDialog(
-        title = { TextTitle("Complete all rows") },
-        text = { TextBody("All rows must be completed before!") },
+        title = { TextTitle(stringResource(Res.string.complete_all_rows)) },
+        text = { TextBody(stringResource(Res.string.complete_all_rows_msg)) },
         onDismissRequest = onDismissRequest,
         confirmButton = {
             JiminyButton(onClick = onDismissRequest) {
-                TextButton("OK")
+                TextButton(stringResource(Res.string.ok))
             }
         },
         modifier = modifier,
@@ -109,8 +111,8 @@ fun GenericMessageAlert(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
-    confirmLabel: String = "Ok",
-    cancelLabel: String = "Cancel",
+    confirmLabel: String = stringResource(Res.string.ok),
+    cancelLabel: String = stringResource(Res.string.cancel),
 ) {
     val confirmAndDismiss = {
         onConfirm()
@@ -144,12 +146,18 @@ fun UnlinkConfirmationAlert(
 ) {
     val (device, node) = pair()
     val str = if (node == null) {
-        "all ports from \"${device.displayName}\" device"
+        stringResource(Res.string.unlink_all_ports_from_device, device.displayName)
     } else {
-        "\"${node.displayPortName}\" port from \"${device.displayName}\" device"
+        stringResource(Res.string.unlink_port_from_device, node.displayPortName, device.displayName)
     }
     val detailStr: (@Composable () -> Unit)? = if (node == null) {
-        { TextBody("Ports: ${device.nodes().joinToString { "${it.displayPortName}, " }}") }
+        {
+            TextBody(
+                stringResource(
+                    Res.string.ports_prefix,
+                    device.nodes().joinToString { "${it.displayPortName}, " })
+            )
+        }
     } else {
         null
     }
@@ -162,16 +170,16 @@ fun UnlinkConfirmationAlert(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { TextTitle("Unlink $str?") },
+        title = { TextTitle(stringResource(Res.string.unlink_device_confirm_msg, str)) },
         text = detailStr,
         confirmButton = {
             JiminyButton(onClick = confirmAndDismiss) {
-                TextButton("Unlink")
+                TextButton(stringResource(Res.string.unlink))
             }
         },
         dismissButton = {
             JiminyButton(onClick = onDismiss) {
-                TextButton("Cancel")
+                TextButton(stringResource(Res.string.cancel))
             }
         },
     )
@@ -192,16 +200,16 @@ fun DeleteConfirmationAlert(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { TextTitle("Delete") },
-        text = { TextBody("Do you want to delete \"$name\"?") },
+        title = { TextTitle(stringResource(Res.string.delete)) },
+        text = { TextBody(stringResource(Res.string.delete_confirm_msg, name)) },
         confirmButton = {
             JiminyButton(onClick = confirmAndDismiss) {
-                TextButton("Delete")
+                TextButton(stringResource(Res.string.delete))
             }
         },
         dismissButton = {
             JiminyButton(onClick = onDismiss) {
-                TextButton("Cancel")
+                TextButton(stringResource(Res.string.cancel))
             }
         },
     )
@@ -218,19 +226,33 @@ fun NodeSelectionAlert(
     // Track which items the user has clicked inside the popup
     val selectedNodes = remember { mutableStateListOf<JiminyDeviceNode>() }
     val device = remember { droppedDevice() }
-    val (label, availableNodes) = remember {
+    val label = if (zoneItem().type == Speaker) {
+        stringResource(Res.string.speaker_label)
+    } else {
+        stringResource(Res.string.instrument_label)
+    }
+    val availableNodes = remember(device, zoneItem().type) {
         if (zoneItem().type == Speaker) {
-            "speaker(s)" to device.speakers
+            device.speakers
         } else {
-            "instrument(s)" to device.instruments
+            device.instruments
         }
     }
     val errorMsg = remember { mutableStateOf<String?>(null) }
+    val errorSelectOneNodeMsg = stringResource(Res.string.select_at_least_one_node)
 
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { TextTitle("Select \"${device.displayName}\" $label") },
+        title = {
+            TextTitle(
+                stringResource(
+                    Res.string.select_device_label,
+                    device.displayName,
+                    label,
+                )
+            )
+        },
         text = {
             Column {
                 // A grid with exactly 3 columns
@@ -272,14 +294,14 @@ fun NodeSelectionAlert(
                         addNodes(selectedNodes)
                         onDismiss()
                     } else {
-                        errorMsg.value = "Select at least one node"
+                        errorMsg.value = errorSelectOneNodeMsg
                     }
                 },
-            ) { TextButton("Add") }
+            ) { TextButton(stringResource(Res.string.add)) }
         },
         dismissButton = {
             JiminyButton(onClick = onDismiss) {
-                TextButton("Cancel")
+                TextButton(stringResource(Res.string.cancel))
             }
         },
     )
@@ -309,11 +331,11 @@ fun RecordingsSelectionAlert(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextTitle(text = "Recording Files")
+                TextTitle(text = stringResource(Res.string.recording_files))
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(Res.string.close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -343,7 +365,7 @@ fun RecordingsSelectionAlert(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = "Select All",
+                                        contentDescription = stringResource(Res.string.select_all),
                                         tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
@@ -379,7 +401,7 @@ fun RecordingsSelectionAlert(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Download,
-                        contentDescription = "Download",
+                        contentDescription = stringResource(Res.string.download),
                         tint = if (hasSelection) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -393,7 +415,7 @@ fun RecordingsSelectionAlert(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(Res.string.delete),
                         tint = if (hasSelection) {
                             MaterialTheme.colorScheme.error
                         } else {
@@ -443,6 +465,8 @@ fun SaveConfigAlert(
     modifier: Modifier = Modifier,
 ) {
     val errorMsg = remember { mutableStateOf<String?>(null) }
+    val noEmptyError = stringResource(Res.string.name_cannot_be_empty)
+    val oneTabSelectedError = stringResource(Res.string.at_least_one_tab_selected)
     val options = remember { mutableStateOf(SaveConfigOptions()) }
 
     AlertDialog(
@@ -454,11 +478,11 @@ fun SaveConfigAlert(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextTitle("Save Configuration")
+                TextTitle(stringResource(Res.string.save_configuration))
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(Res.string.close),
                     )
                 }
             }
@@ -491,9 +515,9 @@ fun SaveConfigAlert(
                 enabled = isEnabled && name.isNotBlank(),
                 onClick = {
                     if (name.isBlank()) {
-                        errorMsg.value = "Name cannot be empty"
+                        errorMsg.value = noEmptyError
                     } else if (!options.value.isValid) {
-                        errorMsg.value = "At least 1 tab must be selected"
+                        errorMsg.value = oneTabSelectedError
                     } else {
                         onConfirm(options.value)
                     }
@@ -501,7 +525,7 @@ fun SaveConfigAlert(
             ) {
                 Icon(
                     imageVector = Icons.Default.Save,
-                    contentDescription = "Save",
+                    contentDescription = stringResource(Res.string.save),
                     tint = if (isEnabled && name.isNotBlank()) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -521,7 +545,7 @@ fun SaveConfigScreen(
     configurations: List<String>,
     modifier: Modifier = Modifier,
 ) {
-    val createNewText = "New"
+    val createNewText = stringResource(Res.string.new_label)
     var expanded by remember { mutableStateOf(false) }
     var selectedOption by remember {
         mutableStateOf(if (options.value.name.isEmpty() || options.value.name !in configurations) createNewText else options.value.name)
@@ -537,7 +561,7 @@ fun SaveConfigScreen(
                 value = selectedOption,
                 onValueChange = {},
                 readOnly = true,
-                label = { TextBody("Select Configuration") },
+                label = { TextBody(stringResource(Res.string.select_configuration)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 modifier = Modifier.menuAnchor(
@@ -581,7 +605,7 @@ fun SaveConfigScreen(
                     options.value = options.value.copy(name = it)
                     errorMsg.value = null
                 },
-                label = { TextBody("Name") },
+                label = { TextBody(stringResource(Res.string.name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -600,7 +624,7 @@ fun SaveConfigScreen(
             IconButton(onClick = { onClick { copy(saveAudio = !options.value.saveAudio) } }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.AltRoute,
-                    contentDescription = "Audio Links",
+                    contentDescription = stringResource(Res.string.audio_links),
                     tint = if (options.value.saveAudio) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -611,7 +635,7 @@ fun SaveConfigScreen(
             IconButton(onClick = { onClick { copy(saveMidi = !options.value.saveMidi) } }) {
                 Icon(
                     imageVector = Icons.Default.SettingsInputSvideo,
-                    contentDescription = "MIDI Links",
+                    contentDescription = stringResource(Res.string.midi_links),
                     tint = if (options.value.saveMidi) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -622,7 +646,7 @@ fun SaveConfigScreen(
             IconButton(onClick = { onClick { copy(saveVolumes = !options.value.saveVolumes) } }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                    contentDescription = "Volumes",
+                    contentDescription = stringResource(Res.string.volumes),
                     tint = if (options.value.saveVolumes) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -633,7 +657,7 @@ fun SaveConfigScreen(
             IconButton(onClick = { onClick { copy(saveRecordingNodes = !options.value.saveRecordingNodes) } }) {
                 Icon(
                     imageVector = Icons.Default.Voicemail,
-                    contentDescription = "Recording Slots",
+                    contentDescription = stringResource(Res.string.recording_slots),
                     tint = if (options.value.saveRecordingNodes) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -660,7 +684,7 @@ fun LoadConfigAlert(
         val name = if (selectedConfigs.size == 1) {
             selectedConfigs.first()
         } else {
-            "${selectedConfigs.size} configurations"
+            stringResource(Res.string.configurations_count, selectedConfigs.size)
         }
         DeleteConfirmationAlert(
             name = name,
@@ -681,11 +705,11 @@ fun LoadConfigAlert(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextTitle("Load Configuration")
+                TextTitle(stringResource(Res.string.load_configuration))
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(Res.string.close),
                     )
                 }
             }
@@ -724,7 +748,7 @@ fun LoadConfigAlert(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(Res.string.delete),
                         tint = if (selectedConfigs.isNotEmpty()) {
                             MaterialTheme.colorScheme.error
                         } else {
@@ -738,7 +762,7 @@ fun LoadConfigAlert(
                 ) {
                     Icon(
                         imageVector = Icons.Default.FileUpload,
-                        contentDescription = "Load",
+                        contentDescription = stringResource(Res.string.load),
                         tint = if (selectedConfigs.isNotEmpty()) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -759,7 +783,10 @@ fun LoadConfigView(
     modifier: Modifier = Modifier,
 ) {
     if (configurations.isEmpty()) {
-        TextBody("No configurations found", modifier = Modifier.padding(16.dp))
+        TextBody(
+            stringResource(Res.string.no_configurations_found),
+            modifier = Modifier.padding(16.dp),
+        )
     } else {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
@@ -854,11 +881,11 @@ fun ThemeSelectionAlert(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextTitle("Select Theme")
+                TextTitle(stringResource(Res.string.select_theme))
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(Res.string.close),
                     )
                 }
             }
@@ -885,6 +912,11 @@ fun ThemeItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val themeName = when (theme) {
+        JiminyThemeType.DARK -> stringResource(Res.string.theme_dark)
+        JiminyThemeType.LIGHT -> stringResource(Res.string.theme_light)
+        JiminyThemeType.IRIS -> stringResource(Res.string.theme_iris)
+    }
     val color =
         if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
     val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
@@ -904,7 +936,7 @@ fun ThemeItem(
             modifier = Modifier.padding(horizontal = 16.dp),
         ) {
             TextBody(
-                text = theme.name,
+                text = themeName,
                 textAlign = TextAlign.Start,
             )
         }
