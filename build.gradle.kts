@@ -10,4 +10,4 @@ plugins {
 }
 
 group = "music.jiminy"
-version = "1.3"
+version = "1.4"
