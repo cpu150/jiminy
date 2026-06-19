@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.SettingsInputSvideo
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -168,6 +169,7 @@ fun MainScreen(
     val selectedTab by connectionViewModel.selectedTab.collectAsStateWithLifecycle()
     val connectionStatus by connectionViewModel.connectionStatus.collectAsStateWithLifecycle()
     val isUpdateAvailable by connectionViewModel.isUpdateAvailable.collectAsStateWithLifecycle()
+    val isUpdating by connectionViewModel.isUpdating.collectAsStateWithLifecycle()
     val isRefreshing by connectionViewModel.isRefreshing.collectAsStateWithLifecycle()
 
     val audioState by connectionScreenViewModel.state.collectAsStateWithLifecycle()
@@ -266,6 +268,7 @@ fun MainScreen(
                 status = connectionStatus,
                 error = errorMsg,
                 isUpdateAvailable = isUpdateAvailable,
+                isUpdating = isUpdating,
                 onSaveClick = connectionViewModel::onSaveConfigClick,
                 onLoadClick = connectionViewModel::onLoadConfigClick,
                 onThemeToggle = { themeViewModel.onAction(ThemeAction.OnThemeButtonClick) },
@@ -325,6 +328,7 @@ fun StatusBar(
     status: JiminyConnectionStatus,
     error: String?,
     isUpdateAvailable: Boolean,
+    isUpdating: Boolean,
     onSaveClick: () -> Unit,
     onLoadClick: () -> Unit,
     onThemeToggle: () -> Unit,
@@ -346,22 +350,33 @@ fun StatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isUpdating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary,
                     )
-                }
-                if (isUpdateAvailable) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 8.dp, end = 8.dp)
-                            .size(10.dp)
-                            .background(MaterialTheme.colorScheme.error, CircleShape),
-                    )
+                } else {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (isUpdateAvailable) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 8.dp, end = 8.dp)
+                                .size(10.dp)
+                                .background(MaterialTheme.colorScheme.error, CircleShape),
+                        )
+                    }
                 }
                 DropdownMenu(
                     expanded = expanded,
@@ -384,7 +399,10 @@ fun StatusBar(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
                                             .size(8.dp)
-                                            .background(MaterialTheme.colorScheme.error, CircleShape),
+                                            .background(
+                                                MaterialTheme.colorScheme.error,
+                                                CircleShape
+                                            ),
                                     )
                                 }
                             }

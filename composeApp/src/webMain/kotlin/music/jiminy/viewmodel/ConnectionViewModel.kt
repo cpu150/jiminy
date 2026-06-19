@@ -193,6 +193,9 @@ class ConnectionViewModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _isUpdating = MutableStateFlow(false)
+    val isUpdating: StateFlow<Boolean> = _isUpdating.asStateFlow()
+
     fun refresh(
         connectionScreenViewModel: ConnectionScreenViewModel,
         midiScreenViewModel: MIDIScreenViewModel,
@@ -308,7 +311,9 @@ class ConnectionViewModel(
 
     fun onUpdateClick() {
         viewModelScope.launch {
+            _isUpdating.update { true }
             mainService.updateServer(::handleError)
+            _isUpdating.update { false }
         }
     }
 
