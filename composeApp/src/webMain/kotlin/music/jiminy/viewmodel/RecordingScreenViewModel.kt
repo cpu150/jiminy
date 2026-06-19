@@ -148,31 +148,39 @@ class RecordingScreenViewModel(
     }
 
     private fun downloadRecordings() {
-        viewModelScope.launch {
-            val toDownload = _state.value.selectedRecordings
-            if (toDownload.isNotEmpty()) {
-                mainService.downloadRecordings(
-                    filenames = toDownload,
-                    onSuccess = { response ->
-                        viewModelScope.launch {
-                            try {
-                                val bytes = response.value.body<ByteArray>()
-                                val fileName = if (toDownload.size == 1) {
-                                    toDownload.first().substringAfterLast("/")
-                                } else {
-                                    "recordings.zip"
+        if (!_state.value.isDownloading) {
+            viewModelScope.launch {
+                val toDownload = _state.value.selectedRecordings
+                if (toDownload.isNotEmpty()) {
+                    _state.update { it.copy(isDownloading = true) }
+                    mainService.downloadRecordings(
+                        filenames = toDownload,
+                        onSuccess = { response ->
+                            viewModelScope.launch {
+                                try {
+                                    val bytes = response.value.body<ByteArray>()
+                                    val fileName = if (toDownload.size == 1) {
+                                        toDownload.first().substringAfterLast("/")
+                                    } else {
+                                        "recordings.zip"
+                                    }
+                                    BrowserUtils.triggerBinaryDownload(
+                                        fileName = fileName,
+                                        content = bytes,
+                                    )
+                                } catch (e: Exception) {
+                                    logger.error("Failed to read download response: ${e.message}")
+                                } finally {
+                                    _state.update { it.copy(isDownloading = false) }
                                 }
-                                BrowserUtils.triggerBinaryDownload(
-                                    fileName = fileName,
-                                    content = bytes,
-                                )
-                            } catch (e: Exception) {
-                                logger.error("Failed to read download response: ${e.message}")
                             }
-                        }
-                    },
-                    onError = { handleError(it) },
-                )
+                        },
+                        onError = {
+                            handleError(it)
+                            _state.update { it.copy(isDownloading = false) }
+                        },
+                    )
+                }
             }
         }
     }

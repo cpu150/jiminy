@@ -82,6 +82,7 @@ data class RecordingScreenState(
     val recordings: List<String> = emptyList(),
     val selectedRecordings: List<String> = emptyList(),
     val showRecordings: Boolean = false,
+    val isDownloading: Boolean = false,
 )
 
 sealed interface RecordingScreenAction {
@@ -202,6 +203,7 @@ fun RecordingScreenContent(
             onToggleRecordings = { onAction(RecordingScreenAction.OnRecordingsSelect(it)) },
             onDownload = { onAction(RecordingScreenAction.OnDownloadRecordings) },
             onDelete = { onAction(RecordingScreenAction.OnDeleteRecordings) },
+            isDownloading = state.isDownloading,
         )
     }
 }

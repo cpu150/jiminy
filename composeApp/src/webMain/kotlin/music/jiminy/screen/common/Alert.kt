@@ -317,6 +317,7 @@ fun RecordingsSelectionAlert(
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    isDownloading: Boolean = false,
 ) {
     val groupedRecordings = remember(recordings) {
         recordings.groupBy { it.substringBefore(" - ") }
@@ -360,13 +361,18 @@ fun RecordingsSelectionAlert(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 IconButton(
+                                    enabled = !isDownloading,
                                     onClick = { onToggleRecordings(files) },
                                     modifier = Modifier.size(24.dp),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = stringResource(Res.string.select_all),
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = if (isDownloading) {
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                        } else {
+                                            MaterialTheme.colorScheme.primary
+                                        },
                                     )
                                 }
                                 Spacer(Modifier.width(8.dp))
@@ -385,7 +391,7 @@ fun RecordingsSelectionAlert(
                             RecordingFileItem(
                                 name = recording.substringAfter(" - "),
                                 isSelected = isSelected,
-                                onClick = { onToggleSelection(recording) },
+                                onClick = { if (!isDownloading) onToggleSelection(recording) },
                             )
                         }
                     }
@@ -396,27 +402,35 @@ fun RecordingsSelectionAlert(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val hasSelection = selectedRecordings.isNotEmpty()
                 IconButton(
-                    enabled = hasSelection,
+                    enabled = hasSelection && !isDownloading,
                     onClick = onDownload,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = stringResource(Res.string.download),
-                        tint = if (hasSelection) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                        },
-                    )
+                    if (isDownloading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = stringResource(Res.string.download),
+                            tint = if (hasSelection) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            },
+                        )
+                    }
                 }
                 IconButton(
-                    enabled = hasSelection,
+                    enabled = hasSelection && !isDownloading,
                     onClick = onDelete,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = stringResource(Res.string.delete),
-                        tint = if (hasSelection) {
+                        tint = if (hasSelection && !isDownloading) {
                             MaterialTheme.colorScheme.error
                         } else {
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
