@@ -413,6 +413,21 @@ fun Application.module(json: Json, controller: JiminyServerControllerI, logger: 
             }
         }
 
+        post(WS_REBOOT) {
+            try {
+                val command = JiminyCommand.Reboot
+                val status = controller.executeCommand(command)
+                if (status) {
+                    controller.broadcastAll(sessions.toList(), command)
+                    call.respond(HttpStatusCode.OK, "Server rebooting...")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to reboot server")
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
         post(WS_UPDATE) {
             try {
                 val command = JiminyCommand.UpdateServer

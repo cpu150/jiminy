@@ -56,5 +56,8 @@ sealed interface JiminyCommand {
     data object Shutdown : JiminyCommand
 
     @Serializable
+    data object Reboot : JiminyCommand
+
+    @Serializable
     data object UpdateServer : JiminyCommand
 }

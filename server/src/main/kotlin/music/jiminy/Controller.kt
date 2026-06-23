@@ -46,6 +46,7 @@ class Controller(
         is JiminyCommand.DeleteConfiguration -> deleteConfiguration(command.name)
         is JiminyCommand.DeleteRecordings -> deleteRecordings(command.filenames)
         JiminyCommand.Shutdown -> shutdown()
+        JiminyCommand.Reboot -> reboot()
         JiminyCommand.UpdateServer -> updateServer()
         JiminyCommand.FlushServerLogs -> {
             logger.clear()
@@ -409,6 +410,17 @@ class Controller(
         }
     }
 
+    override suspend fun reboot() = withContext(Dispatchers.IO) {
+        try {
+            logger.info("Jiminy Server - REBOOT - Triggering 'sudo shutdown -r now'")
+            runCommand("sudo", "shutdown", "-r", "now")
+            true
+        } catch (e: Exception) {
+            logger.error("Jiminy Server - REBOOT - ERROR - ${e.message} - $e")
+            false
+        }
+    }
+
     override suspend fun updateServer() = withContext(Dispatchers.IO) {
         try {
             logger.info("Jiminy Server - UPDATE - Updating server-all.jar...")
@@ -421,7 +433,8 @@ class Controller(
                 timeout = 90.seconds,
             )
             if (result.exitCode == 0) {
-                logger.info("Jiminy Server - UPDATE - Success!")
+                logger.info("Jiminy Server - UPDATE - Success! Rebooting...")
+                reboot()
                 true
             } else {
                 logger.error("Jiminy Server - UPDATE - FAILED - exitCode: ${result.exitCode}")

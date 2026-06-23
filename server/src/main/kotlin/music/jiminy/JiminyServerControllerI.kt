@@ -22,6 +22,7 @@ interface JiminyServerControllerI {
     suspend fun deleteConfiguration(name: String): Boolean
 
     suspend fun shutdown(): Boolean
+    suspend fun reboot(): Boolean
     suspend fun updateServer(): Boolean
 
     suspend fun fetchLatestVersion()

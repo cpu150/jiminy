@@ -75,6 +75,11 @@ class MockController(
         return true
     }
 
+    override suspend fun reboot(): Boolean {
+        logger?.info("MockController - REBOOT triggered")
+        return true
+    }
+
     override suspend fun updateServer(): Boolean {
         logger?.info("MockController - UPDATE triggered")
         return true

@@ -23,6 +23,7 @@ const val WS_FLUSH_SERVER_LOGS = "/flush-server-logs"
 const val WS_CONFIGURATIONS = "/configurations"
 const val WS_BATCH = "/batch"
 const val WS_SHUTDOWN = "/shutdown"
+const val WS_REBOOT = "/reboot"
 const val WS_UPDATE = "/update"
 
 const val SELECTED_TAB_INDEX_KEY = "selected_tab_index"
