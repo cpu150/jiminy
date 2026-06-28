@@ -309,6 +309,12 @@ class ConnectionViewModel(
         }
     }
 
+    fun onRebootClick() {
+        viewModelScope.launch {
+            mainService.reboot(::handleError)
+        }
+    }
+
     fun onUpdateClick() {
         viewModelScope.launch {
             _isUpdating.update { true }

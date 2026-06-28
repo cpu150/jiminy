@@ -62,6 +62,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jiminy.composeapp.generated.resources.*
+import jiminy.composeapp.generated.resources.Res
 import kotlinx.coroutines.flow.combine
 import music.jiminy.screen.ConnectionScreen
 import music.jiminy.screen.LogsScreen
@@ -87,6 +89,7 @@ import music.jiminy.viewmodel.MIDIScreenViewModel
 import music.jiminy.viewmodel.RecordingScreenViewModel
 import music.jiminy.viewmodel.ThemeAction
 import music.jiminy.viewmodel.ThemeViewModel
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -100,23 +103,38 @@ fun App() {
 
         LaunchedEffect(Unit) {
             viewModel.addTab(
-                title = { TabTitle(Icons.AutoMirrored.Outlined.AltRoute, "Audio Links") },
+                title = {
+                    TabTitle(
+                        Icons.AutoMirrored.Outlined.AltRoute,
+                        stringResource(Res.string.audio_links),
+                    )
+                },
                 content = ::AudioLinksMainScreen,
             )
             viewModel.addTab(
-                title = { TabTitle(Icons.Default.SettingsInputSvideo, "MIDI") },
+                title = {
+                    TabTitle(
+                        Icons.Default.SettingsInputSvideo,
+                        stringResource(Res.string.tab_midi),
+                    )
+                },
                 content = ::MIDIMainScreen,
             )
             mixerTab = viewModel.addTab(
-                title = { TabTitle(Icons.Rounded.Tune, "Mixer") },
+                title = { TabTitle(Icons.Rounded.Tune, stringResource(Res.string.tab_mixer)) },
                 content = ::MixerMainScreen,
             )
             viewModel.addTab(
-                title = { TabTitle(Icons.Filled.Voicemail, "Record") },
+                title = { TabTitle(Icons.Filled.Voicemail, stringResource(Res.string.tab_record)) },
                 content = ::RecordingMainScreen,
             )
             viewModel.addTab(
-                title = { TabTitle(Icons.AutoMirrored.Filled.List, "Logs") },
+                title = {
+                    TabTitle(
+                        Icons.AutoMirrored.Filled.List,
+                        stringResource(Res.string.tab_logs),
+                    )
+                },
                 isScrollable = false, // Logs uses LazyColumn, so it handles its own scrolling
                 content = ::LogsMainScreen,
             )
@@ -222,11 +240,11 @@ fun MainScreen(
     showOverwriteConfigPopup?.let { data ->
         val name = data.options.name
         GenericMessageAlert(
-            title = "Merge configuration?",
-            message = "A configuration named \"$name\" already exists. Do you want to merge it?",
+            title = stringResource(Res.string.merge_config_title),
+            message = stringResource(Res.string.merge_config_msg, name),
             onDismiss = connectionViewModel::dismissOverwriteConfigPopup,
             onConfirm = { connectionViewModel.confirmOverwrite(data) },
-            confirmLabel = "Merge",
+            confirmLabel = stringResource(Res.string.merge),
         )
     }
 
@@ -273,6 +291,7 @@ fun MainScreen(
                 onLoadClick = connectionViewModel::onLoadConfigClick,
                 onThemeToggle = { themeViewModel.onAction(ThemeAction.OnThemeButtonClick) },
                 onShutdownClick = connectionViewModel::onShutdownClick,
+                onRebootClick = connectionViewModel::onRebootClick,
                 onUpdateClick = connectionViewModel::onUpdateClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             )
@@ -320,7 +339,7 @@ fun MainScreen(
                 }
             }
         }
-    } ?: TextError("Error while loading the tabs")
+    } ?: TextError(stringResource(Res.string.error_loading_tabs))
 }
 
 @Composable
@@ -333,6 +352,7 @@ fun StatusBar(
     onLoadClick: () -> Unit,
     onThemeToggle: () -> Unit,
     onShutdownClick: () -> Unit,
+    onRebootClick: () -> Unit,
     onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -364,7 +384,7 @@ fun StatusBar(
                     IconButton(onClick = { expanded = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
+                            contentDescription = stringResource(Res.string.settings),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -382,44 +402,16 @@ fun StatusBar(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Update") },
-                        onClick = {
+                    Dropdown(
+                        onItemClick = { item ->
                             expanded = false
-                            onUpdateClick()
-                        },
-                        leadingIcon = {
-                            Box {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = null,
-                                )
-                                if (isUpdateAvailable) {
-                                    Box(
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(8.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.error,
-                                                CircleShape
-                                            ),
-                                    )
-                                }
+                            when (item) {
+                                DropdownItemType.Refresh -> onUpdateClick()
+                                DropdownItemType.Restart -> onRebootClick()
+                                DropdownItemType.Shutdown -> onShutdownClick()
                             }
                         },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Shutdown") },
-                        onClick = {
-                            expanded = false
-                            onShutdownClick()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.PowerSettingsNew,
-                                contentDescription = null,
-                            )
-                        },
+                        isUpdateAvailable = isUpdateAvailable,
                     )
                 }
             }
@@ -435,7 +427,7 @@ fun StatusBar(
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextTitle(text = "Jiminy")
+                    TextTitle(text = stringResource(Res.string.app_name))
                     Spacer(Modifier.width(8.dp))
                     TextLabel(
                         text = "${getPlatform().version} (${getPlatform().gitHash})",
@@ -449,7 +441,7 @@ fun StatusBar(
             IconButton(onClick = onThemeToggle) {
                 Icon(
                     imageVector = Icons.Default.Palette,
-                    contentDescription = "Toggle Theme",
+                    contentDescription = stringResource(Res.string.toggle_theme),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -457,7 +449,7 @@ fun StatusBar(
             IconButton(onClick = onLoadClick) {
                 Icon(
                     imageVector = Icons.Default.FileUpload,
-                    contentDescription = "Load Config",
+                    contentDescription = stringResource(Res.string.load_configuration),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -465,12 +457,65 @@ fun StatusBar(
             IconButton(onClick = onSaveClick) {
                 Icon(
                     imageVector = Icons.Default.Save,
-                    contentDescription = "Save Config",
+                    contentDescription = stringResource(Res.string.save_configuration),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     }
+}
+
+enum class DropdownItemType {
+    Refresh,
+    Restart,
+    Shutdown,
+}
+
+@Composable
+fun Dropdown(
+    onItemClick: (item: DropdownItemType) -> Unit,
+    isUpdateAvailable: Boolean,
+) {
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.update)) },
+        onClick = { onItemClick(DropdownItemType.Refresh) },
+        leadingIcon = {
+            Box {
+                Icon(
+                    imageVector = Icons.Default.Sync,
+                    contentDescription = null,
+                )
+                if (isUpdateAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(8.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape),
+                    )
+                }
+            }
+        },
+    )
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.restart)) },
+        onClick = { onItemClick(DropdownItemType.Restart) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+            )
+        },
+    )
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.shutdown)) },
+        onClick = { onItemClick(DropdownItemType.Shutdown) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.PowerSettingsNew,
+                contentDescription = null,
+            )
+        },
+    )
 }
 
 @Composable
@@ -489,26 +534,26 @@ fun ConnectionStatusIcon(status: JiminyConnectionStatus) {
     when (status) {
         JiminyConnectionStatus.Connected -> Icon(
             imageVector = Icons.Default.CloudDone,
-            contentDescription = "Connected",
+            contentDescription = stringResource(Res.string.connected),
             tint = Color(0xFF4CAF50),
         )
 
         JiminyConnectionStatus.Connecting -> Icon(
             imageVector = Icons.Default.Sync,
-            contentDescription = "Connecting",
+            contentDescription = stringResource(Res.string.connecting),
             tint = Color(0xFFFFC107),
             modifier = Modifier.graphicsLayer { rotationZ = rotation },
         )
 
         JiminyConnectionStatus.Disconnected -> Icon(
             imageVector = Icons.Default.CloudOff,
-            contentDescription = "Disconnected",
+            contentDescription = stringResource(Res.string.disconnected),
             tint = Color.Gray,
         )
 
         is JiminyConnectionStatus.Error -> Icon(
             imageVector = Icons.Default.Error,
-            contentDescription = "Error",
+            contentDescription = stringResource(Res.string.error),
             tint = MaterialTheme.colorScheme.error,
         )
     }

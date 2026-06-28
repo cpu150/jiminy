@@ -140,6 +140,10 @@ interface MainService {
         onError: (JiminyResponse) -> Unit,
     )
 
+    suspend fun reboot(
+        onError: (JiminyResponse) -> Unit,
+    )
+
     suspend fun updateServer(
         onError: (JiminyResponse) -> Unit,
     )
@@ -477,6 +481,19 @@ class MainServiceImpl(
             logMsg = "shutdown",
             tryBlock = {
                 handleHttpResponse("shutdown", serverService.shutdown())
+                    ?.let { onError(it) }
+            },
+            catchBlock = { error -> onError(error) },
+        )
+    }
+
+    override suspend fun reboot(
+        onError: (JiminyResponse) -> Unit,
+    ) {
+        handleExceptions(
+            logMsg = "reboot",
+            tryBlock = {
+                handleHttpResponse("reboot", serverService.reboot())
                     ?.let { onError(it) }
             },
             catchBlock = { error -> onError(error) },
