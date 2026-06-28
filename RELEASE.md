@@ -115,7 +115,7 @@ Before publishing, generate a preview of the release notes to ensure they are co
         ```bash
         gh release view v1.x --json body --template '{{.body}}'
         ```
-    2.  **AI Suggestion:** Generate aprecise but not too detailed, human-readable summary by analyzing the git history between the last tag and the new version.
+    2.  **AI Suggestion:** Generate a precise but not too detailed, human-readable summary by analyzing the git history between the last tag and the new version.
     3.  **Custom:** Allow the user to provide their own release note content.
 
     **[AI AGENT: STOP AND ASK]** You MUST present these three options (showing the content for options 1 and 2) and wait for the user's choice or custom input. DO NOT proceed until the user confirms the final notes.
